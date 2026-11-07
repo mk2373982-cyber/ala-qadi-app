@@ -41,6 +41,7 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserAccount | null>(null);
 
   // Settings Edit State
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -84,8 +85,15 @@ export default function AdminPage() {
   };
 
   const handleAdminLogout = () => {
-    sessionStorage.removeItem('ala_qaddi_admin_auth');
+    try {
+      sessionStorage.removeItem('ala_qaddi_admin_auth');
+      sessionStorage.clear();
+    } catch (e) {}
     setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      window.location.replace('/');
+      window.location.reload();
+    }
   };
 
   const fetchUsers = async () => {
@@ -146,21 +154,30 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`هل أنت متأكد من حذف حساب (${userName}) نهائياً؟`)) return;
+  const handleDeleteUser = async (userId: string) => {
+    // Optimistic UI update: remove user from state immediately!
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    setStats((prev) => ({
+      ...prev,
+      totalUsers: Math.max(0, prev.totalUsers - 1),
+    }));
+    setUserToDelete(null);
+    setActionMessage('تم حذف المستخدم بنجاح');
+    setTimeout(() => setActionMessage(null), 3000);
+
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete', userId }),
       });
-      if (res.ok) {
-        setActionMessage('تم حذف المستخدم');
+      if (!res.ok) {
+        // If server failed, refetch to restore
         fetchUsers();
-        setTimeout(() => setActionMessage(null), 3000);
       }
     } catch (e) {
       console.error(e);
+      fetchUsers();
     }
   };
 
@@ -648,7 +665,7 @@ export default function AdminPage() {
 
                             {/* Delete User */}
                             <button
-                              onClick={() => handleDeleteUser(u.id, u.name)}
+                              onClick={() => setUserToDelete(u)}
                               title="حذف الحساب نهائياً"
                               className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-colors"
                             >
@@ -664,6 +681,43 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal (100% Mobile & Standalone PWA friendly) */}
+        {userToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-slate-800 rounded-3xl max-w-sm w-full p-6 border border-slate-700 shadow-2xl text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div>
+                <h3 className="font-bold text-base text-white">تأكيد حذف الحساب نهائياً</h3>
+                <p className="text-xs text-slate-300 mt-1">
+                  هل أنت متأكد من حذف حساب المشترك:
+                </p>
+                <div className="mt-2 p-2 rounded-xl bg-slate-900 border border-slate-700">
+                  <div className="font-bold text-brand-400 text-sm">{userToDelete.name}</div>
+                  <div className="text-xs text-slate-400 font-mono" dir="ltr">{userToDelete.phone}</div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => handleDeleteUser(userToDelete.id)}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition-colors"
+                >
+                  نعم، احذف الحساب الآن
+                </button>
+                <button
+                  onClick={() => setUserToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs transition-colors"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

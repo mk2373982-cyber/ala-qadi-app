@@ -241,8 +241,18 @@ export const SettingsView: React.FC = () => {
           <p className="text-xs text-slate-400 mt-0.5">الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول</p>
         </div>
         <button
-          onClick={logout}
-          className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-colors flex items-center justify-center gap-2"
+          onClick={() => {
+            try {
+              localStorage.removeItem('ala_qaddi_user');
+              sessionStorage.clear();
+            } catch (e) {}
+            logout();
+            if (typeof window !== 'undefined') {
+              window.location.replace('/');
+              window.location.reload();
+            }
+          }}
+          className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-95"
         >
           <LogOut className="w-4 h-4" />
           <span>تسجيل خروج الآن</span>

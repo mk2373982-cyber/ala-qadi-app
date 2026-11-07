@@ -156,7 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    setUser(null);
     try {
       localStorage.removeItem('ala_qaddi_user');
       sessionStorage.removeItem('ala_qaddi_user');
@@ -164,8 +163,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(e);
     }
+    setUser(null);
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      window.location.replace('/');
+      window.location.reload();
     }
   };
 

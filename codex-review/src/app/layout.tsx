@@ -5,7 +5,7 @@ import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
   title: 'على قدي - إدارة مالية شخصية',
-  description: 'تطبيق إدارة مالية شخصية محلي وسهل الاستخدام، يحفظ بياناتك على جهازك ويعمل بدون إنترنت',
+  description: 'تطبيق إدارة مالية شخصية يحفظ حسابك وبياناتك على جهازك ويعمل بدون إنترنت',
   manifest: '/manifest.json',
   icons: {
     icon: '/icon.svg',
