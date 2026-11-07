@@ -15,10 +15,11 @@ import {
   Phone,
   Calendar,
   CheckCircle,
+  LogOut,
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
-  const { user, daysRemaining, refreshStatus, isOnline } = useAuth();
+  const { user, daysRemaining, refreshStatus, isOnline, logout } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -231,6 +232,21 @@ export const SettingsView: React.FC = () => {
             </ol>
           </div>
         </div>
+      </div>
+
+      {/* Logout Card */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h4 className="font-bold text-sm text-slate-800">تسجيل الخروج من الحساب</h4>
+          <p className="text-xs text-slate-400 mt-0.5">الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول</p>
+        </div>
+        <button
+          onClick={logout}
+          className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-colors flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>تسجيل خروج الآن</span>
+        </button>
       </div>
 
       {/* Danger Zone */}

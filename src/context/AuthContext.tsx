@@ -157,7 +157,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ala_qaddi_user');
+    try {
+      localStorage.removeItem('ala_qaddi_user');
+      sessionStorage.removeItem('ala_qaddi_user');
+      sessionStorage.removeItem('ala_qaddi_admin_auth');
+    } catch (e) {
+      console.error(e);
+    }
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   // Calculate license validity and days remaining

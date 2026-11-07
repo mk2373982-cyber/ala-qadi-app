@@ -69,11 +69,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           {/* User Profile / Logout */}
           {user && (
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+              }}
               title={`تسجيل خروج (${user.name})`}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 hover:border-rose-200 transition-all cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">خروج</span>
             </button>
           )}
         </div>
