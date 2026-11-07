@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#047857;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#ecfdf5" stroke-width="20" stroke-dasharray="8 8" opacity="0.3" />
+  
+  <!-- Wallet / Pocket Shape -->
+  <path d="M140 180 C140 160, 160 140, 185 140 L340 140 C365 140, 380 155, 380 180 L380 340 C380 365, 365 380, 340 380 L180 380 C155 380, 140 365, 140 340 Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M140 210 L380 210" stroke="#10b981" stroke-width="8" />
+  
+  <!-- Clasp & Coin -->
+  <rect x="290" y="240" width="90" height="70" rx="16" fill="#047857" />
+  <circle cx="330" cy="275" r="12" fill="#fbbf24" stroke="#d97706" stroke-width="4" />
+  
+  <!-- Arabic Calligraphy Text / Coin Detail -->
+  <circle cx="225" cy="285" r="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="6" />
+  <text x="225" y="295" font-family="Arial, Tahoma, sans-serif" font-size="28" font-weight="bold" fill="#b45309" text-anchor="middle">ج.م</text>
+</svg>
