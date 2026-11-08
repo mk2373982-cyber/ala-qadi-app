@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     if (typeof password === 'string' && verifyAdminPassword(password)) {
       const session = createAdminSession();
       return NextResponse.json({ success: true }, {
-        headers: { 'Set-Cookie': `ala_qaddi_admin=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/admin; Max-Age=28800` },
+        headers: { 'Set-Cookie': `ala_qaddi_admin=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/admin; Max-Age=2592000` },
       });
     }
 

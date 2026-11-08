@@ -54,12 +54,12 @@ export default function AdminPage() {
 
   // Check stored admin session
   useEffect(() => {
-    const session = sessionStorage.getItem('ala_qaddi_admin_auth');
+    const session = localStorage.getItem('ala_qaddi_admin_auth');
     if (session === 'true') {
       fetch('/api/admin/users').then((res) => {
         if (res.ok) { setIsAuthenticated(true); fetchUsers(); fetchSettings(); }
-        else sessionStorage.removeItem('ala_qaddi_admin_auth');
-      });
+        else localStorage.removeItem('ala_qaddi_admin_auth');
+      }).catch(() => localStorage.removeItem('ala_qaddi_admin_auth'));
     }
   }, []);
 
@@ -75,7 +75,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok) {
         setIsAuthenticated(true);
-        sessionStorage.setItem('ala_qaddi_admin_auth', 'true');
+        localStorage.setItem('ala_qaddi_admin_auth', 'true');
         fetchUsers();
         fetchSettings();
       } else {
@@ -88,8 +88,7 @@ export default function AdminPage() {
 
   const handleAdminLogout = () => {
     try {
-      sessionStorage.removeItem('ala_qaddi_admin_auth');
-      sessionStorage.clear();
+      localStorage.removeItem('ala_qaddi_admin_auth');
     } catch (e) {}
     void fetch('/api/admin/logout', { method: 'POST' });
     setIsAuthenticated(false);
@@ -172,23 +171,6 @@ export default function AdminPage() {
       setTimeout(() => setActionMessage(null), 3000);
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : 'تعذرت مراجعة الطلب');
-    }
-  };
-
-  const handleAuthorizeActivation = async (userId: string) => {
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'authorize_activation', userId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'تعذر اعتماد التحويل');
-      setActionMessage('تم اعتماد صورة التحويل. أرسل كود التفعيل للعميل على واتساب.');
-      await fetchUsers();
-      setTimeout(() => setActionMessage(null), 5000);
-    } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : 'تعذر اعتماد التحويل');
     }
   };
 
@@ -293,7 +275,7 @@ export default function AdminPage() {
                   className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-white text-sm focus:outline-none focus:border-brand-500"
                 />
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">كلمة المرور تُضبط في إعدادات النشر الآمنة.</p>
+              <p className="text-[11px] text-slate-500 mt-1">كلمة المرور تُضبط في إعدادات النشر الآمنة. سيتذكرك هذا الجهاز لمدة 30 يوماً.</p>
             </div>
 
             <button
@@ -631,13 +613,13 @@ export default function AdminPage() {
                           )}
                           {needsActivation && u.paymentStatus !== 'pending_review' && (
                             <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-100">
-                              <div>بعد استلام صورة الإيصال ومراجعتها على واتساب:</div>
-                              <button onClick={() => handleAuthorizeActivation(u.id)} className="mt-2 rounded bg-sky-600 px-2 py-1 font-bold text-white">اعتماد الصورة والسماح بالكود</button>
+                              <div>بعد مراجعة التحويل وصورة الإيصال على واتساب، فعّل الاشتراك من أزرار الباقة.</div>
+                              <button onClick={() => handleReviewPayment(u.id, 'confirm')} className="mt-2 rounded bg-emerald-600 px-2 py-1 font-bold text-white">تأكيد الدفع وتفعيل الباقة الحالية</button>
                             </div>
                           )}
                           {u.paymentStatus === 'pending_review' && (
                             <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
-                              <div className="font-bold">تم اعتماد التحويل — أرسل كود التفعيل للعميل</div>
+                              <div className="font-bold">طلب الدفع بانتظار قرارك</div>
                               {u.paymentSubmittedAt && <div>{new Date(u.paymentSubmittedAt).toLocaleString('ar-EG')}</div>}
                               <div className="mt-2 flex gap-2">
                                 <button onClick={() => handleReviewPayment(u.id, 'confirm')} className="rounded bg-emerald-600 px-2 py-1 font-bold text-white">تأكيد الدفع</button>

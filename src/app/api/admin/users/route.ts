@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { listUsers, updateUserStatus, deleteUser, reviewPayment, authorizeUserActivation, verifyAdminSession } from '@/lib/server-storage';
+import { listUsers, updateUserStatus, deleteUser, reviewPayment, verifyAdminSession } from '@/lib/server-storage';
 
 function authorized(req: NextRequest) { return verifyAdminSession(req.cookies.get('ala_qaddi_admin')?.value); }
 
@@ -53,11 +53,6 @@ export async function POST(req: NextRequest) {
 
     if (action === 'review_payment' && (decision === 'confirm' || decision === 'reject')) {
       const updated = await reviewPayment(userId, decision, plan);
-      return NextResponse.json({ success: true, user: updated });
-    }
-
-    if (action === 'authorize_activation' && typeof userId === 'string') {
-      const updated = await authorizeUserActivation(userId);
       return NextResponse.json({ success: true, user: updated });
     }
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Clock, AlertCircle, RefreshCw, Send, PhoneCall, LogOut, CheckCircle2 } from 'lucide-react';
+import { Clock, AlertCircle, RefreshCw, Send, LogOut } from 'lucide-react';
 
 interface PublicConfig {
   paymentPhone: string;
@@ -17,32 +17,6 @@ export const PendingScreen: React.FC = () => {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [activationCode, setActivationCode] = useState('');
-  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
-  const [isActivating, setIsActivating] = useState(false);
-
-  const activateWithCode = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!user || !activationCode.trim()) return;
-    setIsActivating(true);
-    setPaymentMessage(null);
-    try {
-      const response = await fetch('/api/auth/activate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, code: activationCode.trim() }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'تعذر تفعيل الاشتراك');
-      await refreshStatus();
-      setPaymentMessage('تم تفعيل اشتراكك بنجاح.');
-    } catch (error) {
-      setPaymentMessage(error instanceof Error ? error.message : 'تعذر تفعيل الاشتراك');
-    } finally {
-      setIsActivating(false);
-    }
-  };
-
   useEffect(() => {
     fetch('/api/public/config')
       .then((res) => res.json())
@@ -117,7 +91,7 @@ export const PendingScreen: React.FC = () => {
         {config && (
           <div className="min-w-0 bg-slate-50 rounded-2xl p-4 border border-slate-200 text-right mb-6 space-y-3">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-              طرق التحويل والتفعيل المباشر
+              طرق التحويل
             </div>
 
             {config.pricingNote && (
@@ -177,16 +151,11 @@ export const PendingScreen: React.FC = () => {
           </div>
         )}
 
-        {user?.status !== 'active' && (
-          <form onSubmit={activateWithCode} className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-right space-y-3">
-            <p className="text-sm font-bold text-slate-700">بعد التحويل، ابعت صورة الإيصال للمسؤول على واتساب. هيراجع الدفع ويبعتلك كود التفعيل.</p>
-            <label htmlFor="activation-code" className="block text-sm font-bold text-slate-700">أدخل كود التفعيل اللي وصلك</label>
-            <input id="activation-code" type="text" inputMode="numeric" autoComplete="one-time-code" dir="ltr" required maxLength={32} value={activationCode} onChange={(event) => setActivationCode(event.target.value)} className="block min-w-0 w-full max-w-full box-border rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono" placeholder="كود التفعيل" />
-            <button disabled={isActivating || !isOnline} className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
-              {isActivating ? 'جاري التفعيل...' : 'تفعيل الاشتراك بالكود'}
-            </button>
-            {paymentMessage && <p role="status" className="text-xs font-semibold text-slate-600">{paymentMessage}</p>}
-          </form>
+        {user?.status !== 'active' && !isExpired && !isSuspended && (
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-right space-y-2">
+            <p className="text-sm font-bold text-slate-700">بعد التحويل، أرسل صورة الإيصال للمسؤول عبر واتساب. سيفحص التحويل ويفعّل الاشتراك من لوحة الإدارة.</p>
+            <p className="text-xs text-slate-500">بعد ما يبلغك المسؤول بالتفعيل، اضغط «تحديث حالة التفعيل».</p>
+          </div>
         )}
 
         {/* WhatsApp Action Button */}

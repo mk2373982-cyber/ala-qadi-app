@@ -139,6 +139,7 @@ export async function updateUserStatus(userId: string, status: UserStatus, plan?
   const changes: Record<string, unknown> = { status };
   if (plan) changes.plan = plan;
   if (status === 'active') {
+    changes.payment_status = 'confirmed';
     changes.start_date = existing.startDate || new Date().toISOString();
     if (customEndDate !== undefined) changes.end_date = customEndDate;
     else if (plan) changes.end_date = calculateEndDate(plan);
@@ -146,41 +147,14 @@ export async function updateUserStatus(userId: string, status: UserStatus, plan?
   return patchUser(userId, changes);
 }
 
-export async function activateSubscriptionWithCode(userId: string, code: string) {
-  const configuredCode = process.env.SUBSCRIPTION_ACTIVATION_CODE;
-  if (!configuredCode) throw new Error('كود التفعيل غير مضبوط على السيرفر.');
-  const supplied = createHash('sha256').update(code.trim()).digest();
-  const expected = createHash('sha256').update(configuredCode.trim()).digest();
-  if (!timingSafeEqual(supplied, expected)) throw new Error('كود التفعيل غير صحيح.');
-
-  const user = await findUserById(userId);
-  if (!user) throw new Error('الحساب غير موجود.');
-  if (user.status === 'suspended') throw new Error('الحساب موقوف. تواصل مع المسؤول.');
-  if (user.paymentStatus !== 'pending_review') throw new Error('تواصل مع المسؤول بعد إرسال صورة التحويل على واتساب.');
-  if (user.status === 'active' && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
-    throw new Error('الاشتراك مفعل بالفعل.');
-  }
-
-  const plan = user.plan;
-  return patchUser(userId, {
-    status: 'active',
-    start_date: new Date().toISOString(),
-    end_date: calculateEndDate(plan),
-    payment_status: 'confirmed',
-  });
-}
-
-export async function authorizeUserActivation(userId: string) {
-  const user = await findUserById(userId);
-  if (!user) throw new Error('المستخدم غير موجود.');
-  if (user.status === 'suspended') throw new Error('لا يمكن تفعيل حساب موقوف.');
-  return patchUser(userId, { payment_status: 'pending_review', payment_submitted_at: new Date().toISOString() });
-}
-
 export async function reviewPayment(userId: string, decision: 'confirm' | 'reject', plan?: SubscriptionPlan) {
   const user = await findUserById(userId);
   if (!user) throw new Error('المستخدم غير موجود');
-  if (user.paymentStatus !== 'pending_review') throw new Error('لا يوجد طلب دفع بانتظار المراجعة');
+  if (user.status === 'suspended') throw new Error('لا يمكن تفعيل حساب موقوف.');
+  if (decision === 'reject' && user.paymentStatus !== 'pending_review') throw new Error('لا يوجد طلب دفع بانتظار المراجعة');
+  if (decision === 'confirm' && user.status === 'active' && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
+    throw new Error('الاشتراك مفعل بالفعل.');
+  }
   if (decision === 'reject') return patchUser(userId, { payment_status: 'rejected' });
   const activePlan = plan ?? user.plan;
   return patchUser(userId, { status: 'active', plan: activePlan, start_date: new Date().toISOString(), end_date: calculateEndDate(activePlan), payment_status: 'confirmed' });
@@ -231,7 +205,7 @@ export function createAdminSession() {
   const secret = process.env.ADMIN_PASSWORD;
   if (!secret) throw new Error('اضبط ADMIN_PASSWORD في إعدادات البيئة قبل استخدام لوحة الإدارة.');
   if (secret.length < 14) throw new Error('كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.');
-  const expiresAt = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
+  const expiresAt = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
   const signature = createHmac('sha256', secret).update(String(expiresAt)).digest('base64url');
   return `${expiresAt}.${signature}`;
 }
