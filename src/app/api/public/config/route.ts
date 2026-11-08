@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({
       paymentPhone: settings.paymentPhone,
       paymentInstapay: settings.paymentInstapay,
-      instagramUrl: settings.instagramUrl,
+      instapayLink: settings.instapayLink,
       whatsappNumber: settings.whatsappNumber,
       pricingNote: settings.pricingNote,
     });

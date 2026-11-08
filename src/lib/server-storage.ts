@@ -21,7 +21,7 @@ export interface UserAccount {
 export interface AdminSettings {
   paymentPhone: string;
   paymentInstapay: string;
-  instagramUrl: string;
+  instapayLink: string;
   whatsappNumber: string;
   pricingNote: string;
 }
@@ -190,7 +190,7 @@ export async function deleteUser(userId: string) {
   await db<unknown>('app_users', `?id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
 
-const defaultSettings: AdminSettings = { paymentPhone: '', paymentInstapay: '', instagramUrl: '', whatsappNumber: '', pricingNote: '' };
+const defaultSettings: AdminSettings = { paymentPhone: '', paymentInstapay: '', instapayLink: '', whatsappNumber: '', pricingNote: '' };
 
 export async function getSettings(): Promise<AdminSettings> {
   const rows = await db<{ value: Partial<AdminSettings> }[]>('app_settings', '?key=eq.payment&select=value&limit=1');
@@ -198,7 +198,7 @@ export async function getSettings(): Promise<AdminSettings> {
 }
 
 export async function updateSettings(settings: Partial<AdminSettings>) {
-  const allowed = { paymentPhone: settings.paymentPhone, paymentInstapay: settings.paymentInstapay, instagramUrl: settings.instagramUrl, whatsappNumber: settings.whatsappNumber, pricingNote: settings.pricingNote };
+  const allowed = { paymentPhone: settings.paymentPhone, paymentInstapay: settings.paymentInstapay, instapayLink: settings.instapayLink, whatsappNumber: settings.whatsappNumber, pricingNote: settings.pricingNote };
   const current = await getSettings();
   const value = { ...current, ...Object.fromEntries(Object.entries(allowed).filter(([, item]) => item !== undefined)) };
   await db('app_settings', '?key=eq.payment', { method: 'PATCH', body: JSON.stringify({ value, updated_at: new Date().toISOString() }) });

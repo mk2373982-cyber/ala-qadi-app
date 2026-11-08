@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 export interface UserSession {
   id: string;
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const hasLoggedOut = useRef(false);
 
   // Online / Offline tracking
   useEffect(() => {
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Periodic license check with server when online
   const refreshStatus = useCallback(async () => {
-    if (!user || !navigator.onLine) return;
+    if (!user || hasLoggedOut.current || !navigator.onLine) return;
 
     try {
       const res = await fetch('/api/auth/check-status', {
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
+        if (hasLoggedOut.current) return;
         if (data.status === 'revoked') {
           // Admin deleted or revoked user
           setUser((prev) => (prev ? { ...prev, status: 'suspended' } : null));
@@ -122,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...data.user,
         lastOnlineCheck: Date.now(),
       };
+      hasLoggedOut.current = false;
       setUser(session);
       localStorage.setItem('ala_qaddi_user', JSON.stringify(session));
       return { success: true };
@@ -147,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...data.user,
         lastOnlineCheck: Date.now(),
       };
+      hasLoggedOut.current = false;
       setUser(session);
       localStorage.setItem('ala_qaddi_user', JSON.stringify(session));
       return { success: true };
@@ -156,18 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (hasLoggedOut.current) return;
+    hasLoggedOut.current = true;
     try {
       localStorage.removeItem('ala_qaddi_user');
       sessionStorage.removeItem('ala_qaddi_user');
-      sessionStorage.removeItem('ala_qaddi_admin_auth');
     } catch (e) {
       console.error(e);
     }
     setUser(null);
-    if (typeof window !== 'undefined') {
-      window.location.replace('/');
-      window.location.reload();
-    }
   };
 
   // Calculate license validity and days remaining

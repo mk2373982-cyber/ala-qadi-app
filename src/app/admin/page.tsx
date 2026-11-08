@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [paymentPhone, setPaymentPhone] = useState('');
   const [paymentInstapay, setPaymentInstapay] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
+  const [instapayLink, setInstapayLink] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [pricingNote, setPricingNote] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -123,7 +123,7 @@ export default function AdminPage() {
         setSettings(data.settings);
         setPaymentPhone(data.settings.paymentPhone);
         setPaymentInstapay(data.settings.paymentInstapay);
-        setInstagramUrl(data.settings.instagramUrl || '');
+        setInstapayLink(data.settings.instapayLink || '');
         setWhatsappNumber(data.settings.whatsappNumber);
         setPricingNote(data.settings.pricingNote);
       }
@@ -225,7 +225,7 @@ export default function AdminPage() {
       const payload: Partial<AdminSettings> = {
         paymentPhone,
         paymentInstapay,
-        instagramUrl,
+        instapayLink,
         whatsappNumber,
         pricingNote,
       };
@@ -464,16 +464,16 @@ export default function AdminPage() {
               </div>
 
               <div className="min-w-0">
-                <label className="block text-xs font-bold text-slate-300 mb-1">رابط إنستجرام للتواصل مع العميل</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">رابط InstaPay للتحويل المباشر</label>
                 <input
                   type="url"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
-                  placeholder="https://www.instagram.com/username/"
+                  value={instapayLink}
+                  onChange={(e) => setInstapayLink(e.target.value)}
+                  placeholder="https://ipn.eg/S/..."
                   className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   dir="ltr"
                 />
-                <span className="block mt-1 text-[10px] text-slate-500">سيظهر للعميل كرابط يفتح حساب إنستجرام مباشرة.</span>
+                <span className="block mt-1 text-[10px] text-slate-500">الصق رابط المشاركة الذي تنشئه من تطبيق InstaPay، وسيظهر زر للعميل لفتحه مباشرة.</span>
               </div>
 
               <div>

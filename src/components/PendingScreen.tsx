@@ -7,7 +7,7 @@ import { Clock, AlertCircle, RefreshCw, Send, PhoneCall, LogOut, CheckCircle2 } 
 interface PublicConfig {
   paymentPhone: string;
   paymentInstapay: string;
-  instagramUrl: string;
+  instapayLink: string;
   whatsappNumber: string;
   pricingNote: string;
 }
@@ -162,16 +162,16 @@ export const PendingScreen: React.FC = () => {
               </div>
             )}
 
-            {config.instagramUrl && (
+            {config.instapayLink && (
               <a
-                href={/^https:\/\/(www\.)?instagram\.com\//i.test(config.instagramUrl) ? config.instagramUrl : undefined}
+                href={/^https:\/\/ipn\.eg\//i.test(config.instapayLink) ? config.instapayLink : undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block min-w-0 max-w-full rounded-xl bg-white border border-slate-200 p-3 text-left text-sm font-semibold text-pink-700 underline break-all"
+                className="block min-w-0 max-w-full rounded-xl bg-pink-50 border border-pink-200 p-3 text-center text-sm font-bold text-pink-700 hover:bg-pink-100 active:scale-[0.99] transition break-all"
                 dir="ltr"
-                aria-label="فتح حساب إنستجرام"
+                aria-label="فتح رابط InstaPay للتحويل"
               >
-                {config.instagramUrl}
+                تحويل مباشر عبر InstaPay ↗
               </a>
             )}
           </div>
