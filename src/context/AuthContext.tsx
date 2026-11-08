@@ -105,7 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user && isOnline) {
       refreshStatus();
     }
-  }, [isOnline, user?.id, refreshStatus]);
+    // Refresh only when the account or connection changes. `refreshStatus` updates
+    // the user object, so depending on the callback here would cause a request loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, user?.id]);
 
   const login = async (phone: string, pass: string) => {
     try {
