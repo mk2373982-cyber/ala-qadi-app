@@ -1,21 +1,25 @@
 import { NextResponse } from 'next/server';
-import { getSystemData, updateSettings } from '@/lib/server-storage';
+import { NextRequest } from 'next/server';
+import { getSettings, updateSettings, verifyAdminSession } from '@/lib/server-storage';
 
-export async function GET() {
+function authorized(req: NextRequest) { return verifyAdminSession(req.cookies.get('ala_qaddi_admin')?.value); }
+
+export async function GET(req: NextRequest) {
+  if (!authorized(req)) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   try {
-    const data = getSystemData();
     return NextResponse.json({
-      settings: data.settings,
+      settings: await getSettings(),
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  if (!authorized(req)) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   try {
     const body = await req.json();
-    const updated = updateSettings(body);
+    const updated = await updateSettings(body);
     return NextResponse.json({ success: true, settings: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

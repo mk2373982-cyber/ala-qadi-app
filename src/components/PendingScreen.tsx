@@ -16,6 +16,30 @@ export const PendingScreen: React.FC = () => {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const submitPaymentRequest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user || paymentReference.trim().length < 3) return;
+    setIsSubmittingPayment(true);
+    setPaymentMessage(null);
+    try {
+      const response = await fetch('/api/auth/payment-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, reference: paymentReference.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'تعذر إرسال الطلب');
+      setPaymentMessage('وصل طلبك. التفعيل يتم بعد مراجعة التحويل من الإدارة.');
+    } catch (error) {
+      setPaymentMessage(error instanceof Error ? error.message : 'تعذر إرسال الطلب');
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/public/config')
@@ -136,6 +160,17 @@ export const PendingScreen: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {user?.status !== 'active' && (
+          <form onSubmit={submitPaymentRequest} className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-right space-y-3">
+            <label htmlFor="payment-reference" className="block text-sm font-bold text-slate-700">بعد التحويل، اكتب رقم العملية أو مرجع التحويل</label>
+            <input id="payment-reference" required minLength={3} maxLength={100} value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="رقم العملية" />
+            <button disabled={isSubmittingPayment || !isOnline} className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+              {isSubmittingPayment ? 'جاري إرسال الطلب...' : 'إرسال طلب مراجعة الدفع'}
+            </button>
+            {paymentMessage && <p role="status" className="text-xs font-semibold text-slate-600">{paymentMessage}</p>}
+          </form>
         )}
 
         {/* WhatsApp Action Button */}

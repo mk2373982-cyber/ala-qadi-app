@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createUser, findUserByPhone } from '@/lib/server-storage';
+import { createUser } from '@/lib/server-storage';
 
 export async function POST(req: Request) {
   try {
@@ -13,12 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'كلمة المرور يجب ألا تقل عن 3 أحرف' }, { status: 400 });
     }
 
-    const existing = findUserByPhone(phone);
-    if (existing) {
-      return NextResponse.json({ error: 'رقم الهاتف مسجل بالفعل' }, { status: 400 });
-    }
-
-    const newUser = createUser(name, phone, password);
+    const newUser = await createUser(name, phone, password);
 
     return NextResponse.json({
       success: true,

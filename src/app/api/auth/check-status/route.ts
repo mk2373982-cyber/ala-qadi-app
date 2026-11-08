@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'معرف المستخدم غير موجود' }, { status: 400 });
     }
 
-    const user = findUserById(userId);
+    const user = await findUserById(userId);
     if (!user) {
       return NextResponse.json({ status: 'revoked', message: 'تم إيقاف أو حذف الحساب' });
     }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { findUserByPhone } from '@/lib/server-storage';
+import { verifyUserPassword } from '@/lib/server-storage';
 
 export async function POST(req: Request) {
   try {
@@ -9,9 +9,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'يرجى إدخال الهاتف وكلمة المرور' }, { status: 400 });
     }
 
-    const user = findUserByPhone(phone);
-    if (!user || user.password !== password.trim()) {
+    const user = await verifyUserPassword(phone, password.trim());
+    if (!user) {
       return NextResponse.json({ error: 'رقم الهاتف أو كلمة المرور غير صحيحة' }, { status: 401 });
+    }
+
+    if (user.status === 'active' && user.endDate && Date.now() > new Date(user.endDate).getTime()) {
+      return NextResponse.json({ error: 'انتهى الاشتراك، يرجى تجديده للمتابعة' }, { status: 403 });
     }
 
     // Check expiration if user has an end date

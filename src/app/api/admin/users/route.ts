@@ -1,15 +1,17 @@
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { getSystemData, updateUserStatus, deleteUser, UserAccount } from '@/lib/server-storage';
+import { listUsers, updateUserStatus, deleteUser, reviewPayment, verifyAdminSession } from '@/lib/server-storage';
 
-export async function GET(req: Request) {
+function authorized(req: NextRequest) { return verifyAdminSession(req.cookies.get('ala_qaddi_admin')?.value); }
+
+export async function GET(req: NextRequest) {
+  if (!authorized(req)) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   try {
-    const authHeader = req.headers.get('authorization');
-    // Simple admin check
-    const data = getSystemData();
+    const users = await listUsers();
 
     // Check expiration status for each user
     const now = new Date();
-    const formattedUsers = data.users.map((u) => {
+    const formattedUsers = users.map((u) => {
       let currentStatus = u.status;
       if (currentStatus === 'active' && u.endDate) {
         if (now > new Date(u.endDate)) {
@@ -44,17 +46,23 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  if (!authorized(req)) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   try {
-    const { action, userId, status, plan, customEndDate } = await req.json();
+    const { action, userId, status, plan, customEndDate, decision } = await req.json();
+
+    if (action === 'review_payment' && (decision === 'confirm' || decision === 'reject')) {
+      const updated = await reviewPayment(userId, decision, plan);
+      return NextResponse.json({ success: true, user: updated });
+    }
 
     if (action === 'delete') {
-      deleteUser(userId);
+      await deleteUser(userId);
       return NextResponse.json({ success: true, message: 'تم حذف المستخدم' });
     }
 
     if (action === 'update_status') {
-      const updated = updateUserStatus(userId, status, plan, customEndDate);
+      const updated = await updateUserStatus(userId, status, plan, customEndDate);
       return NextResponse.json({ success: true, user: updated });
     }
 
