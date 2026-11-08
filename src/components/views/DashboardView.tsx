@@ -32,6 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
   const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
   const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
+  const [debtMonthOffset, setDebtMonthOffset] = useState<0 | 1>(0);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
   const [monthlyBudgetLimit, setMonthlyBudgetLimit] = useState<number>(0);
@@ -40,6 +41,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  const selectedDebtMonthStr = debtMonthOffset === 0 ? currentMonthStr : nextMonthStr;
+  const selectedDebtMonthLabel = new Date(
+    Number(selectedDebtMonthStr.slice(0, 4)),
+    Number(selectedDebtMonthStr.slice(5, 7)) - 1,
+    1
+  ).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
 
   const loadData = async () => {
     // Current month transactions
@@ -55,7 +64,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const debts = await db.debts.filter((d) => !d.isCompleted).toArray();
     setDebtsDueThisMonth(
       debts
-        .filter((debt) => debt.type === 'on_me' && debt.dueDate?.startsWith(currentMonthStr))
+        .filter((debt) => debt.type === 'on_me' && (debt.dueDate?.startsWith(currentMonthStr) || debt.dueDate?.startsWith(nextMonthStr)))
         .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
     );
     const toMe = debts
@@ -108,7 +117,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ? Math.min(Math.round((currentMonthExpense / monthlyBudgetLimit) * 100), 100)
       : 0;
   const remainingBudget = monthlyBudgetLimit > 0 ? monthlyBudgetLimit - currentMonthExpense : 0;
-  const dueThisMonthTotal = debtsDueThisMonth.reduce(
+  const selectedMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(selectedDebtMonthStr));
+  const currentMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(currentMonthStr));
+  const nextMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(nextMonthStr));
+  const getDueTotal = (debts: Debt[]) => debts.reduce(
     (sum, debt) => sum + Math.max(0, debt.totalAmount - debt.paidAmount),
     0
   );
@@ -281,30 +293,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </div>
 
-      {/* Debts due this month */}
+      {/* Debts due this month or next month */}
       <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-orange-100 px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-orange-100 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
               <Clock3 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ هذا الشهر</h3>
+              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ</h3>
               <p className="mt-0.5 text-[11px] text-slate-500">
-                {new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })} · حسب تاريخ الاستحقاق
+                {selectedDebtMonthLabel} · حسب تاريخ الاستحقاق
               </p>
             </div>
           </div>
-          <div className="shrink-0 rounded-xl bg-orange-100 px-3 py-2 text-left">
-            <div className="text-[10px] font-bold text-orange-700">المتبقي</div>
-            <div className="text-sm font-black text-orange-800" dir="ltr">
-              {dueThisMonthTotal.toLocaleString('ar-EG')} ج.م
-            </div>
-          </div>
         </div>
-        {debtsDueThisMonth.length ? (
+        <div className="grid grid-cols-2 gap-2.5 px-5 pt-4">
+          {([0, 1] as const).map((offset) => {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
+            const monthTotal = getDueTotal(monthDebts);
+            const isSelected = debtMonthOffset === offset;
+            return (
+              <button
+                key={offset}
+                type="button"
+                onClick={() => setDebtMonthOffset(offset)}
+                aria-pressed={isSelected}
+                className={`rounded-2xl border p-3 text-right transition active:scale-[0.98] ${isSelected ? 'border-orange-500 bg-orange-600 text-white shadow-md shadow-orange-600/15' : 'border-orange-100 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50/60'}`}
+              >
+                <span className={`block text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
+                  {offset === 0 ? 'هذا الشهر' : 'الشهر القادم'} · {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
+                </span>
+                <span className="mt-1 block text-sm font-black" dir="ltr">{monthTotal.toLocaleString('ar-EG')} ج.م</span>
+                <span className={`mt-1 block text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}>
+                  {monthDebts.length.toLocaleString('ar-EG')} {monthDebts.length === 1 ? 'دين مستحق' : 'ديون مستحقة'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {selectedMonthDebts.length ? (
           <div className="divide-y divide-orange-100/80 px-5">
-            {debtsDueThisMonth.map((debt) => (
+            {selectedMonthDebts.map((debt) => (
               <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <div className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</div>
@@ -324,7 +355,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="px-5 py-5 text-center text-xs text-slate-500">
-            لا توجد ديون عليك غير مكتملة بتاريخ استحقاق خلال هذا الشهر.
+            لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
           </div>
         )}
         <button
