@@ -233,7 +233,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Unified money overview */}
       <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-[#f0f8f3] via-white to-[#e7f4ed] shadow-[0_14px_40px_-28px_rgba(5,94,62,0.42)]">
         <div className="p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-800 text-white shadow-md shadow-emerald-900/15">
                 <Wallet className="h-5 w-5" />
@@ -243,11 +243,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <p className="mt-0.5 text-[11px] text-slate-500">اضغط على أي مكان لتعديل بياناته</p>
               </div>
             </div>
-            <div className="shrink-0">
-              <button type="button" onClick={openWalletAdd} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-3 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-emerald-900 sm:px-4">
-                <Plus className="h-4 w-4" /> إضافة مكان
-              </button>
-            </div>
+            <button type="button" onClick={openWalletAdd} className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-emerald-800 px-2.5 py-2.5 text-[11px] font-extrabold text-white shadow-sm transition hover:bg-emerald-900 sm:gap-1.5 sm:px-4 sm:text-xs">
+              <Plus className="h-4 w-4" /> إضافة مكان
+            </button>
           </div>
 
           <div className="relative mt-4 overflow-hidden rounded-[22px] bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 px-4 py-4 text-white shadow-lg shadow-emerald-950/15 sm:px-5">
@@ -265,20 +263,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {wallets.length ? (
-            <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
               {wallets.map((wallet) => {
                 const info = walletKindInfo[wallet.kind];
                 const Icon = info.Icon;
                 return (
-                  <button type="button" aria-label={`تعديل ${wallet.name}`} onClick={() => openWalletEdit(wallet)} className="min-w-0 rounded-2xl border border-white/90 bg-white/90 p-3 text-right shadow-sm ring-1 ring-emerald-950/[0.035] transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
-                    <div className="flex items-start gap-2">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${info.color}`}><Icon className="h-4 w-4" /></div>
+                  <button type="button" aria-label={`تعديل ${wallet.name}`} onClick={() => openWalletEdit(wallet)} className="min-w-0 rounded-2xl border border-white/90 bg-white/90 p-2 text-right shadow-sm ring-1 ring-emerald-950/[0.035] transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:p-3">
+                    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9 sm:rounded-xl ${info.color}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
                       <div className="min-w-0 flex-1 pt-0.5">
-                        <div className="truncate text-[10px] font-bold text-slate-500">{info.label}</div>
-                        <div className="mt-0.5 truncate text-xs font-black text-slate-800">{wallet.name}</div>
+                        <div className="truncate text-[9px] font-bold text-slate-500 sm:text-[10px]">{info.label}</div>
+                        <div className="mt-0.5 truncate text-[10px] font-black text-slate-800 sm:text-xs">{wallet.name}</div>
                       </div>
                     </div>
-                    <div className="mt-3 truncate text-sm font-black text-slate-950" dir="ltr">{wallet.balance.toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-500">ج.م</span></div>
+                    <div className="mt-2 truncate text-[11px] font-black text-slate-950 sm:mt-3 sm:text-sm" dir="ltr">{wallet.balance.toLocaleString('ar-EG')} <span className="text-[9px] font-bold text-slate-500 sm:text-[10px]">ج.م</span></div>
                   </button>
                 );
               })}
