@@ -11,15 +11,17 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownLeft,
-  Calendar,
-  AlertTriangle,
   ChevronLeft,
   Clock3,
   CreditCard,
   Smartphone,
-  PlusCircle,
+  Pencil,
+  Trash2,
+  X,
+  ChevronRight,
 } from 'lucide-react';
 import { TabType } from '../Navigation';
+import { askForConfirmation } from '@/lib/confirm-action';
 
 interface DashboardViewProps {
   onOpenAddModal: () => void;
@@ -45,6 +47,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isWalletFormOpen, setIsWalletFormOpen] = useState(false);
+  const [editingWalletId, setEditingWalletId] = useState<number | null>(null);
   const [walletName, setWalletName] = useState('');
   const [walletKind, setWalletKind] = useState<WalletAccount['kind']>('cash');
   const [walletOpeningBalance, setWalletOpeningBalance] = useState('0');
@@ -165,22 +169,58 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const handleAddWallet = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const balance = Number(walletOpeningBalance);
-    if (!walletName.trim() || !Number.isFinite(balance)) return;
-    const wallet: WalletAccount = {
-      name: walletName.trim(),
-      kind: walletKind,
-      balance,
-      createdAt: Date.now(),
-    };
-    await db.wallets.add(wallet);
-    setWallets(await db.wallets.toArray());
+  const openWalletManager = (showForm = false) => {
+    setEditingWalletId(null);
     setWalletName('');
     setWalletOpeningBalance('0');
     setWalletKind('cash');
-    setIsWalletModalOpen(false);
+    setIsWalletFormOpen(showForm);
+    setIsWalletModalOpen(true);
+  };
+
+  const openWalletEdit = (wallet: WalletAccount) => {
+    setEditingWalletId(wallet.id ?? null);
+    setWalletName(wallet.name);
+    setWalletKind(wallet.kind);
+    setWalletOpeningBalance(String(wallet.balance));
+    setIsWalletFormOpen(true);
+  };
+
+  const handleSaveWallet = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const balance = Number(walletOpeningBalance);
+    if (!walletName.trim() || !Number.isFinite(balance)) return;
+    if (editingWalletId !== null) {
+      await db.wallets.update(editingWalletId, { name: walletName.trim(), kind: walletKind, balance });
+    } else {
+      await db.wallets.add({ name: walletName.trim(), kind: walletKind, balance, createdAt: Date.now() });
+    }
+    setWallets(await db.wallets.toArray());
+    setIsWalletFormOpen(false);
+    setEditingWalletId(null);
+  };
+
+  const handleDeleteWallet = async (wallet: WalletAccount) => {
+    if (wallet.id === undefined) return;
+    const linkedTransactions = await db.transactions.where('walletId').equals(wallet.id).count();
+    const confirmed = await askForConfirmation({
+      title: 'حذف المكان المالي',
+      message: linkedTransactions
+        ? `سيتم حذف «${wallet.name}» وفصلها عن ${linkedTransactions} معاملة سابقة. المعاملات نفسها ستظل محفوظة. هل تريد المتابعة؟`
+        : `هل تريد حذف «${wallet.name}»؟`,
+      itemName: wallet.name,
+      confirmLabel: 'حذف المكان',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      const transactions = await db.transactions.where('walletId').equals(wallet.id!).toArray();
+      await Promise.all(transactions.map((transaction) => db.transactions.update(transaction.id!, { walletId: undefined })));
+      await db.wallets.delete(wallet.id!);
+    });
+    setWallets(await db.wallets.toArray());
+    if (editingWalletId === wallet.id) setIsWalletFormOpen(false);
   };
 
   const walletKindInfo: Record<WalletAccount['kind'], { label: string; Icon: typeof Wallet; color: string }> = {
@@ -193,44 +233,65 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-5 pb-16">
       {/* Unified money overview */}
-      <section className="overflow-hidden rounded-3xl border border-emerald-200 bg-[#edf5ef] shadow-sm">
+      <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-[#f0f8f3] via-white to-[#e7f4ed] shadow-[0_14px_40px_-28px_rgba(5,94,62,0.42)]">
         <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-emerald-800">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-800 text-white shadow-md shadow-emerald-900/15">
                 <Wallet className="h-5 w-5" />
-                <h2 className="text-base font-black">ملخص أموالي</h2>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">الأرصدة المسجلة في {wallets.length} أماكن</p>
+              <div className="min-w-0">
+                <h2 className="text-base font-black text-slate-900">ملخص أموالي</h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">كل أماكن أموالك في مكان واحد</p>
+              </div>
             </div>
-            <button type="button" onClick={() => setIsWalletModalOpen(true)} className="flex items-center gap-1 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50">
-              <Plus className="h-4 w-4" /> إضافة مكان
-            </button>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button type="button" onClick={() => openWalletManager()} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-xs font-extrabold text-emerald-900 shadow-sm transition hover:bg-emerald-50 sm:flex-none">
+                <Pencil className="h-3.5 w-3.5" /> إدارة الأماكن
+              </button>
+              <button type="button" onClick={() => openWalletManager(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-3 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-emerald-900 sm:flex-none">
+                <Plus className="h-4 w-4" /> إضافة مكان
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-emerald-800 px-4 py-3 text-white">
-            <div className="text-[11px] text-emerald-100">إجمالي رصيدك الحالي</div>
-            <div className="mt-1 text-2xl font-black" dir="ltr">{totalWalletBalance.toLocaleString('ar-EG')} ج.م</div>
+          <div className="relative mt-4 overflow-hidden rounded-[22px] bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 px-4 py-4 text-white shadow-lg shadow-emerald-950/15 sm:px-5">
+            <div className="pointer-events-none absolute -left-8 -top-12 h-36 w-36 rounded-full border-[18px] border-white/5" />
+            <div className="relative flex items-end justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-semibold text-emerald-100">إجمالي رصيدك الحالي</div>
+                <div className="mt-1 text-2xl font-black tracking-tight sm:text-3xl" dir="ltr">{totalWalletBalance.toLocaleString('ar-EG')} <span className="text-sm font-bold text-emerald-100">ج.م</span></div>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-center backdrop-blur-sm">
+                <div className="text-lg font-black leading-none">{wallets.length.toLocaleString('ar-EG')}</div>
+                <div className="mt-1 text-[9px] font-semibold text-emerald-100">أماكن مالية</div>
+              </div>
+            </div>
           </div>
 
           {wallets.length ? (
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
               {wallets.map((wallet) => {
                 const info = walletKindInfo[wallet.kind];
                 const Icon = info.Icon;
                 return (
-                  <div key={wallet.id} className="min-w-0 rounded-2xl border border-white bg-white/80 p-2.5 text-center">
-                    <div className={`mx-auto flex h-8 w-8 items-center justify-center rounded-xl ${info.color}`}><Icon className="h-4 w-4" /></div>
-                    <div className="mt-1 truncate text-[10px] font-bold text-slate-600">{wallet.name}</div>
-                    <div className="mt-0.5 truncate text-xs font-black text-slate-800" dir="ltr">{wallet.balance.toLocaleString('ar-EG')} ج.م</div>
+                  <div key={wallet.id} className="min-w-0 rounded-2xl border border-white/90 bg-white/90 p-3 shadow-sm ring-1 ring-emerald-950/[0.035]">
+                    <div className="flex items-start gap-2">
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${info.color}`}><Icon className="h-4 w-4" /></div>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <div className="truncate text-[10px] font-bold text-slate-500">{info.label}</div>
+                        <div className="mt-0.5 truncate text-xs font-black text-slate-800">{wallet.name}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 truncate text-sm font-black text-slate-950" dir="ltr">{wallet.balance.toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-500">ج.م</span></div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="mt-3 rounded-2xl border border-dashed border-emerald-300 bg-white/60 p-3 text-center text-xs text-slate-600">
-              أضف أول مكان تسجل فيه رصيدك، مثل الكاش أو الفيزا.
-            </div>
+            <button type="button" onClick={() => openWalletManager(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-300 bg-white/75 px-4 py-5 text-center text-xs font-bold text-emerald-900 transition hover:bg-white">
+              <Plus className="h-4 w-4" /> أضف أول مكان لأموالك، مثل الكاش أو الفيزا أو محفظة الموبايل
+            </button>
           )}
 
           <div className="mt-4 grid grid-cols-2 gap-2 border-y border-emerald-200 py-3">
@@ -281,15 +342,84 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </section>
 
       {isWalletModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsWalletModalOpen(false); }}>
-          <form onSubmit={handleAddWallet} className="w-full max-w-sm space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <div className="flex items-center justify-between"><h3 className="text-base font-black text-slate-800">إضافة مكان للأموال</h3><button type="button" onClick={() => setIsWalletModalOpen(false)} className="rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100">✕</button></div>
-            <div><label className="mb-1 block text-xs font-bold text-slate-600">اسم المكان</label><input required maxLength={32} value={walletName} onChange={(event) => setWalletName(event.target.value)} placeholder="مثال: كاش البيت، فيزا البنك" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" /></div>
-            <div><label className="mb-1 block text-xs font-bold text-slate-600">النوع</label><select value={walletKind} onChange={(event) => setWalletKind(event.target.value as WalletAccount['kind'])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="cash">كاش</option><option value="card">فيزا / بطاقة بنكية</option><option value="mobile">محفظة موبايل</option><option value="other">مكان آخر</option></select></div>
-            <div><label className="mb-1 block text-xs font-bold text-slate-600">الرصيد الموجود حاليًا</label><input required type="number" step="0.01" value={walletOpeningBalance} onChange={(event) => setWalletOpeningBalance(event.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" /></div>
-            <p className="text-[11px] leading-5 text-slate-500">أدخل الرصيد الموجود الآن. الحركات الجديدة ستزيده أو تخصم منه تلقائيًا.</p>
-            <button type="submit" className="w-full rounded-xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800">حفظ المكان</button>
-          </form>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsWalletModalOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="wallet-dialog-title" className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-emerald-100 bg-[#f8fbf9] shadow-2xl sm:rounded-[28px]">
+            <header className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                {isWalletFormOpen && <button type="button" aria-label="العودة لإدارة الأماكن" onClick={() => setIsWalletFormOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800"><Wallet className="h-5 w-5" /></div>
+                <div className="min-w-0">
+                  <h3 id="wallet-dialog-title" className="truncate text-sm font-black text-slate-900">{isWalletFormOpen ? (editingWalletId === null ? 'إضافة مكان مالي' : 'تعديل المكان المالي') : 'إدارة أموالي'}</h3>
+                  <p className="mt-0.5 truncate text-[10px] text-slate-500">{isWalletFormOpen ? 'حدّث الاسم والنوع والرصيد الحالي' : 'تحكم في الكاش والبطاقات والمحافظ'}</p>
+                </div>
+              </div>
+              <button type="button" aria-label="إغلاق" onClick={() => setIsWalletModalOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"><X className="h-4 w-4" /></button>
+            </header>
+
+            <div className="overflow-y-auto p-4 sm:p-5">
+              {isWalletFormOpen ? (
+                <form onSubmit={handleSaveWallet} className="space-y-4">
+                  <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4">
+                    <div className="mb-4 flex items-center gap-2 text-xs font-black text-emerald-950"><Plus className="h-4 w-4" /> بيانات المكان</div>
+                    <div className="space-y-3">
+                      <div>
+                        <label htmlFor="wallet-name" className="mb-1.5 block text-[11px] font-extrabold text-slate-700">اسم واضح للمكان</label>
+                        <input id="wallet-name" required maxLength={32} value={walletName} onChange={(event) => setWalletName(event.target.value)} placeholder="مثال: كاش البيت، فيزا البنك، فودافون كاش" className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" />
+                      </div>
+                      <div>
+                        <label htmlFor="wallet-kind" className="mb-1.5 block text-[11px] font-extrabold text-slate-700">نوع المكان</label>
+                        <select id="wallet-kind" value={walletKind} onChange={(event) => setWalletKind(event.target.value as WalletAccount['kind'])} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"><option value="cash">كاش</option><option value="card">فيزا / بطاقة بنكية</option><option value="mobile">محفظة موبايل</option><option value="other">مكان آخر</option></select>
+                      </div>
+                      <div>
+                        <label htmlFor="wallet-balance" className="mb-1.5 block text-[11px] font-extrabold text-slate-700">{editingWalletId === null ? 'الرصيد الموجود الآن' : 'الرصيد الحالي'}</label>
+                        <div className="relative">
+                          <input id="wallet-balance" required type="number" step="0.01" value={walletOpeningBalance} onChange={(event) => setWalletOpeningBalance(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-14 pr-3.5 text-sm font-bold outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" dir="ltr" />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">ج.م</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="rounded-xl bg-sky-50 px-3 py-2.5 text-[10px] leading-5 text-sky-900">الحركات الجديدة ستضيف أو تخصم من الرصيد تلقائيًا. تعديل الرصيد هنا يصحح الرصيد الحالي ولا يغيّر سجل معاملاتك السابقة.</p>
+                  <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 py-3.5 text-sm font-black text-white shadow-md shadow-emerald-900/10 transition hover:bg-emerald-900 active:scale-[0.99]"><Pencil className="h-4 w-4" />{editingWalletId === null ? 'حفظ المكان' : 'حفظ التعديلات'}</button>
+                </form>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 p-4 text-white shadow-md shadow-emerald-950/10">
+                    <div><div className="text-[10px] font-semibold text-emerald-100">إجمالي الأرصدة</div><div className="mt-1 text-xl font-black" dir="ltr">{totalWalletBalance.toLocaleString('ar-EG')} <span className="text-xs text-emerald-100">ج.م</span></div></div>
+                    <button type="button" onClick={() => openWalletManager(true)} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-[11px] font-black text-emerald-950 shadow-sm transition hover:bg-emerald-50"><Plus className="h-4 w-4" />إضافة مكان</button>
+                  </div>
+                  {wallets.length ? (
+                    <div className="mt-3 space-y-2">
+                      {wallets.map((wallet) => {
+                        const info = walletKindInfo[wallet.kind];
+                        const Icon = info.Icon;
+                        return (
+                          <article key={wallet.id} className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${info.color}`}><Icon className="h-4 w-4" /></div>
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-xs font-black text-slate-800">{wallet.name}</div>
+                              <div className="mt-0.5 text-[10px] font-medium text-slate-500">{info.label}</div>
+                              <div className="mt-1 text-xs font-black text-emerald-900" dir="ltr">{wallet.balance.toLocaleString('ar-EG')} ج.م</div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <button type="button" aria-label={`تعديل ${wallet.name}`} onClick={() => openWalletEdit(wallet)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-800 transition hover:bg-sky-100"><Pencil className="h-3.5 w-3.5" /></button>
+                              <button type="button" aria-label={`حذف ${wallet.name}`} onClick={() => void handleDeleteWallet(wallet)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-700 transition hover:bg-rose-100"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-2xl border border-dashed border-emerald-200 bg-white px-4 py-8 text-center">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800"><Wallet className="h-5 w-5" /></div>
+                      <div className="mt-3 text-xs font-black text-slate-800">لسه مفيش أماكن مالية</div>
+                      <p className="mt-1 text-[10px] text-slate-500">أضف الكاش أو الفيزا أو محفظة الموبايل لمتابعة رصيدك.</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
         </div>
       )}
 
