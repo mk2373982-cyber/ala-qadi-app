@@ -32,7 +32,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TRIAL_STARTED_KEY = 'ala_qaddi_trial_started_at';
-const TRIAL_DURATION_MS = 24 * 60 * 60 * 1000;
+const TRIAL_DURATION_MS = 48 * 60 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserSession | null>(null);

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { seedDefaultCategoriesIfEmpty } from '@/lib/db';
+import { installDriveBackupHooks } from '@/lib/drive-backup';
 import { Header } from '@/components/Header';
 import { Navigation, TabType } from '@/components/Navigation';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -23,6 +24,7 @@ export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    installDriveBackupHooks();
     seedDefaultCategoriesIfEmpty();
   }, []);
 

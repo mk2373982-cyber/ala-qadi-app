@@ -30,6 +30,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAddModal,
   onNavigate,
 }) => {
+  const getLocalMonthKey = () => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const [currentMonthStr, setCurrentMonthStr] = useState(getLocalMonthKey);
   const [currentMonthTransactions, setCurrentMonthTransactions] = useState<Transaction[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
@@ -48,7 +53,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [tempBudgetInput, setTempBudgetInput] = useState('');
 
   const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
   const selectedDebtMonthStr = debtMonthOffset === 0 ? currentMonthStr : nextMonthStr;
@@ -108,6 +112,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   useEffect(() => {
     loadData();
   }, [currentMonthStr]);
+
+  useEffect(() => {
+    const refreshMonth = () => setCurrentMonthStr(getLocalMonthKey());
+    const interval = window.setInterval(refreshMonth, 60_000);
+    window.addEventListener('focus', refreshMonth);
+    document.addEventListener('visibilitychange', refreshMonth);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshMonth);
+      document.removeEventListener('visibilitychange', refreshMonth);
+    };
+  }, []);
 
   // Totals
   const currentMonthIncome = currentMonthTransactions

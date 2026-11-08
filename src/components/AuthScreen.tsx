@@ -66,6 +66,21 @@ export const AuthScreen: React.FC = () => {
           <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
         </div>
 
+        {/* Free trial is the first action shown before account entry */}
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-3 shadow-sm">
+          <button
+            onClick={handleStartTrial}
+            disabled={loading || isTrialUsed}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-md shadow-emerald-900/15 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300" />
+            <span>{isTrialUsed ? 'تم استخدام التجربة على هذا الجهاز' : 'جرّب التطبيق مجانًا لمدة 48 ساعة'}</span>
+          </button>
+          <p className="mt-2 text-center text-[11px] text-slate-500">
+            {isTrialUsed ? 'التجربة متاحة مرة واحدة على هذا الجهاز.' : 'ابدأ فورًا دون إنشاء حساب؛ بيانات التجربة تُحفظ على هذا الجهاز.'}
+          </p>
+        </div>
+
         {/* Auth Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 p-6 sm:p-8">
           {/* Tabs */}
@@ -186,21 +201,6 @@ export const AuthScreen: React.FC = () => {
           </div>
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-600">
             يلزم الإنترنت لتسجيل الدخول أول مرة. بعد ذلك، سجلاتك المالية المحفوظة على هذا الجهاز متاحة دون اتصال.
-          </p>
-        </div>
-
-        {/* One-day local trial */}
-        <div className="mt-4 text-center">
-          <button
-            onClick={handleStartTrial}
-            disabled={loading || isTrialUsed}
-            className="text-xs text-brand-700 hover:text-brand-900 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1.5 rounded-full inline-flex items-center gap-1 font-semibold transition-all"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>{isTrialUsed ? 'تم استخدام التجربة على هذا الجهاز' : 'جرّب التطبيق مجاناً لمدة 24 ساعة'}</span>
-          </button>
-          <p className="mt-1 text-[10px] text-slate-500">
-            {isTrialUsed ? 'أنشئ حساباً جديداً للمتابعة؛ بياناتك المحلية ستظل محفوظة.' : 'مرة واحدة على هذا المتصفح، ولا تحتاج إلى حساب للبدء'}
           </p>
         </div>
 

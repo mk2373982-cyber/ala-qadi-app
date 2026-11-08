@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { exportAllDataAsJSON, importDataFromJSON } from '@/lib/export-import';
 import { db } from '@/lib/db';
 import { askForConfirmation } from '@/lib/confirm-action';
+import { GoogleDriveBackupPanel } from '@/components/GoogleDriveBackupPanel';
 import {
   Download,
   Upload,
@@ -132,7 +133,7 @@ export const SettingsView: React.FC = () => {
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
               <div className="text-xs font-bold text-brand-700">
                 {user?.isTrial
-                  ? 'تجربة مجانية لمدة 24 ساعة'
+                  ? 'تجربة مجانية لمدة 48 ساعة'
                   : user?.plan === 'lifetime'
                   ? 'اشتراك دائم (مدى الحياة)'
                   : user?.plan === '1_year'
@@ -210,6 +211,8 @@ export const SettingsView: React.FC = () => {
           </label>
         </div>
       </div>
+
+      <GoogleDriveBackupPanel />
 
       {/* PWA Mobile Installation Guide */}
       <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
