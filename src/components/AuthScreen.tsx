@@ -54,7 +54,7 @@ export const AuthScreen: React.FC = () => {
             <span className="font-black text-2xl">قـ</span>
           </div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">على قدي</h1>
-          <p className="text-sm text-slate-500 mt-1">تطبيق إدارة مالية شخصية محلي • خصوصية 100% • بدون إنترنت</p>
+          <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
         </div>
 
         {/* Auth Card */}
@@ -160,11 +160,11 @@ export const AuthScreen: React.FC = () => {
           <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
             <div className="flex items-center gap-1.5">
               <CheckCircle className="w-3.5 h-3.5 text-brand-600" />
-              <span>بياناتك على جهازك فقط</span>
+              <span>سجلاتك المالية على جهازك</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle className="w-3.5 h-3.5 text-brand-600" />
-              <span>يعمل بدون اتصال بالإنترنت</span>
+              <span>تعمل السجلات دون اتصال</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle className="w-3.5 h-3.5 text-brand-600" />

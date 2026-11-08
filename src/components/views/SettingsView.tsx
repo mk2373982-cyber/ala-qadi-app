@@ -194,7 +194,7 @@ export const SettingsView: React.FC = () => {
                 {importing ? 'جاري الاسترجاع...' : 'استرجاع من ملف احتياطي'}
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                اختر ملف النسخة الاحتياطية لاستعادة كافة حساباتك فوراً
+                اختر ملف النسخة الاحتياطية لاستعادة بياناتك المالية على هذا الجهاز
               </p>
             </div>
           </label>
@@ -209,7 +209,7 @@ export const SettingsView: React.FC = () => {
           </div>
           <div>
             <h3 className="font-bold text-sm text-slate-800">تثبيت التطبيق على شاشة هاتفك (PWA)</h3>
-            <p className="text-[11px] text-slate-400">ليفتح كتطبيق أصلي سريع بدون متجر وبدون إنترنت</p>
+            <p className="text-[11px] text-slate-400">يفتح كتطبيق ويب مثبت؛ تحتاج المزامنة والتحقق من الاشتراك إلى الإنترنت</p>
           </div>
         </div>
 

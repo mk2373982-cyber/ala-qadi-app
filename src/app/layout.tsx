@@ -6,7 +6,7 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
   title: 'على قدي - إدارة مالية شخصية',
-  description: 'تطبيق إدارة مالية شخصية محلي وسهل الاستخدام، يحفظ بياناتك على جهازك ويعمل بدون إنترنت',
+  description: 'تطبيق إدارة مالية شخصية يحفظ سجلاتك المالية على جهازك ويتيح استخدامها دون اتصال بعد تسجيل الدخول.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
