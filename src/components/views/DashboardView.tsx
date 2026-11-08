@@ -14,6 +14,7 @@ import {
   Calendar,
   AlertTriangle,
   ChevronLeft,
+  Clock3,
 } from 'lucide-react';
 import { TabType } from '../Navigation';
 
@@ -30,13 +31,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
   const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
+  const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
   const [monthlyBudgetLimit, setMonthlyBudgetLimit] = useState<number>(0);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [tempBudgetInput, setTempBudgetInput] = useState('');
 
-  const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const loadData = async () => {
     // Current month transactions
@@ -50,6 +53,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     // Debts
     const debts = await db.debts.filter((d) => !d.isCompleted).toArray();
+    setDebtsDueThisMonth(
+      debts
+        .filter((debt) => debt.dueDate?.startsWith(currentMonthStr))
+        .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
+    );
     const toMe = debts
       .filter((d) => d.type === 'to_me')
       .reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
@@ -100,6 +108,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ? Math.min(Math.round((currentMonthExpense / monthlyBudgetLimit) * 100), 100)
       : 0;
   const remainingBudget = monthlyBudgetLimit > 0 ? monthlyBudgetLimit - currentMonthExpense : 0;
+  const dueThisMonthTotal = debtsDueThisMonth.reduce(
+    (sum, debt) => sum + Math.max(0, debt.totalAmount - debt.paidAmount),
+    0
+  );
 
   const handleSaveBudget = async () => {
     const limit = parseFloat(tempBudgetInput);
@@ -268,6 +280,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Debts due this month */}
+      <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-orange-100 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+              <Clock3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800">الديون المستحقة هذا الشهر</h3>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                {new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })} · حسب تاريخ الاستحقاق
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 rounded-xl bg-orange-100 px-3 py-2 text-left">
+            <div className="text-[10px] font-bold text-orange-700">المتبقي</div>
+            <div className="text-sm font-black text-orange-800" dir="ltr">
+              {dueThisMonthTotal.toLocaleString('ar-EG')} ج.م
+            </div>
+          </div>
+        </div>
+        {debtsDueThisMonth.length ? (
+          <div className="divide-y divide-orange-100/80 px-5">
+            {debtsDueThisMonth.map((debt) => (
+              <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</div>
+                  <div className="mt-1 text-[10px] text-slate-500">
+                    {debt.type === 'on_me' ? 'مستحق عليّ' : 'مستحق لي'} · موعده{' '}
+                    {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+                <div className="shrink-0 text-left">
+                  <div className="text-xs font-black text-slate-800" dir="ltr">
+                    {Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م
+                  </div>
+                  {debt.paidAmount > 0 && <div className="mt-1 text-[10px] text-slate-400">بعد السداد الجزئي</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 py-5 text-center text-xs text-slate-500">
+            لا توجد ديون غير مكتملة بتاريخ استحقاق خلال هذا الشهر.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onNavigate('debts')}
+          className="flex w-full items-center justify-center gap-1 border-t border-orange-100 px-4 py-3 text-xs font-bold text-brand-700 transition hover:bg-brand-50/60"
+        >
+          عرض كل الديون <ChevronLeft className="h-4 w-4" />
+        </button>
+      </section>
 
       {/* 3 Quick Cards: Debts, Gam3eyat, Gold */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
