@@ -175,6 +175,9 @@ export const AuthScreen: React.FC = () => {
               <span>تتبع مدخرات الذهب</span>
             </div>
           </div>
+          <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-600">
+            يلزم الإنترنت لتسجيل الدخول أول مرة. بعد ذلك، سجلاتك المالية المحفوظة على هذا الجهاز متاحة دون اتصال.
+          </p>
         </div>
 
         {/* Demo Fast Access Link */}
