@@ -7,7 +7,7 @@
 1. أنشئ مشروع Supabase خاصاً.
 2. افتح SQL Editor وشغّل `supabase/schema.sql`.
 3. انسخ Project URL وService Role Key إلى متغيرات Vercel التالية: `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY`. لا تستخدم `NEXT_PUBLIC_` لهذه القيم.
-4. اضبط `ADMIN_PASSWORD` ككلمة مرور طويلة وفريدة، ثم أعد النشر.
+4. اضبط `ADMIN_PASSWORD` ككلمة مرور طويلة وفريدة و`SUBSCRIPTION_ACTIVATION_CODE` ككود التفعيل الذي سترسله للعملاء، ثم أعد النشر.
 
 ## ما تم توصيله
 
@@ -15,9 +15,10 @@
 - كلمات مرور المشتركين تُخزن مجزأة ولا تعود إلى المتصفح.
 - بيانات الميزانيات والمعاملات تظل محلية في IndexedDB على جهاز المستخدم.
 - لوحة الإدارة تستخدم سر `ADMIN_PASSWORD` وكعكة جلسة HttpOnly. إعداد متغيرات الاستضافة شرط قبل استخدامها.
+- العميل يرسل صورة التحويل للمسؤول عبر واتساب، وبعد مراجعتها يستلم كود التفعيل ويدخله في التطبيق. خزّن الكود في `SUBSCRIPTION_ACTIVATION_CODE` على Vercel فقط؛ لا تضعه في ملفات Git.
 
 ## خطوات النشر المتبقية
 
-1. أضف `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY` و`ADMIN_PASSWORD` في Vercel لكل بيئة مطلوبة، ثم أعد النشر.
+1. أضف `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY` و`ADMIN_PASSWORD` و`SUBSCRIPTION_ACTIVATION_CODE` في Vercel لكل بيئة مطلوبة، ثم أعد النشر.
 2. جرّب التسجيل والدخول والدفع والموافقة والرفض وتعطيل الحساب والحذف على Preview.
 3. لا تقبل تحويلات حقيقية قبل إتمام التجربة والتأكد من عدم وجود بيانات إنتاج مطلوبة في ملف JSON القديم.

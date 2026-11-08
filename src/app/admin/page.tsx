@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [paymentPhone, setPaymentPhone] = useState('');
   const [paymentInstapay, setPaymentInstapay] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [pricingNote, setPricingNote] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -122,6 +123,7 @@ export default function AdminPage() {
         setSettings(data.settings);
         setPaymentPhone(data.settings.paymentPhone);
         setPaymentInstapay(data.settings.paymentInstapay);
+        setInstagramUrl(data.settings.instagramUrl || '');
         setWhatsappNumber(data.settings.whatsappNumber);
         setPricingNote(data.settings.pricingNote);
       }
@@ -173,6 +175,23 @@ export default function AdminPage() {
     }
   };
 
+  const handleAuthorizeActivation = async (userId: string) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'authorize_activation', userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذر اعتماد التحويل');
+      setActionMessage('تم اعتماد صورة التحويل. أرسل كود التفعيل للعميل على واتساب.');
+      await fetchUsers();
+      setTimeout(() => setActionMessage(null), 5000);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : 'تعذر اعتماد التحويل');
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     // Optimistic UI update: remove user from state immediately!
     setUsers((prev) => prev.filter((u) => u.id !== userId));
@@ -206,6 +225,7 @@ export default function AdminPage() {
       const payload: Partial<AdminSettings> = {
         paymentPhone,
         paymentInstapay,
+        instagramUrl,
         whatsappNumber,
         pricingNote,
       };
@@ -414,7 +434,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveSettings} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSaveSettings} className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
                   رقم فودافون كاش / المحفظة لاستلام الفلوس
@@ -424,7 +444,7 @@ export default function AdminPage() {
                   value={paymentPhone}
                   onChange={(e) => setPaymentPhone(e.target.value)}
                   placeholder="010XXXXXXXX"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+                  className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   dir="ltr"
                 />
               </div>
@@ -438,9 +458,22 @@ export default function AdminPage() {
                   value={paymentInstapay}
                   onChange={(e) => setPaymentInstapay(e.target.value)}
                   placeholder="username@instapay"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+                  className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   dir="ltr"
                 />
+              </div>
+
+              <div className="min-w-0">
+                <label className="block text-xs font-bold text-slate-300 mb-1">رابط إنستجرام للتواصل مع العميل</label>
+                <input
+                  type="url"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="https://www.instagram.com/username/"
+                  className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+                  dir="ltr"
+                />
+                <span className="block mt-1 text-[10px] text-slate-500">سيظهر للعميل كرابط يفتح حساب إنستجرام مباشرة.</span>
               </div>
 
               <div>
@@ -452,7 +485,7 @@ export default function AdminPage() {
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="2010XXXXXXXX"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+                  className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   dir="ltr"
                 />
                 <span className="text-[10px] text-slate-500">مثال لمصر: 201012345678</span>
@@ -467,7 +500,7 @@ export default function AdminPage() {
                   value={pricingNote}
                   onChange={(e) => setPricingNote(e.target.value)}
                   placeholder="مثال: الاشتراك: 50 جنيه شهرياً أو 300 جنيه سنوياً"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500"
+                  className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500"
                 />
               </div>
 
@@ -547,6 +580,7 @@ export default function AdminPage() {
                     const isPending = u.status === 'pending';
                     const isSuspended = u.status === 'suspended';
                     const isExpired = u.status === 'expired';
+                    const needsActivation = isPending || isExpired;
 
                     const cleanPhone = u.phone.replace(/\D/g, '');
                     const waLink = `https://wa.me/${cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone}`;
@@ -595,10 +629,15 @@ export default function AdminPage() {
                               <span>معلق (بانتظار التحويل)</span>
                             </span>
                           )}
+                          {needsActivation && u.paymentStatus !== 'pending_review' && (
+                            <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-100">
+                              <div>بعد استلام صورة الإيصال ومراجعتها على واتساب:</div>
+                              <button onClick={() => handleAuthorizeActivation(u.id)} className="mt-2 rounded bg-sky-600 px-2 py-1 font-bold text-white">اعتماد الصورة والسماح بالكود</button>
+                            </div>
+                          )}
                           {u.paymentStatus === 'pending_review' && (
                             <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
-                              <div className="font-bold">طلب دفع للمراجعة</div>
-                              <div>المرجع: <span dir="ltr" className="font-mono">{u.paymentReference}</span></div>
+                              <div className="font-bold">تم اعتماد التحويل — أرسل كود التفعيل للعميل</div>
                               {u.paymentSubmittedAt && <div>{new Date(u.paymentSubmittedAt).toLocaleString('ar-EG')}</div>}
                               <div className="mt-2 flex gap-2">
                                 <button onClick={() => handleReviewPayment(u.id, 'confirm')} className="rounded bg-emerald-600 px-2 py-1 font-bold text-white">تأكيد الدفع</button>

@@ -21,6 +21,7 @@ export interface UserAccount {
 export interface AdminSettings {
   paymentPhone: string;
   paymentInstapay: string;
+  instagramUrl: string;
   whatsappNumber: string;
   pricingNote: string;
 }
@@ -145,11 +146,35 @@ export async function updateUserStatus(userId: string, status: UserStatus, plan?
   return patchUser(userId, changes);
 }
 
-export async function submitPayment(userId: string, reference: string) {
+export async function activateSubscriptionWithCode(userId: string, code: string) {
+  const configuredCode = process.env.SUBSCRIPTION_ACTIVATION_CODE;
+  if (!configuredCode) throw new Error('كود التفعيل غير مضبوط على السيرفر.');
+  const supplied = createHash('sha256').update(code.trim()).digest();
+  const expected = createHash('sha256').update(configuredCode.trim()).digest();
+  if (!timingSafeEqual(supplied, expected)) throw new Error('كود التفعيل غير صحيح.');
+
   const user = await findUserById(userId);
-  if (!user) throw new Error('المستخدم غير موجود');
-  if (user.status === 'active' && user.paymentStatus === 'confirmed') throw new Error('الاشتراك مفعل بالفعل');
-  return patchUser(userId, { payment_reference: reference.trim().slice(0, 100), payment_submitted_at: new Date().toISOString(), payment_status: 'pending_review' });
+  if (!user) throw new Error('الحساب غير موجود.');
+  if (user.status === 'suspended') throw new Error('الحساب موقوف. تواصل مع المسؤول.');
+  if (user.paymentStatus !== 'pending_review') throw new Error('تواصل مع المسؤول بعد إرسال صورة التحويل على واتساب.');
+  if (user.status === 'active' && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
+    throw new Error('الاشتراك مفعل بالفعل.');
+  }
+
+  const plan = user.plan;
+  return patchUser(userId, {
+    status: 'active',
+    start_date: new Date().toISOString(),
+    end_date: calculateEndDate(plan),
+    payment_status: 'confirmed',
+  });
+}
+
+export async function authorizeUserActivation(userId: string) {
+  const user = await findUserById(userId);
+  if (!user) throw new Error('المستخدم غير موجود.');
+  if (user.status === 'suspended') throw new Error('لا يمكن تفعيل حساب موقوف.');
+  return patchUser(userId, { payment_status: 'pending_review', payment_submitted_at: new Date().toISOString() });
 }
 
 export async function reviewPayment(userId: string, decision: 'confirm' | 'reject', plan?: SubscriptionPlan) {
@@ -165,7 +190,7 @@ export async function deleteUser(userId: string) {
   await db<unknown>('app_users', `?id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
 
-const defaultSettings: AdminSettings = { paymentPhone: '', paymentInstapay: '', whatsappNumber: '', pricingNote: '' };
+const defaultSettings: AdminSettings = { paymentPhone: '', paymentInstapay: '', instagramUrl: '', whatsappNumber: '', pricingNote: '' };
 
 export async function getSettings(): Promise<AdminSettings> {
   const rows = await db<{ value: Partial<AdminSettings> }[]>('app_settings', '?key=eq.payment&select=value&limit=1');
@@ -173,7 +198,7 @@ export async function getSettings(): Promise<AdminSettings> {
 }
 
 export async function updateSettings(settings: Partial<AdminSettings>) {
-  const allowed = { paymentPhone: settings.paymentPhone, paymentInstapay: settings.paymentInstapay, whatsappNumber: settings.whatsappNumber, pricingNote: settings.pricingNote };
+  const allowed = { paymentPhone: settings.paymentPhone, paymentInstapay: settings.paymentInstapay, instagramUrl: settings.instagramUrl, whatsappNumber: settings.whatsappNumber, pricingNote: settings.pricingNote };
   const current = await getSettings();
   const value = { ...current, ...Object.fromEntries(Object.entries(allowed).filter(([, item]) => item !== undefined)) };
   await db('app_settings', '?key=eq.payment', { method: 'PATCH', body: JSON.stringify({ value, updated_at: new Date().toISOString() }) });
