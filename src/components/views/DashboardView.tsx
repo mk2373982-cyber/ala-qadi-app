@@ -55,7 +55,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const debts = await db.debts.filter((d) => !d.isCompleted).toArray();
     setDebtsDueThisMonth(
       debts
-        .filter((debt) => debt.dueDate?.startsWith(currentMonthStr))
+        .filter((debt) => debt.type === 'on_me' && debt.dueDate?.startsWith(currentMonthStr))
         .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
     );
     const toMe = debts
@@ -289,7 +289,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Clock3 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-800">الديون المستحقة هذا الشهر</h3>
+              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ هذا الشهر</h3>
               <p className="mt-0.5 text-[11px] text-slate-500">
                 {new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })} · حسب تاريخ الاستحقاق
               </p>
@@ -309,7 +309,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="min-w-0">
                   <div className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</div>
                   <div className="mt-1 text-[10px] text-slate-500">
-                    {debt.type === 'on_me' ? 'مستحق عليّ' : 'مستحق لي'} · موعده{' '}
+                    موعد السداد{' '}
                     {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="px-5 py-5 text-center text-xs text-slate-500">
-            لا توجد ديون غير مكتملة بتاريخ استحقاق خلال هذا الشهر.
+            لا توجد ديون عليك غير مكتملة بتاريخ استحقاق خلال هذا الشهر.
           </div>
         )}
         <button
