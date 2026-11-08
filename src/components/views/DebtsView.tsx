@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { db, Debt } from '@/lib/db';
 import { HandCoins, Plus, CheckCircle2, Clock, Trash2, ArrowRight } from 'lucide-react';
 import { AddDebtModal } from '../modals/AddDebtModal';
+import { askForConfirmation } from '@/lib/confirm-action';
 
 export const DebtsView: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -32,11 +33,17 @@ export const DebtsView: React.FC = () => {
     .reduce((s, d) => s + (d.totalAmount - d.paidAmount), 0);
 
   const handleDelete = async (id?: number) => {
-    if (!id) return;
-    if (confirm('هل أنت متأكد من حذف هذا السجل؟')) {
-      await db.debts.delete(id);
-      loadDebts();
-    }
+    if (id === undefined) return;
+    const debt = debts.find((item) => item.id === id);
+    if (!debt) return;
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد حذف الدين',
+      message: 'هل أنت متأكد من حذف هذا السجل؟ لا يمكن التراجع عن الحذف.',
+      itemName: `${debt.personName} · ${debt.totalAmount.toLocaleString('ar-EG')} ج.م`,
+    });
+    if (!confirmed) return;
+    await db.debts.delete(id);
+    loadDebts();
   };
 
   const handleRegisterPayment = async (e: React.FormEvent) => {

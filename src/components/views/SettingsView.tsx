@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { exportAllDataAsJSON, importDataFromJSON } from '@/lib/export-import';
 import { db } from '@/lib/db';
+import { askForConfirmation } from '@/lib/confirm-action';
 import {
   Download,
   Upload,
@@ -33,11 +34,14 @@ export const SettingsView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (
-      !confirm(
-        'تنبيه: استرجاع النسخة الاحتياطية سيقوم باستبدال البيانات الحالية بالبيانات الموجودة في الملف. هل تود المتابعة؟'
-      )
-    ) {
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد استرجاع النسخة',
+      message: 'استرجاع النسخة الاحتياطية سيستبدل بياناتك الحالية بالبيانات الموجودة في الملف المحدد. هل تريد المتابعة؟',
+      itemName: file.name,
+      confirmLabel: 'استرجاع النسخة',
+      tone: 'primary',
+    });
+    if (!confirmed) {
       e.target.value = '';
       return;
     }
@@ -51,18 +55,19 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleClearAllData = async () => {
-    if (
-      confirm(
-        'تحذير شديد: هل أنت متأكد من مسح جميع المعاملات والديون والجمعيات المسجلة على هذا الجهاز؟ هذا الإجراء لا يمكن التراجع عنه إلا بوجود نسخة احتياطية!'
-      )
-    ) {
-      await db.transactions.clear();
-      await db.debts.clear();
-      await db.gam3eyat.clear();
-      await db.savings.clear();
-      setStatusMessage('تم مسح جميع البيانات المحلية بنجاح.');
-      setTimeout(() => setStatusMessage(null), 3000);
-    }
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد مسح جميع البيانات',
+      message: 'سيتم حذف كل المعاملات والديون والجمعيات والأصول المحفوظة على هذا الجهاز. لا يمكن التراجع عن ذلك إلا من نسخة احتياطية.',
+      itemName: 'كل البيانات المالية على هذا الجهاز',
+      confirmLabel: 'مسح كل البيانات',
+    });
+    if (!confirmed) return;
+    await db.transactions.clear();
+    await db.debts.clear();
+    await db.gam3eyat.clear();
+    await db.savings.clear();
+    setStatusMessage('تم مسح جميع البيانات المحلية بنجاح.');
+    setTimeout(() => setStatusMessage(null), 3000);
   };
 
   return (

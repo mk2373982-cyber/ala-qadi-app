@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, Transaction, Category } from '@/lib/db';
 import { exportTransactionsToCSV } from '@/lib/export-import';
+import { askForConfirmation } from '@/lib/confirm-action';
 import {
   Search,
   Filter,
@@ -40,11 +41,17 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
   }, []);
 
   const handleDelete = async (id?: number) => {
-    if (!id) return;
-    if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
-      await db.transactions.delete(id);
-      loadData();
-    }
+    if (id === undefined) return;
+    const transaction = transactions.find((item) => item.id === id);
+    if (!transaction) return;
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد حذف المعاملة',
+      message: 'هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن التراجع عن الحذف.',
+      itemName: `${transaction.category} · ${transaction.amount.toLocaleString('ar-EG')} ج.م`,
+    });
+    if (!confirmed) return;
+    await db.transactions.delete(id);
+    loadData();
   };
 
   // Filter transactions

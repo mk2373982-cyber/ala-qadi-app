@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { ConfirmActionProvider } from '@/components/ConfirmActionProvider';
 
 export const metadata: Metadata = {
   title: 'على قدي - إدارة مالية شخصية',
@@ -36,9 +37,11 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body className="bg-[#f3f8f4] text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-200 selection:text-brand-900">
         <AuthProvider>
-          <ServiceWorkerRegister />
-          <InstallPrompt />
-          {children}
+          <ConfirmActionProvider>
+            <ServiceWorkerRegister />
+            <InstallPrompt />
+            {children}
+          </ConfirmActionProvider>
         </AuthProvider>
       </body>
     </html>

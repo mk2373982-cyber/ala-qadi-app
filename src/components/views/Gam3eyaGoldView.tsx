@@ -5,6 +5,7 @@ import { db, Gam3eya, SavingsAsset } from '@/lib/db';
 import { Users, Landmark, Plus, Trash2, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { AddGam3eyaModal } from '../modals/AddGam3eyaModal';
 import { AddSavingsModal } from '../modals/AddSavingsModal';
+import { askForConfirmation } from '@/lib/confirm-action';
 
 export const Gam3eyaGoldView: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'gam3eya' | 'gold'>('gam3eya');
@@ -25,19 +26,31 @@ export const Gam3eyaGoldView: React.FC = () => {
   }, []);
 
   const handleDeleteGam3eya = async (id?: number) => {
-    if (!id) return;
-    if (confirm('هل أنت متأكد من حذف هذه الجمعية؟')) {
-      await db.gam3eyat.delete(id);
-      loadData();
-    }
+    if (id === undefined) return;
+    const group = gam3eyat.find((item) => item.id === id);
+    if (!group) return;
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد حذف الجمعية',
+      message: 'هل أنت متأكد من حذف الجمعية؟ لا يمكن التراجع عن الحذف.',
+      itemName: group.name,
+    });
+    if (!confirmed) return;
+    await db.gam3eyat.delete(id);
+    loadData();
   };
 
   const handleDeleteSavings = async (id?: number) => {
-    if (!id) return;
-    if (confirm('هل أنت متأكد من حذف هذا الأصل؟')) {
-      await db.savings.delete(id);
-      loadData();
-    }
+    if (id === undefined) return;
+    const asset = savings.find((item) => item.id === id);
+    if (!asset) return;
+    const confirmed = await askForConfirmation({
+      title: 'تأكيد حذف الأصل',
+      message: 'هل أنت متأكد من حذف هذا الأصل؟ لا يمكن التراجع عن الحذف.',
+      itemName: asset.name,
+    });
+    if (!confirmed) return;
+    await db.savings.delete(id);
+    loadData();
   };
 
   // Pay monthly installment for a Gam3eya
