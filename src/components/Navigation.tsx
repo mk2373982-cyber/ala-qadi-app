@@ -46,8 +46,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
         </div>
       </nav>
 
-      {/* Mobile Sticky Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 pb-safe">
+      {/* Mobile Navigation directly below the sticky header */}
+      <div className="md:hidden sticky top-16 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="grid grid-cols-6 items-center py-1.5 px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;

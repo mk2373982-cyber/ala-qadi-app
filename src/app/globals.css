@@ -15,6 +15,11 @@ body {
   user-select: none;
 }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 input, textarea, select {
   user-select: text;
 }

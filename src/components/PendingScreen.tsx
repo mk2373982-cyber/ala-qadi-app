@@ -213,11 +213,11 @@ export const PendingScreen: React.FC = () => {
         </button>
 
         {/* Logout */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-          <span>رقمك المسجل: {user?.phone}</span>
+        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400 text-right">
+          <span className="min-w-0 max-w-full break-all">رقمك المسجل: {user?.phone}</span>
           <button
             onClick={logout}
-            className="text-rose-600 hover:underline flex items-center gap-1 font-medium"
+            className="self-end sm:self-auto shrink-0 text-rose-700 hover:underline flex items-center justify-center gap-1.5 font-semibold whitespace-nowrap rounded-lg border border-rose-200 bg-rose-50 px-3 py-2"
           >
             <LogOut className="w-3 h-3" />
             <span>تسجيل خروج</span>
