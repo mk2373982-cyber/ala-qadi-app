@@ -190,11 +190,24 @@ export async function deleteUser(userId: string) {
   await db<unknown>('app_users', `?id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
 
-const defaultSettings: AdminSettings = { paymentPhone: '', paymentInstapay: '', instapayLink: '', whatsappNumber: '', pricingNote: '' };
+const defaultSettings: AdminSettings = {
+  paymentPhone: '',
+  paymentInstapay: '',
+  instapayLink: 'https://ipn.eg/S/mohamedkhames2059920/instapay/4Lpi6k',
+  whatsappNumber: '',
+  pricingNote: '',
+};
 
 export async function getSettings(): Promise<AdminSettings> {
   const rows = await db<{ value: Partial<AdminSettings> }[]>('app_settings', '?key=eq.payment&select=value&limit=1');
-  return { ...defaultSettings, ...(rows[0]?.value || {}) };
+  const saved = rows[0]?.value || {};
+  return {
+    ...defaultSettings,
+    ...saved,
+    instapayLink: Object.prototype.hasOwnProperty.call(saved, 'instapayLink')
+      ? saved.instapayLink || ''
+      : defaultSettings.instapayLink,
+  };
 }
 
 export async function updateSettings(settings: Partial<AdminSettings>) {

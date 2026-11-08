@@ -23,7 +23,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
   return (
     <>
       {/* Desktop Navigation (Sub-header) */}
-      <nav className="hidden md:block bg-white border-b border-slate-200">
+      <nav className="hidden md:block bg-white border-b border-slate-300">
         <div className="max-w-5xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -34,11 +34,11 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
                 onClick={() => onSelectTab(tab.id)}
                 className={`flex items-center gap-2 py-3 px-4 font-medium text-sm border-b-2 transition-colors ${
                   isActive
-                    ? 'border-brand-600 text-brand-700 bg-brand-50/50'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    ? 'border-brand-700 text-brand-900 bg-brand-100 font-bold'
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-brand-700' : 'text-slate-500'}`} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -47,7 +47,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
       </nav>
 
       {/* Mobile Navigation directly below the sticky header */}
-      <div className="md:hidden sticky top-16 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      <div className="md:hidden sticky top-16 z-20 bg-white border-b border-slate-300 shadow-sm">
         <div className="grid grid-cols-6 items-center py-1.5 px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -56,18 +56,18 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               <button
                 key={tab.id}
                 onClick={() => onSelectTab(tab.id)}
-                className={`flex flex-col items-center justify-center py-1 rounded-lg transition-all ${
-                  isActive ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'
+                className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+                  isActive ? 'text-brand-900 font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <div
-                  className={`p-1 rounded-full ${
-                    isActive ? 'bg-brand-100/70 text-brand-700' : 'transparent'
+                  className={`p-1.5 rounded-xl ${
+                    isActive ? 'bg-brand-100 text-brand-800 ring-1 ring-brand-300' : 'transparent'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-medium mt-0.5 truncate max-w-full px-0.5">
+                <span className="text-[10px] font-semibold mt-0.5 truncate max-w-full px-0.5">
                   {tab.label}
                 </span>
               </button>

@@ -74,7 +74,7 @@ export const PendingScreen: React.FC = () => {
   const isSuspended = user?.status === 'suspended';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="app-theme min-h-screen bg-[#f3f8f4] flex items-center justify-center p-4">
       <div className="min-w-0 max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 text-center relative overflow-hidden">
         {/* Top Decorative accent */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-brand-500 via-amber-400 to-brand-600" />

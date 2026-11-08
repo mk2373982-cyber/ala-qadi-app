@@ -33,7 +33,7 @@ export default function Home() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="app-theme min-h-screen bg-[#f3f8f4] flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-brand-600 animate-spin mx-auto mb-3" />
           <div className="font-bold text-slate-700 text-sm">جاري فتح تطبيق "على قدي"...</div>
@@ -54,7 +54,7 @@ export default function Home() {
 
   // Active Licensed Application
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-brand-100 selection:text-brand-900">
+    <div className="app-theme min-h-screen bg-[#f3f8f4] flex flex-col selection:bg-brand-200 selection:text-brand-900">
       <Header onOpenAddModal={() => setIsAddModalOpen(true)} />
       <Navigation currentTab={currentTab} onSelectTab={setCurrentTab} />
 

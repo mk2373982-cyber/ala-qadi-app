@@ -12,7 +12,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const { user, isOnline, logout, isLicenseActive, daysRemaining } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+    <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-300 shadow-sm transition-all">
       <div className="max-w-5xl h-full mx-auto px-3 sm:px-4 flex min-w-0 items-center justify-between gap-2">
         {/* Brand Logo & Name */}
         <div className="flex min-w-0 items-center gap-2">

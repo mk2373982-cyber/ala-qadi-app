@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#059669',
+  themeColor: '#087c50',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-100 selection:text-brand-900">
+      <body className="bg-[#f3f8f4] text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-200 selection:text-brand-900">
         <AuthProvider>
           <ServiceWorkerRegister />
           <InstallPrompt />
