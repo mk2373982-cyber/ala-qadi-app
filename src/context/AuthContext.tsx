@@ -11,6 +11,8 @@ export interface UserSession {
   startDate: string | null;
   endDate: string | null;
   lastOnlineCheck?: number;
+  isTrial?: boolean;
+  trialExpiresAt?: number;
 }
 
 interface AuthContextType {
@@ -19,6 +21,9 @@ interface AuthContextType {
   isOnline: boolean;
   login: (phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  startTrial: () => { success: boolean; error?: string };
+  isTrialUsed: boolean;
+  trialMinutesRemaining: number | null;
   logout: () => void;
   refreshStatus: () => Promise<void>;
   isLicenseActive: boolean;
@@ -26,11 +31,15 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const TRIAL_STARTED_KEY = 'ala_qaddi_trial_started_at';
+const TRIAL_DURATION_MS = 24 * 60 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [isTrialUsed, setIsTrialUsed] = useState(false);
+  const [clock, setClock] = useState(0);
   const hasLoggedOut = useRef(false);
 
   // Online / Offline tracking
@@ -53,9 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem('ala_qaddi_user');
+      setIsTrialUsed(localStorage.getItem(TRIAL_STARTED_KEY) !== null);
       if (stored) {
         const parsed = JSON.parse(stored) as UserSession;
-        setUser(parsed);
+        if (parsed.isTrial && (!parsed.trialExpiresAt || parsed.trialExpiresAt <= Date.now())) {
+          localStorage.removeItem('ala_qaddi_user');
+        } else {
+          setUser(parsed);
+        }
       }
     } catch (e) {
       console.error('Error loading stored user', e);
@@ -66,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Periodic license check with server when online
   const refreshStatus = useCallback(async () => {
-    if (!user || hasLoggedOut.current || !navigator.onLine) return;
+    if (!user || user.isTrial || hasLoggedOut.current || !navigator.onLine) return;
 
     try {
       const res = await fetch('/api/auth/check-status', {
@@ -100,6 +114,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('Could not refresh license status online, continuing offline', err);
     }
   }, [user]);
+
+  const startTrial = () => {
+    try {
+      if (localStorage.getItem(TRIAL_STARTED_KEY) !== null) {
+        setIsTrialUsed(true);
+        return { success: false, error: 'تم استخدام التجربة المجانية على هذا الجهاز.' };
+      }
+
+      const startedAt = Date.now();
+      const trialExpiresAt = startedAt + TRIAL_DURATION_MS;
+      const session: UserSession = {
+        id: `trial_${crypto.randomUUID()}`,
+        name: 'ضيف',
+        phone: '',
+        status: 'active',
+        plan: 'lifetime',
+        startDate: new Date(startedAt).toISOString(),
+        endDate: null,
+        isTrial: true,
+        trialExpiresAt,
+      };
+
+      localStorage.setItem(TRIAL_STARTED_KEY, String(startedAt));
+      localStorage.setItem('ala_qaddi_user', JSON.stringify(session));
+      hasLoggedOut.current = false;
+      setIsTrialUsed(true);
+      setClock(startedAt);
+      setUser(session);
+      return { success: true };
+    } catch {
+      return { success: false, error: 'تعذر بدء التجربة على هذا الجهاز.' };
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.isTrial || !user.trialExpiresAt) return;
+
+    const expireTrialIfNeeded = () => {
+      if (Date.now() >= user.trialExpiresAt!) logout();
+    };
+    const timeout = window.setTimeout(expireTrialIfNeeded, Math.max(0, user.trialExpiresAt - Date.now()));
+    document.addEventListener('visibilitychange', expireTrialIfNeeded);
+    return () => {
+      window.clearTimeout(timeout);
+      document.removeEventListener('visibilitychange', expireTrialIfNeeded);
+    };
+    // The expiry belongs to this trial session; logout remains stable in behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.isTrial, user?.trialExpiresAt]);
+
+  useEffect(() => {
+    if (!user?.isTrial) return;
+    setClock(Date.now());
+    const interval = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, [user?.isTrial]);
 
   useEffect(() => {
     if (user && isOnline) {
@@ -179,7 +249,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   let daysRemaining: number | null = null;
 
   if (user) {
-    if (user.status === 'active') {
+    if (user.isTrial && user.trialExpiresAt) {
+      isLicenseActive = user.trialExpiresAt > Date.now();
+      daysRemaining = isLicenseActive ? Math.ceil((user.trialExpiresAt - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+    } else if (user.status === 'active') {
       if (!user.endDate) {
         // Lifetime plan
         isLicenseActive = true;
@@ -197,6 +270,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const trialMinutesRemaining = user?.isTrial && user.trialExpiresAt
+    ? Math.max(0, Math.ceil((user.trialExpiresAt - (clock || Date.now())) / 60_000))
+    : null;
+
   return (
     <AuthContext.Provider
       value={{
@@ -205,6 +282,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isOnline,
         login,
         register,
+        startTrial,
+        isTrialUsed,
+        trialMinutesRemaining,
         logout,
         refreshStatus,
         isLicenseActive,

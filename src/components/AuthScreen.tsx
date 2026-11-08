@@ -1,17 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, Phone, User, ShieldCheck, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
+import { Lock, Phone, User, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, startTrial, isTrialUsed } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const openRegistration = sessionStorage.getItem('ala_qaddi_open_registration') === '1';
+    if (openRegistration) {
+      sessionStorage.removeItem('ala_qaddi_open_registration');
+      setIsRegister(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +46,11 @@ export const AuthScreen: React.FC = () => {
     setLoading(false);
   };
 
-  const handleDemoLogin = async () => {
+  const handleStartTrial = () => {
     setLoading(true);
     setError(null);
-    await login('01012345678', '123');
+    const result = startTrial();
+    if (!result.success) setError(result.error || 'تعذر بدء التجربة المجانية');
     setLoading(false);
   };
 
@@ -180,16 +189,19 @@ export const AuthScreen: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo Fast Access Link */}
+        {/* One-day local trial */}
         <div className="mt-4 text-center">
           <button
-            onClick={handleDemoLogin}
-            disabled={loading}
+            onClick={handleStartTrial}
+            disabled={loading || isTrialUsed}
             className="text-xs text-brand-700 hover:text-brand-900 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1.5 rounded-full inline-flex items-center gap-1 font-semibold transition-all"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>تجربة التطبيق بحساب تجريبي فوري</span>
+            <span>{isTrialUsed ? 'تم استخدام التجربة على هذا الجهاز' : 'جرّب التطبيق مجاناً لمدة 24 ساعة'}</span>
           </button>
+          <p className="mt-1 text-[10px] text-slate-500">
+            {isTrialUsed ? 'أنشئ حساباً جديداً للمتابعة؛ بياناتك المحلية ستظل محفوظة.' : 'مرة واحدة على هذا المتصفح، ولا تحتاج إلى حساب للبدء'}
+          </p>
         </div>
 
         {/* Admin Link at the very bottom */}

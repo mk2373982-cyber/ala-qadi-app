@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
-  const { user, daysRemaining, refreshStatus, isOnline, logout } = useAuth();
+  const { user, daysRemaining, refreshStatus, isOnline, logout, trialMinutesRemaining } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -95,7 +95,7 @@ export const SettingsView: React.FC = () => {
 
           <button
             onClick={() => refreshStatus()}
-            disabled={!isOnline}
+            disabled={!isOnline || user?.isTrial}
             className="flex items-center gap-1 text-xs text-brand-600 font-bold hover:underline disabled:opacity-50"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ export const SettingsView: React.FC = () => {
             <Phone className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">رقم الهاتف</div>
-              <div className="text-xs font-bold text-slate-800 font-mono">{user?.phone}</div>
+              <div className="text-xs font-bold text-slate-800 font-mono">{user?.isTrial ? 'غير مطلوب للتجربة' : user?.phone}</div>
             </div>
           </div>
 
@@ -125,7 +125,9 @@ export const SettingsView: React.FC = () => {
             <div>
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
               <div className="text-xs font-bold text-brand-700">
-                {user?.plan === 'lifetime'
+                {user?.isTrial
+                  ? 'تجربة مجانية لمدة 24 ساعة'
+                  : user?.plan === 'lifetime'
                   ? 'اشتراك دائم (مدى الحياة)'
                   : user?.plan === '1_year'
                   ? 'اشتراك سنوي'
@@ -139,7 +141,9 @@ export const SettingsView: React.FC = () => {
             <div>
               <div className="text-[10px] text-slate-400">الصلاحية</div>
               <div className="text-xs font-bold text-slate-800">
-                {daysRemaining === null ? 'نشط دائماً' : `متبقي ${daysRemaining} يوم`}
+                {user?.isTrial && trialMinutesRemaining !== null
+                  ? `متبقي ${Math.floor(trialMinutesRemaining / 60)} ساعة و${trialMinutesRemaining % 60} دقيقة`
+                  : daysRemaining === null ? 'نشط دائماً' : `متبقي ${daysRemaining} يوم`}
               </div>
             </div>
           </div>

@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
-  const { user, isOnline, logout, isLicenseActive, daysRemaining } = useAuth();
+  const { user, isOnline, logout, isLicenseActive, daysRemaining, trialMinutesRemaining } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-300 shadow-sm transition-all">
@@ -49,12 +49,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           {user && isLicenseActive && (
             <div className="flex shrink-0 items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
-              <span className="hidden sm:inline">
-                {daysRemaining === null ? 'مدى الحياة' : `متبقي ${daysRemaining} يوم`}
-              </span>
-              <span className="sm:hidden whitespace-nowrap">
-                {daysRemaining === null ? 'دائم' : `${daysRemaining} يوم`}
-              </span>
+              {user.isTrial ? (
+                <span className="whitespace-nowrap">تجربة {trialMinutesRemaining !== null ? `${Math.floor(trialMinutesRemaining / 60)}س ${trialMinutesRemaining % 60}د` : '24 ساعة'}</span>
+              ) : <>
+                <span className="hidden sm:inline">
+                  {daysRemaining === null ? 'مدى الحياة' : `متبقي ${daysRemaining} يوم`}
+                </span>
+                <span className="sm:hidden whitespace-nowrap">
+                  {daysRemaining === null ? 'دائم' : `${daysRemaining} يوم`}
+                </span>
+              </>}
             </div>
           )}
 
@@ -71,6 +75,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
 
           {/* User Profile / Logout */}
           {user && (
+            <>
+            {user.isTrial && (
+              <button
+                onClick={() => {
+                  try { sessionStorage.setItem('ala_qaddi_open_registration', '1'); } catch {}
+                  logout();
+                }}
+                title="إنشاء حساب والاحتفاظ ببيانات هذا الجهاز"
+                className="flex shrink-0 items-center gap-1 px-2 py-1.5 text-[11px] sm:text-xs font-semibold text-brand-800 bg-brand-50 hover:bg-brand-100 rounded-xl border border-brand-200 transition-all"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">إنشاء حساب</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 logout();
@@ -81,6 +99,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">خروج</span>
             </button>
+            </>
           )}
         </div>
       </div>
