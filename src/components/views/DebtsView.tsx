@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, Debt } from '@/lib/db';
-import { HandCoins, Plus, CheckCircle2, Clock, Trash2, ArrowRight } from 'lucide-react';
+import { db, Debt, WalletAccount } from '@/lib/db';
+import { HandCoins, Plus, CheckCircle2, Clock, Trash2, ArrowRight, Pencil } from 'lucide-react';
 import { AddDebtModal } from '../modals/AddDebtModal';
 import { askForConfirmation } from '@/lib/confirm-action';
 
@@ -10,12 +10,20 @@ export const DebtsView: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [activeTab, setActiveTab] = useState<'to_me' | 'on_me'>('to_me');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [debtToEdit, setDebtToEdit] = useState<Debt | null>(null);
   const [paymentModalDebt, setPaymentModalDebt] = useState<Debt | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [wallets, setWallets] = useState<WalletAccount[]>([]);
+  const [paymentWalletId, setPaymentWalletId] = useState('');
 
   const loadDebts = async () => {
     const list = await db.debts.toArray();
     setDebts(list);
+    const walletList = await db.wallets.toArray();
+    setWallets(walletList);
+    if (walletList.length && !walletList.some((wallet) => String(wallet.id) === paymentWalletId)) {
+      setPaymentWalletId(String(walletList[0].id));
+    }
   };
 
   useEffect(() => {
@@ -51,41 +59,48 @@ export const DebtsView: React.FC = () => {
     if (!paymentModalDebt || !paymentModalDebt.id) return;
 
     const payment = parseFloat(paymentAmountInput);
-    if (isNaN(payment) || payment <= 0) {
+    const remaining = Math.max(0, paymentModalDebt.totalAmount - paymentModalDebt.paidAmount);
+    if (isNaN(payment) || payment <= 0 || payment > remaining) {
       alert('يرجى كتابة مبلغ صحيح');
+      return;
+    }
+
+    const selectedWallet = wallets.find((wallet) => String(wallet.id) === paymentWalletId);
+    if (!selectedWallet?.id) {
+      alert('أضف مكانًا للأموال من الصفحة الرئيسية أولًا');
       return;
     }
 
     const newPaid = paymentModalDebt.paidAmount + payment;
     const isCompleted = newPaid >= paymentModalDebt.totalAmount;
 
-    await db.debts.update(paymentModalDebt.id, {
-      paidAmount: newPaid,
-      isCompleted,
-    });
-
-    // Optionally also record as a transaction in income/expense!
-    if (paymentModalDebt.type === 'to_me') {
-      // Returned money to me = income
-      await db.transactions.add({
+    await db.transaction('rw', [db.debts, db.transactions, db.wallets], async () => {
+      await db.debts.update(paymentModalDebt.id!, { paidAmount: newPaid, isCompleted });
+      if (paymentModalDebt.type === 'to_me') {
+        await db.transactions.add({
         type: 'income',
         amount: payment,
         category: 'استرداد سلفة أو دين',
         note: `سداد من ${paymentModalDebt.personName}`,
         date: new Date().toISOString().slice(0, 10),
         createdAt: Date.now(),
+        walletId: selectedWallet.id,
       });
-    } else {
-      // Paid off my debt = expense
-      await db.transactions.add({
+      } else {
+        await db.transactions.add({
         type: 'expense',
         amount: payment,
         category: 'أقساط ومستحقات',
         note: `سداد دين لـ ${paymentModalDebt.personName}`,
         date: new Date().toISOString().slice(0, 10),
         createdAt: Date.now(),
+        walletId: selectedWallet.id,
       });
-    }
+      }
+      await db.wallets.update(selectedWallet.id!, {
+        balance: selectedWallet.balance + (paymentModalDebt.type === 'to_me' ? payment : -payment),
+      });
+    });
 
     setPaymentModalDebt(null);
     setPaymentAmountInput('');
@@ -231,6 +246,15 @@ export const DebtsView: React.FC = () => {
                       </button>
                     )}
                     <button
+                      type="button"
+                      onClick={() => setDebtToEdit(item)}
+                      className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors"
+                      title="تعديل البيانات"
+                      aria-label={`تعديل بيانات ${item.personName}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(item.id)}
                       className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
                       title="حذف"
@@ -281,6 +305,13 @@ export const DebtsView: React.FC = () => {
         initialType={activeTab}
       />
 
+      <AddDebtModal
+        isOpen={debtToEdit !== null}
+        onClose={() => setDebtToEdit(null)}
+        onSaved={loadDebts}
+        initialDebt={debtToEdit}
+      />
+
       {/* Partial Payment Modal */}
       {paymentModalDebt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -308,9 +339,20 @@ export const DebtsView: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  {paymentModalDebt.type === 'to_me' ? 'إضافة المبلغ إلى' : 'الخصم من'}
+                </label>
+                <select required value={paymentWalletId} onChange={(event) => setPaymentWalletId(event.target.value)} disabled={!wallets.length} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold disabled:bg-slate-100">
+                  {wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م</option>)}
+                </select>
+                {!wallets.length && <p className="mt-1 text-[11px] text-rose-600">أضف مكانًا للأموال من الصفحة الرئيسية أولًا.</p>}
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
+                  disabled={!wallets.length}
                   className="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm"
                 >
                   تأكيد وحفظ المعاملة

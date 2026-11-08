@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, Category, DEFAULT_CATEGORIES } from '@/lib/db';
+import { db, Category, WalletAccount } from '@/lib/db';
 import { X, Check, Plus, Tag } from 'lucide-react';
 
 interface AddTransactionModalProps {
@@ -21,12 +21,20 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [note, setNote] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categories, setCategories] = useState<Category[]>([]);
+  const [wallets, setWallets] = useState<WalletAccount[]>([]);
+  const [walletId, setWalletId] = useState('');
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
   // Load categories
   useEffect(() => {
     if (isOpen) {
+      db.wallets.toArray().then((items) => {
+        setWallets(items);
+        if (items.length && !items.some((wallet) => String(wallet.id) === walletId)) {
+          setWalletId(String(items[0].id));
+        }
+      });
       db.categories
         .filter((c) => c.type === type)
         .toArray()
@@ -81,13 +89,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       return;
     }
 
-    await db.transactions.add({
-      type,
-      amount: numAmount,
-      category,
-      note: note.trim() || undefined,
-      date,
-      createdAt: Date.now(),
+    const selectedWallet = wallets.find((wallet) => String(wallet.id) === walletId);
+    if (!selectedWallet?.id) {
+      alert('أضف مكانًا للأموال من الصفحة الرئيسية أولًا، ثم اختره هنا');
+      return;
+    }
+
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      await db.transactions.add({
+        type,
+        amount: numAmount,
+        category,
+        note: note.trim() || undefined,
+        date,
+        createdAt: Date.now(),
+        walletId: selectedWallet.id,
+      });
+      await db.wallets.update(selectedWallet.id!, {
+        balance: selectedWallet.balance + (type === 'income' ? numAmount : -numAmount),
+      });
     });
 
     // Reset and close
@@ -216,6 +236,30 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">
+              {type === 'expense' ? 'الخصم من' : 'إضافة الدخل إلى'}
+            </label>
+            {wallets.length ? (
+              <select
+                value={walletId}
+                onChange={(e) => setWalletId(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-bold text-slate-700 focus:outline-none focus:border-brand-500"
+              >
+                {wallets.map((wallet) => (
+                  <option key={wallet.id} value={wallet.id}>
+                    {wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                أضف كاش أو فيزا أو محفظة من مربع «ملخص أموالي» أولًا.
+              </div>
+            )}
+          </div>
+
           {/* Date & Note in 2 columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -243,7 +287,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           {/* Submit */}
           <button
             type="submit"
-            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2"
+            disabled={!wallets.length}
+            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Check className="w-4 h-4" />
             <span>حفظ المعاملة</span>

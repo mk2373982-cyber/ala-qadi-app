@@ -66,6 +66,7 @@ export const SettingsView: React.FC = () => {
     await db.debts.clear();
     await db.gam3eyat.clear();
     await db.savings.clear();
+    await db.wallets.clear();
     setStatusMessage('تم مسح جميع البيانات المحلية بنجاح.');
     setTimeout(() => setStatusMessage(null), 3000);
   };

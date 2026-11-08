@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { db } from '@/lib/db';
+import React, { useEffect, useState } from 'react';
+import { db, Debt } from '@/lib/db';
 import { X, Check, HandCoins } from 'lucide-react';
 
 interface AddDebtModalProps {
@@ -9,6 +9,7 @@ interface AddDebtModalProps {
   onClose: () => void;
   onSaved: () => void;
   initialType?: 'to_me' | 'on_me';
+  initialDebt?: Debt | null;
 }
 
 export const AddDebtModal: React.FC<AddDebtModalProps> = ({
@@ -16,6 +17,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
   onClose,
   onSaved,
   initialType = 'to_me',
+  initialDebt = null,
 }) => {
   const [type, setType] = useState<'to_me' | 'on_me'>(initialType);
   const [personName, setPersonName] = useState('');
@@ -23,6 +25,16 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
   const [paidAmount, setPaidAmount] = useState('0');
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setType(initialDebt?.type ?? initialType);
+    setPersonName(initialDebt?.personName ?? '');
+    setTotalAmount(initialDebt?.totalAmount.toString() ?? '');
+    setPaidAmount(initialDebt?.paidAmount.toString() ?? '0');
+    setDueDate(initialDebt?.dueDate ?? '');
+    setNote(initialDebt?.note ?? '');
+  }, [isOpen, initialDebt, initialType]);
 
   if (!isOpen) return null;
 
@@ -41,16 +53,26 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
       return;
     }
 
-    await db.debts.add({
+    if (isNaN(paid) || paid < 0 || paid > total) {
+      alert('يرجى التأكد أن المبلغ المسدد لا يتجاوز إجمالي الدين');
+      return;
+    }
+
+    const debtValues = {
       type,
       personName: personName.trim(),
       totalAmount: total,
-      paidAmount: isNaN(paid) ? 0 : paid,
+      paidAmount: paid,
       dueDate: dueDate || undefined,
       note: note.trim() || undefined,
       isCompleted: paid >= total,
-      createdAt: Date.now(),
-    });
+    };
+
+    if (initialDebt?.id) {
+      await db.debts.update(initialDebt.id, debtValues);
+    } else {
+      await db.debts.add({ ...debtValues, createdAt: Date.now() });
+    }
 
     setPersonName('');
     setTotalAmount('');
@@ -67,7 +89,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
             <HandCoins className="w-5 h-5 text-brand-600" />
-            <h3 className="font-bold text-base text-slate-800">إضافة دين أو مستحق جديد</h3>
+            <h3 className="font-bold text-base text-slate-800">{initialDebt ? 'تعديل بيانات الدين' : 'إضافة دين أو مستحق جديد'}</h3>
           </div>
           <button
             onClick={onClose}
@@ -173,7 +195,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
             className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" />
-            <span>حفظ في السجل</span>
+            <span>{initialDebt ? 'حفظ التعديلات' : 'حفظ في السجل'}</span>
           </button>
         </form>
       </div>

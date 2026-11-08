@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, Transaction, Category } from '@/lib/db';
+import { db, Transaction, Category, WalletAccount } from '@/lib/db';
 import { exportTransactionsToCSV } from '@/lib/export-import';
 import { askForConfirmation } from '@/lib/confirm-action';
 import {
@@ -21,6 +21,7 @@ interface TransactionsViewProps {
 
 export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddModal }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [wallets, setWallets] = useState<WalletAccount[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -34,6 +35,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
     setTransactions(all);
     const cats = await db.categories.toArray();
     setCategories(cats);
+    setWallets(await db.wallets.toArray());
   };
 
   useEffect(() => {
@@ -50,7 +52,17 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
       itemName: `${transaction.category} · ${transaction.amount.toLocaleString('ar-EG')} ج.م`,
     });
     if (!confirmed) return;
-    await db.transactions.delete(id);
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      await db.transactions.delete(id);
+      if (transaction.walletId !== undefined) {
+        const wallet = await db.wallets.get(transaction.walletId);
+        if (wallet?.id) {
+          await db.wallets.update(wallet.id, {
+            balance: wallet.balance + (transaction.type === 'income' ? -transaction.amount : transaction.amount),
+          });
+        }
+      }
+    });
     loadData();
   };
 
@@ -237,6 +249,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
                     </div>
                     <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                       <span>{tx.date}</span>
+                      {tx.walletId !== undefined && wallets.find((wallet) => wallet.id === tx.walletId) && (
+                        <span>• {wallets.find((wallet) => wallet.id === tx.walletId)?.name}</span>
+                      )}
                       {tx.note && <span>• {tx.note}</span>}
                     </div>
                   </div>

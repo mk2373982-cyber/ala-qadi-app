@@ -8,6 +8,15 @@ export interface Transaction {
   note?: string;
   date: string; // YYYY-MM-DD
   createdAt: number;
+  walletId?: number;
+}
+
+export interface WalletAccount {
+  id?: number;
+  name: string;
+  kind: 'cash' | 'card' | 'mobile' | 'other';
+  balance: number;
+  createdAt: number;
 }
 
 export interface Category {
@@ -67,6 +76,7 @@ export class AlaQaddiDatabase extends Dexie {
   debts!: Table<Debt>;
   gam3eyat!: Table<Gam3eya>;
   savings!: Table<SavingsAsset>;
+  wallets!: Table<WalletAccount>;
 
   constructor() {
     super('AlaQaddiLocalDB');
@@ -77,6 +87,15 @@ export class AlaQaddiDatabase extends Dexie {
       debts: '++id, type, personName, isCompleted, dueDate',
       gam3eyat: '++id, name, status',
       savings: '++id, type',
+    });
+    this.version(2).stores({
+      transactions: '++id, type, category, date, createdAt, walletId',
+      categories: '++id, name, type',
+      budgets: '++id, category',
+      debts: '++id, type, personName, isCompleted, dueDate',
+      gam3eyat: '++id, name, status',
+      savings: '++id, type',
+      wallets: '++id, name, kind, createdAt',
     });
   }
 }
