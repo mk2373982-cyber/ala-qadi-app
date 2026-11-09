@@ -86,8 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/auth/check-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
       });
+
+      if (res.status === 401) {
+        hasLoggedOut.current = true;
+        localStorage.removeItem('ala_qaddi_user');
+        sessionStorage.removeItem('ala_qaddi_user');
+        setUser(null);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -242,6 +249,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
     }
     setUser(null);
+    // Clear the server session without delaying the local logout interaction.
+    void fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
   };
 
   // Calculate license validity and days remaining

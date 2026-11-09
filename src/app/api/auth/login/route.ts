@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { verifyUserPassword } from '@/lib/server-storage';
+import { userSessionCookie, createUserSession, verifyUserPassword } from '@/lib/server-storage';
 
 export async function POST(req: Request) {
   try {
-    const { phone, password } = await req.json();
+    const body = await req.json();
+    const phone = body?.phone;
+    const password = body?.password;
 
-    if (!phone || !password) {
+    if (typeof phone !== 'string' || typeof password !== 'string' || !phone.trim() || !password) {
       return NextResponse.json({ error: 'يرجى إدخال الهاتف وكلمة المرور' }, { status: 400 });
+    }
+    if (phone.length > 32 || password.length > 128) {
+      return NextResponse.json({ error: 'البيانات المدخلة غير صالحة' }, { status: 400 });
     }
 
     const user = await verifyUserPassword(phone, password.trim());
@@ -28,7 +33,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -39,7 +44,9 @@ export async function POST(req: Request) {
         startDate: user.startDate,
         endDate: user.endDate,
       },
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
+    response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));
+    return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'فشل تسجيل الدخول' }, { status: 500 });
   }

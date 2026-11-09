@@ -23,7 +23,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
   return (
     <>
       {/* Desktop Navigation (Sub-header) */}
-      <nav className="hidden md:block bg-white border-b border-slate-300">
+      <nav aria-label="التنقل الرئيسي" className="hidden md:block bg-white border-b border-slate-300">
         <div className="max-w-5xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -31,14 +31,16 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => onSelectTab(tab.id)}
-                className={`flex items-center gap-2 py-3 px-4 font-medium text-sm border-b-2 transition-colors ${
+                aria-pressed={isActive}
+                className={`flex items-center gap-2 py-3 px-4 font-medium text-sm border-b-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-700 ${
                   isActive
                     ? 'border-brand-700 text-brand-900 bg-brand-100 font-bold'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-brand-700' : 'text-slate-500'}`} />
+                <Icon aria-hidden="true" className={`w-4 h-4 ${isActive ? 'text-brand-700' : 'text-slate-500'}`} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -47,16 +49,18 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
       </nav>
 
       {/* Mobile Navigation directly below the sticky header */}
-      <div className="md:hidden sticky top-16 z-20 bg-white border-b border-slate-300 shadow-sm">
-        <div className="grid grid-cols-6 items-center py-1.5 px-1">
+      <nav aria-label="التنقل الرئيسي" className="md:hidden sticky top-[68px] z-20 overflow-x-auto bg-white border-b border-slate-300 shadow-sm">
+        <div className="flex min-w-full w-max items-center justify-between py-1.5 px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => onSelectTab(tab.id)}
-                className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+                aria-pressed={isActive}
+                className={`flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-700 ${
                   isActive ? 'text-brand-900 font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -65,16 +69,16 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
                     isActive ? 'bg-brand-100 text-brand-800 ring-1 ring-brand-300' : 'transparent'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon aria-hidden="true" className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-semibold mt-0.5 truncate max-w-full px-0.5">
+                <span className="mt-0.5 whitespace-nowrap px-0.5 text-[10px] font-semibold">
                   {tab.label}
                 </span>
               </button>
             );
           })}
         </div>
-      </div>
+      </nav>
     </>
   );
 };

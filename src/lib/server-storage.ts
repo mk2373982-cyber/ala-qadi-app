@@ -221,3 +221,54 @@ export function verifyAdminSession(session: string | undefined) {
   try { actual = Buffer.from(signature, 'base64url'); } catch { return false; }
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
+
+const USER_SESSION_COOKIE = 'ala_qaddi_user_session';
+const USER_SESSION_DURATION_SECONDS = 30 * 24 * 60 * 60;
+
+function userSessionKey() {
+  if (!SUPABASE_KEY) throw new Error('قاعدة البيانات غير متصلة.');
+  return createHmac('sha256', SUPABASE_KEY).update('ala-qaddi-user-session-v1').digest();
+}
+
+export function createUserSession(userId: string) {
+  const expiresAt = Math.floor(Date.now() / 1000) + USER_SESSION_DURATION_SECONDS;
+  const payload = Buffer.from(`${userId}.${expiresAt}`).toString('base64url');
+  const signature = createHmac('sha256', userSessionKey()).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+export function verifyUserSession(session: string | undefined) {
+  if (!session) return undefined;
+  const [payload, signature, extra] = session.split('.');
+  if (!payload || !signature || extra) return undefined;
+
+  let actual: Buffer;
+  let decoded: string;
+  try {
+    actual = Buffer.from(signature, 'base64url');
+    decoded = Buffer.from(payload, 'base64url').toString('utf8');
+  } catch {
+    return undefined;
+  }
+
+  const expected = createHmac('sha256', userSessionKey()).update(payload).digest();
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return undefined;
+
+  const match = /^([0-9a-f-]{36})\.(\d+)$/i.exec(decoded);
+  if (!match || Number(match[2]) <= Math.floor(Date.now() / 1000)) return undefined;
+  return match[1];
+}
+
+export function userSessionCookie(session: string) {
+  return `${USER_SESSION_COOKIE}=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/auth; Max-Age=${USER_SESSION_DURATION_SECONDS}`;
+}
+
+export function clearUserSessionCookie() {
+  return `${USER_SESSION_COOKIE}=; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/auth; Max-Age=0`;
+}
+
+export function getUserIdFromSession(request: Request) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const cookie = cookieHeader.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${USER_SESSION_COOKIE}=`));
+  return verifyUserSession(cookie?.slice(USER_SESSION_COOKIE.length + 1));
+}

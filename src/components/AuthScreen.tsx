@@ -124,12 +124,15 @@ export const AuthScreen: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">الاسم بالكامل</label>
+                <label htmlFor="register-name" className="block text-xs font-bold text-slate-600 mb-1.5">الاسم بالكامل</label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                   <input
+                    id="register-name"
                     type="text"
                     required
+                    autoComplete="name"
+                    maxLength={80}
                     placeholder="مثال: أحمد محمد"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -140,12 +143,15 @@ export const AuthScreen: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">رقم الهاتف أو الواتساب</label>
+              <label htmlFor="auth-phone" className="block text-xs font-bold text-slate-600 mb-1.5">رقم الهاتف أو الواتساب</label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                 <input
+                  id="auth-phone"
                   type="tel"
                   required
+                  autoComplete="tel"
+                  maxLength={32}
                   placeholder="010XXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -156,18 +162,23 @@ export const AuthScreen: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">كلمة المرور</label>
+              <label htmlFor="auth-password" className="block text-xs font-bold text-slate-600 mb-1.5">كلمة المرور</label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                 <input
+                  id="auth-password"
                   type="password"
                   required
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
+                  minLength={isRegister ? 8 : undefined}
+                  maxLength={128}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 text-sm bg-slate-50/50"
                 />
               </div>
+              {isRegister && <p className="mt-1 text-[11px] text-slate-500">استخدم 8 أحرف على الأقل.</p>}
             </div>
 
             <button
