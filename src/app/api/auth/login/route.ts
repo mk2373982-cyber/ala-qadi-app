@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { userSessionCookie, createUserSession, verifyUserPassword } from '@/lib/server-storage';
+import { AuthRateLimitUnavailableError, isAuthRateLimited } from '@/lib/auth-rate-limit';
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,19 @@ export async function POST(req: Request) {
     }
     if (phone.length > 32 || password.length > 128) {
       return NextResponse.json({ error: 'البيانات المدخلة غير صالحة' }, { status: 400 });
+    }
+
+    if (await isAuthRateLimited(req, {
+      bucket: 'login',
+      windowSeconds: 15 * 60,
+      perIp: 40,
+      identity: phone,
+      perIdentity: 8,
+    })) {
+      return NextResponse.json({ error: 'محاولات كثيرة. انتظر 15 دقيقة ثم حاول مرة أخرى.' }, {
+        status: 429,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '900' },
+      });
     }
 
     const user = await verifyUserPassword(phone, password.trim());
@@ -48,6 +62,7 @@ export async function POST(req: Request) {
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'فشل تسجيل الدخول' }, { status: 500 });
+    const status = error instanceof AuthRateLimitUnavailableError ? 503 : 500;
+    return NextResponse.json({ error: error.message || 'فشل تسجيل الدخول' }, { status, headers: { 'Cache-Control': 'no-store' } });
   }
 }

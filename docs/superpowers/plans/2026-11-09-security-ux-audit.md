@@ -50,3 +50,12 @@
 
 - [x] Run production build and `git diff --check` (no test suite requested).
 - [x] Record fixed findings and remaining deployment/business-model risks with code locations.
+
+### Task 4: Shared authentication rate limiting
+
+**Files:** `src/lib/auth-rate-limit.ts`, auth/admin login routes, `supabase/schema.sql`, `supabase/migrations/20261109_auth_rate_limits.sql`, `docs/DEPLOYMENT-AR.md`.
+
+- [x] Add atomic Postgres RPC limits keyed by server-HMAC digests; keep the raw phone and client IP out of the table.
+- [x] Limit customer login, registration, and admin login before password verification or account creation.
+- [x] Keep a per-instance fallback while the migration is missing so deployment does not break; production logs clearly identify this reduced mode.
+- [ ] Build and exercise the limiter locally; SQL migration cannot be applied without the Supabase admin connection configured in this workspace.
