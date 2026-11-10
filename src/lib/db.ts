@@ -69,6 +69,13 @@ export interface SavingsAsset {
   date: string;
 }
 
+export interface DriveBackupKey {
+  userId: string;
+  key: CryptoKey;
+  recoveryAcknowledged: boolean;
+  createdAt: string;
+}
+
 export class AlaQaddiDatabase extends Dexie {
   transactions!: Table<Transaction>;
   categories!: Table<Category>;
@@ -77,6 +84,7 @@ export class AlaQaddiDatabase extends Dexie {
   gam3eyat!: Table<Gam3eya>;
   savings!: Table<SavingsAsset>;
   wallets!: Table<WalletAccount>;
+  driveBackupKeys!: Table<DriveBackupKey>;
 
   constructor() {
     super('AlaQaddiLocalDB');
@@ -96,6 +104,16 @@ export class AlaQaddiDatabase extends Dexie {
       gam3eyat: '++id, name, status',
       savings: '++id, type',
       wallets: '++id, name, kind, createdAt',
+    });
+    this.version(3).stores({
+      transactions: '++id, type, category, date, createdAt, walletId',
+      categories: '++id, name, type',
+      budgets: '++id, category',
+      debts: '++id, type, personName, isCompleted, dueDate',
+      gam3eyat: '++id, name, status',
+      savings: '++id, type',
+      wallets: '++id, name, kind, createdAt',
+      driveBackupKeys: '&userId',
     });
   }
 }

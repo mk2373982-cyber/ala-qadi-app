@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { seedDefaultCategoriesIfEmpty } from '@/lib/db';
-import { installDriveBackupHooks } from '@/lib/drive-backup';
+import { installDriveBackupHooks, setDriveBackupUserId } from '@/lib/drive-backup';
 import { Header } from '@/components/Header';
 import { Navigation, TabType } from '@/components/Navigation';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -27,6 +27,10 @@ export default function Home() {
     installDriveBackupHooks();
     seedDefaultCategoriesIfEmpty();
   }, []);
+
+  useEffect(() => {
+    void setDriveBackupUserId(user?.id || null);
+  }, [user?.id]);
 
   const handleTransactionSaved = () => {
     setRefreshKey((prev) => prev + 1);
