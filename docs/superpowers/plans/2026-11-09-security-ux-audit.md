@@ -59,4 +59,4 @@
 - [x] Limit customer login, registration, and admin login before password verification or account creation.
 - [x] Keep a per-instance fallback while the migration is missing so deployment does not break; production logs clearly identify this reduced mode.
 - [x] Build the production app and exercise the local fallback limiter.
-- [ ] Apply the SQL migration to the existing Supabase project; no Supabase admin connection is configured in this workspace.
+- [x] Apply the SQL migration to the existing `ala-qaddi` Supabase project and verify the table, function, and grants: `service_role` can execute; `anon` cannot execute or read the table.
