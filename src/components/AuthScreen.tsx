@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { Lock, Phone, User, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
 
@@ -59,9 +60,14 @@ export const AuthScreen: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Brand Banner */}
         <div className="text-center mb-6">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 items-center justify-center text-white shadow-xl shadow-brand-500/20 mb-3">
-            <span className="font-black text-2xl">قـ</span>
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt="أيقونة تطبيق على قدي"
+            width={64}
+            height={64}
+            priority
+            className="mx-auto mb-3 h-16 w-16 rounded-2xl object-cover shadow-xl shadow-brand-500/20"
+          />
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">على قدي</h1>
           <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
         </div>
