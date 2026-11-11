@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { db, Transaction, Debt, Gam3eya, SavingsAsset, WalletAccount } from '@/lib/db';
 import {
   Wallet,
+  BellRing,
+  AlertTriangle,
   TrendingDown,
   TrendingUp,
   HandCoins,
@@ -27,6 +29,13 @@ interface DashboardViewProps {
   onNavigate: (tab: TabType) => void;
 }
 
+function daysUntilDue(dateValue: string) {
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((Date.UTC(year, month - 1, day) - todayUtc) / 86_400_000);
+}
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAddModal,
   onNavigate,
@@ -41,6 +50,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
   const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
   const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
+  const [dueDebtReminders, setDueDebtReminders] = useState<Debt[]>([]);
   const [debtMonthOffset, setDebtMonthOffset] = useState<0 | 1>(0);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
@@ -77,6 +87,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     // Debts
     const debts = await db.debts.filter((d) => !d.isCompleted).toArray();
+    setDueDebtReminders(debts.filter((debt) => debt.type === 'on_me' && debt.dueDate && daysUntilDue(debt.dueDate) <= 3));
     setDebtsDueThisMonth(
       debts
         .filter((debt) => debt.type === 'on_me' && (debt.dueDate?.startsWith(currentMonthStr) || debt.dueDate?.startsWith(nextMonthStr)))
@@ -116,7 +127,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [currentMonthStr]);
 
   useEffect(() => {
-    const refreshMonth = () => setCurrentMonthStr(getLocalMonthKey());
+    const refreshMonth = () => {
+      setCurrentMonthStr(getLocalMonthKey());
+      void db.debts.filter((debt) => !debt.isCompleted && debt.type === 'on_me').toArray()
+        .then((debts) => setDueDebtReminders(debts.filter((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 3)))
+        .catch((error) => console.warn('Could not refresh upcoming debt reminders.', error));
+    };
     const interval = window.setInterval(refreshMonth, 60_000);
     window.addEventListener('focus', refreshMonth);
     document.addEventListener('visibilitychange', refreshMonth);
@@ -230,6 +246,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-5 pb-16">
+      {dueDebtReminders.length > 0 && (
+        <section role="status" aria-live="polite" className="overflow-hidden rounded-3xl border border-orange-300 bg-gradient-to-br from-orange-50 via-white to-rose-50 shadow-sm">
+          <div className="flex items-start gap-3 p-4 sm:p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+              {dueDebtReminders.some((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 0)
+                ? <AlertTriangle className="h-5 w-5" />
+                : <BellRing className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-black text-orange-950">تنبيه: مواعيد سداد قريبة</h2>
+              <p className="mt-1 text-[11px] leading-5 text-orange-900">ديون عليك مستحقة خلال ٣ أيام أو متأخرة. راجع المبلغ وموعد السداد.</p>
+            </div>
+            <button type="button" onClick={() => onNavigate('debts')} className="shrink-0 rounded-xl bg-orange-700 px-3 py-2 text-[10px] font-black text-white shadow-sm">عرض الديون</button>
+          </div>
+          <div className="divide-y divide-orange-100 border-t border-orange-100 bg-white/70 px-4 sm:px-5">
+            {dueDebtReminders.slice(0, 3).map((debt) => {
+              const days = daysUntilDue(debt.dueDate!);
+              const dueLabel = days < 0 ? `متأخر ${Math.abs(days)} يوم` : days === 0 ? 'مستحق اليوم' : `بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}`;
+              return (
+                <div key={debt.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</p>
+                    <p className={`mt-0.5 text-[10px] font-bold ${days <= 0 ? 'text-rose-700' : 'text-orange-800'}`}>{dueLabel} · {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG')}</p>
+                  </div>
+                  <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">{Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م</p>
+                </div>
+              );
+            })}
+            {dueDebtReminders.length > 3 && <p className="py-2 text-[10px] font-bold text-slate-500">و {dueDebtReminders.length - 3} مواعيد أخرى قريبة</p>}
+          </div>
+        </section>
+      )}
+
       {/* Unified money overview */}
       <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-[#f0f8f3] via-white to-[#e7f4ed] shadow-[0_14px_40px_-28px_rgba(5,94,62,0.42)]">
         <div className="p-4 sm:p-6">
