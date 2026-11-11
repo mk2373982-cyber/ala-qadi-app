@@ -16,6 +16,7 @@ export interface UserAccount {
   paymentStatus: 'not_submitted' | 'pending_review' | 'confirmed' | 'rejected';
   paymentReference?: string;
   paymentSubmittedAt?: string | null;
+  isTrial: boolean;
 }
 
 export interface AdminSettings {
@@ -71,6 +72,8 @@ function mapUser(row: DbUser): UserAccount {
     startDate: row.start_date, endDate: row.end_date, notes: row.notes || undefined,
     paymentStatus: row.payment_status, paymentReference: row.payment_reference || undefined,
     paymentSubmittedAt: row.payment_submitted_at, createdAt: row.created_at,
+    isTrial: row.payment_status !== 'confirmed' && row.end_date !== null
+      && (row.status === 'active' || row.status === 'expired'),
   };
 }
 
@@ -108,9 +111,15 @@ export async function listUsers() {
 }
 
 export async function createUser(name: string, phone: string, password: string) {
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 30);
   const rows = await db<DbUser[]>('app_users', '', {
     method: 'POST',
-    body: JSON.stringify({ name: name.trim(), phone: normalizePhone(phone), password_hash: passwordHash(password.trim()) }),
+    body: JSON.stringify({
+      name: name.trim(), phone: normalizePhone(phone), password_hash: passwordHash(password.trim()),
+      status: 'active', plan: '1_month', start_date: startDate.toISOString(), end_date: endDate.toISOString(),
+    }),
   });
   return mapUser(rows[0]);
 }
@@ -152,7 +161,7 @@ export async function reviewPayment(userId: string, decision: 'confirm' | 'rejec
   if (!user) throw new Error('المستخدم غير موجود');
   if (user.status === 'suspended') throw new Error('لا يمكن تفعيل حساب موقوف.');
   if (decision === 'reject' && user.paymentStatus !== 'pending_review') throw new Error('لا يوجد طلب دفع بانتظار المراجعة');
-  if (decision === 'confirm' && user.status === 'active' && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
+  if (decision === 'confirm' && user.status === 'active' && !user.isTrial && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
     throw new Error('الاشتراك مفعل بالفعل.');
   }
   if (decision === 'reject') return patchUser(userId, { payment_status: 'rejected' });

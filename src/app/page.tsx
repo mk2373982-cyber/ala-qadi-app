@@ -18,10 +18,14 @@ import { AddTransactionModal } from '@/components/modals/AddTransactionModal';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
-  const { user, isLoading, isLicenseActive } = useAuth();
+  const { user, isLoading, isLicenseActive, daysRemaining } = useAuth();
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
+  const offerDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
+  if (offerDeadline) offerDeadline.setDate(offerDeadline.getDate() + 10);
+  const isAnnualOfferOpen = Boolean(offerDeadline && Date.now() <= offerDeadline.getTime());
 
   useEffect(() => {
     installDriveBackupHooks();
@@ -63,6 +67,16 @@ export default function Home() {
     <div className="app-theme min-h-screen bg-[#f3f8f4] flex flex-col selection:bg-brand-200 selection:text-brand-900">
       <Header onOpenAddModal={() => setIsAddModalOpen(true)} />
       <Navigation currentTab={currentTab} onSelectTab={setCurrentTab} />
+
+      {isRegisteredTrial && daysRemaining !== null && (
+        <aside className={`mx-auto mt-3 flex w-[calc(100%-2rem)] max-w-5xl flex-col gap-2 rounded-2xl border p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${daysRemaining <= 5 ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-emerald-200 bg-emerald-50 text-emerald-950'}`}>
+          <div>
+            <p className="text-sm font-black">{daysRemaining <= 5 ? `باقي ${daysRemaining} ${daysRemaining === 1 ? 'يوم' : 'أيام'} على انتهاء الشهر المجاني` : `أنت في الشهر المجاني — باقي ${daysRemaining} يوم`}</p>
+            <p className="mt-1 text-[11px] leading-5">{isAnnualOfferOpen ? `ادفع للاشتراك السنوي قبل ${offerDeadline?.toLocaleDateString('ar-EG')} واحصل على نصف السعر.` : `انتهت مهلة خصم السنوي. إذا كان الدفع تم خلال أول ١٠ أيام، أرسل الإيصال للمسؤول.`} بياناتك المالية محفوظة على جهازك.</p>
+          </div>
+          <button type="button" onClick={() => setCurrentTab('settings')} className="shrink-0 self-start rounded-xl bg-white/80 px-3 py-2 text-xs font-black shadow-sm sm:self-auto">تفاصيل الاشتراك</button>
+        </aside>
+      )}
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6">
         {currentTab === 'dashboard' && (

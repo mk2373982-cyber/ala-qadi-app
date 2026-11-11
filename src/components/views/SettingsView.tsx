@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { exportAllDataAsJSON, importDataFromJSON } from '@/lib/export-import';
-import { db } from '@/lib/db';
+import { db, seedDefaultCategoriesIfEmpty } from '@/lib/db';
 import { askForConfirmation } from '@/lib/confirm-action';
 import { GoogleDriveBackupPanel } from '@/components/GoogleDriveBackupPanel';
 import {
@@ -18,12 +18,27 @@ import {
   Calendar,
   CheckCircle,
   LogOut,
+  Send,
 } from 'lucide-react';
+
+type PublicPaymentConfig = { whatsappNumber: string; pricingNote: string; instapayLink: string };
 
 export const SettingsView: React.FC = () => {
   const { user, daysRemaining, refreshStatus, isOnline, logout, trialMinutesRemaining } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [paymentConfig, setPaymentConfig] = useState<PublicPaymentConfig | null>(null);
+
+  useEffect(() => {
+    fetch('/api/public/config').then((res) => res.ok ? res.json() : null)
+      .then((data) => data && setPaymentConfig(data))
+      .catch(() => {});
+  }, []);
+
+  const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
+  const annualOfferDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
+  if (annualOfferDeadline) annualOfferDeadline.setDate(annualOfferDeadline.getDate() + 10);
+  const annualOfferIsOpen = Boolean(annualOfferDeadline && Date.now() <= annualOfferDeadline.getTime());
 
   const handleExport = async () => {
     await exportAllDataAsJSON();
@@ -58,17 +73,20 @@ export const SettingsView: React.FC = () => {
   const handleClearAllData = async () => {
     const confirmed = await askForConfirmation({
       title: 'تأكيد مسح جميع البيانات',
-      message: 'سيتم حذف كل المعاملات والديون والجمعيات والأصول المحفوظة على هذا الجهاز. لا يمكن التراجع عن ذلك إلا من نسخة احتياطية.',
-      itemName: 'كل البيانات المالية على هذا الجهاز',
+      message: 'سيتم حذف المعاملات والديون والجمعيات والأصول والميزانيات والتصنيفات المخصصة. ستبقى أماكن الفلوس التي أضفتها بأسمائها وأنواعها، لكن أرصدتها ستصبح صفرًا.',
+      itemName: 'كل البيانات المالية مع الاحتفاظ بأماكن الفلوس',
       confirmLabel: 'مسح كل البيانات',
     });
     if (!confirmed) return;
-    await db.transactions.clear();
-    await db.debts.clear();
-    await db.gam3eyat.clear();
-    await db.savings.clear();
-    await db.wallets.clear();
-    setStatusMessage('تم مسح جميع البيانات المحلية بنجاح.');
+    await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets], async () => {
+      await Promise.all([
+        db.transactions.clear(), db.categories.clear(), db.budgets.clear(), db.debts.clear(),
+        db.gam3eyat.clear(), db.savings.clear(),
+      ]);
+      await db.wallets.toCollection().modify({ balance: 0 });
+    });
+    await seedDefaultCategoriesIfEmpty();
+    setStatusMessage('تم مسح البيانات والميزانيات، وإعادة التصنيفات الافتراضية. أماكن الفلوس موجودة وأرصدتها صفر.');
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
@@ -102,7 +120,7 @@ export const SettingsView: React.FC = () => {
 
           <button
             onClick={() => refreshStatus()}
-            disabled={!isOnline || user?.isTrial}
+            disabled={!isOnline}
             className="flex items-center gap-1 text-xs text-brand-600 font-bold hover:underline disabled:opacity-50"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -123,7 +141,7 @@ export const SettingsView: React.FC = () => {
             <Phone className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">رقم الهاتف</div>
-              <div className="text-xs font-bold text-slate-800 font-mono">{user?.isTrial ? 'غير مطلوب للتجربة' : user?.phone}</div>
+              <div className="text-xs font-bold text-slate-800 font-mono">{user?.phone || 'غير مطلوب'}</div>
             </div>
           </div>
 
@@ -133,7 +151,7 @@ export const SettingsView: React.FC = () => {
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
               <div className="text-xs font-bold text-brand-700">
                 {user?.isTrial
-                  ? 'تجربة مجانية لمدة 48 ساعة'
+                  ? trialMinutesRemaining !== null ? 'تجربة ضيف قصيرة' : 'شهر مجاني'
                   : user?.plan === 'lifetime'
                   ? 'اشتراك دائم (مدى الحياة)'
                   : user?.plan === '1_year'
@@ -149,13 +167,31 @@ export const SettingsView: React.FC = () => {
               <div className="text-[10px] text-slate-400">الصلاحية</div>
               <div className="text-xs font-bold text-slate-800">
                 {user?.isTrial && trialMinutesRemaining !== null
-                  ? `متبقي ${Math.floor(trialMinutesRemaining / 60)} ساعة و${trialMinutesRemaining % 60} دقيقة`
+                  ? `تجربة الضيف: متبقي ${Math.floor(trialMinutesRemaining / 60)} ساعة و${trialMinutesRemaining % 60} دقيقة`
                   : daysRemaining === null ? 'نشط دائماً' : `متبقي ${daysRemaining} يوم`}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {user && isRegisteredTrial && user.endDate && (
+        <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-amber-950">عرض الاشتراك السنوي بنصف السعر</h3>
+          <p className="mt-1 text-xs leading-5 text-amber-900">{annualOfferIsOpen ? `خصم ٥٠٪ متاح إذا تم الدفع قبل ${annualOfferDeadline?.toLocaleDateString('ar-EG')}.` : `انتهت مهلة الخصم. إذا كان الدفع تم خلال أول ١٠ أيام، أرسل الإيصال للمسؤول للمراجعة.`} الشهر المجاني يستمر ٣٠ يومًا. بعد مراجعة التحويل، يفعّل المسؤول الباقة السنوية.</p>
+          {paymentConfig?.pricingNote && <p className="mt-2 rounded-xl bg-white/80 p-3 text-xs font-bold leading-5 text-slate-700">{paymentConfig.pricingNote}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {paymentConfig?.instapayLink && /^https:\/\/ipn\.eg\//i.test(paymentConfig.instapayLink) && (
+              <a href={paymentConfig.instapayLink} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-pink-600 px-3 py-2 text-xs font-bold text-white">التحويل عبر InstaPay</a>
+            )}
+            {paymentConfig?.whatsappNumber && (
+              <a href={`https://wa.me/${paymentConfig.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`مرحباً، أريد الاشتراك السنوي بعرض نصف السعر. الاسم: ${user.name}، رقم الهاتف: ${user.phone}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white">
+                <Send className="h-3.5 w-3.5" /> إرسال الإيصال للمسؤول
+              </a>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Backup and Restore Card */}
       <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">

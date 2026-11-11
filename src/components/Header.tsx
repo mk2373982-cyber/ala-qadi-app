@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
             <div className="flex h-8 max-w-[82px] shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-1.5 text-[9px] font-bold text-slate-700 sm:max-w-none sm:px-2 sm:text-[11px]">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
               {user.isTrial ? (
-                <span className="whitespace-nowrap">تجربة {trialMinutesRemaining !== null ? `${Math.floor(trialMinutesRemaining / 60)}س ${trialMinutesRemaining % 60}د` : '48 ساعة'}</span>
+                <span className="whitespace-nowrap">{trialMinutesRemaining !== null ? `ضيف ${Math.floor(trialMinutesRemaining / 60)}س` : `مجاني ${daysRemaining ?? 0} يوم`}</span>
               ) : <>
                 <span className="hidden sm:inline">
                   {daysRemaining === null ? 'مدى الحياة' : `متبقي ${daysRemaining} يوم`}

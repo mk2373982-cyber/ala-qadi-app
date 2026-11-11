@@ -33,11 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'رقم الهاتف أو كلمة المرور غير صحيحة' }, { status: 401 });
     }
 
-    if (user.status === 'active' && user.endDate && Date.now() > new Date(user.endDate).getTime()) {
-      return NextResponse.json({ error: 'انتهى الاشتراك، يرجى تجديده للمتابعة' }, { status: 403 });
-    }
-
-    // Check expiration if user has an end date
+    // Keep expired users signed in so they can see renewal options; local financial data remains on-device.
     let status = user.status;
     if (status === 'active' && user.endDate) {
       const now = new Date();
@@ -57,6 +53,7 @@ export async function POST(req: Request) {
         plan: user.plan,
         startDate: user.startDate,
         endDate: user.endDate,
+        isTrial: user.isTrial,
       },
     }, { headers: { 'Cache-Control': 'no-store' } });
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));

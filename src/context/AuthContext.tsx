@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsTrialUsed(localStorage.getItem(TRIAL_STARTED_KEY) !== null);
       if (stored) {
         const parsed = JSON.parse(stored) as UserSession;
-        if (parsed.isTrial && (!parsed.trialExpiresAt || parsed.trialExpiresAt <= Date.now())) {
+        if (parsed.isTrial && parsed.trialExpiresAt && parsed.trialExpiresAt <= Date.now()) {
           localStorage.removeItem('ala_qaddi_user');
         } else {
           setUser(parsed);
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Periodic license check with server when online
   const refreshStatus = useCallback(async () => {
-    if (!user || user.isTrial || hasLoggedOut.current || !navigator.onLine) return;
+    if (!user || hasLoggedOut.current || !navigator.onLine) return;
 
     try {
       const res = await fetch('/api/auth/check-status', {
@@ -111,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             plan: data.plan,
             startDate: data.startDate,
             endDate: data.endDate,
+            isTrial: Boolean(data.isTrial),
             lastOnlineCheck: Date.now(),
           };
           setUser(updated);

@@ -6,8 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Lock, Phone, User, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
-  const { login, register, startTrial, isTrialUsed } = useAuth();
-  const [isRegister, setIsRegister] = useState(false);
+  const { login, register } = useAuth();
+  const [isRegister, setIsRegister] = useState(true);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -47,14 +47,6 @@ export const AuthScreen: React.FC = () => {
     setLoading(false);
   };
 
-  const handleStartTrial = () => {
-    setLoading(true);
-    setError(null);
-    const result = startTrial();
-    if (!result.success) setError(result.error || 'تعذر بدء التجربة المجانية');
-    setLoading(false);
-  };
-
   return (
     <div className="app-theme min-h-screen bg-gradient-to-b from-brand-100/70 via-[#f3f8f4] to-[#e6f0e8] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -72,18 +64,12 @@ export const AuthScreen: React.FC = () => {
           <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
         </div>
 
-        {/* Free trial is the first action shown before account entry */}
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-3 shadow-sm">
-          <button
-            onClick={handleStartTrial}
-            disabled={loading || isTrialUsed}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-md shadow-emerald-900/15 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>{isTrialUsed ? 'تم استخدام التجربة على هذا الجهاز' : 'جرّب التطبيق مجانًا لمدة 48 ساعة'}</span>
-          </button>
-          <p className="mt-2 text-center text-[11px] text-slate-500">
-            {isTrialUsed ? 'التجربة متاحة مرة واحدة على هذا الجهاز.' : 'ابدأ فورًا دون إنشاء حساب؛ بيانات التجربة تُحفظ على هذا الجهاز.'}
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-4 text-center shadow-sm">
+          <div className="flex items-center justify-center gap-2 text-sm font-black text-emerald-900">
+            <Sparkles className="h-4 w-4 text-amber-500" /> شهر كامل مجاني بعد إنشاء الحساب
+          </div>
+          <p className="mt-1 text-[11px] leading-5 text-slate-600">
+            ادفع خلال أول ١٠ أيام لتحصل على الاشتراك السنوي بنصف السعر.
           </p>
         </div>
 

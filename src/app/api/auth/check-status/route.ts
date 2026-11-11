@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       plan: user.plan,
       startDate: user.startDate,
       endDate: user.endDate,
+      isTrial: user.isTrial,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

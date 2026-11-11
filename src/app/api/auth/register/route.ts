@@ -36,6 +36,7 @@ export async function POST(req: Request) {
         plan: newUser.plan,
         startDate: newUser.startDate,
         endDate: newUser.endDate,
+        isTrial: newUser.isTrial,
       },
     }, { headers: { 'Cache-Control': 'no-store' } });
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(newUser.id)));
