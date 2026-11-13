@@ -40,7 +40,8 @@ let pendingTimer: ReturnType<typeof setTimeout> | undefined;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let uploadInFlight: Promise<void> | null = null;
 let uploadRequested = false;
-let hooksInstalled = false;
+const hookedDatabases = new WeakSet<object>();
+let backupListenersInstalled = false;
 let contextGeneration = 0;
 let localRevision = 0;
 let retryAttempt = 0;
@@ -394,19 +395,24 @@ function handleConnectivityReturn() {
 }
 
 export function installDriveBackupHooks() {
-  if (hooksInstalled || typeof window === 'undefined') return;
-  hooksInstalled = true;
+  if (typeof window === 'undefined') return;
+  const activeDatabase = db;
+  if (hookedDatabases.has(activeDatabase)) return;
+  hookedDatabases.add(activeDatabase);
 
-  const tables = [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions];
+  const tables = [activeDatabase.transactions, activeDatabase.categories, activeDatabase.budgets, activeDatabase.debts, activeDatabase.gam3eyat, activeDatabase.savings, activeDatabase.wallets, activeDatabase.savingsGoals, activeDatabase.recurringTransactions];
   for (const table of tables) {
     table.hook('creating', () => { scheduleAutomaticDriveBackup(); });
     table.hook('updating', () => { scheduleAutomaticDriveBackup(); });
     table.hook('deleting', () => { scheduleAutomaticDriveBackup(); });
   }
-  window.addEventListener('online', handleConnectivityReturn);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') handleConnectivityReturn();
-  });
+  if (!backupListenersInstalled) {
+    backupListenersInstalled = true;
+    window.addEventListener('online', handleConnectivityReturn);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleConnectivityReturn();
+    });
+  }
 }
 
 export async function getDriveBackupInfo(): Promise<DriveBackupInfo> {

@@ -7,6 +7,7 @@ import { Lock, Phone, User, ArrowRight, Sparkles, CheckCircle } from 'lucide-rea
 
 export const AuthScreen: React.FC = () => {
   const { login, register } = useAuth();
+  const [signupOffer, setSignupOffer] = useState<{ available: boolean; endsAt: string | null } | null>(null);
   const [isRegister, setIsRegister] = useState(true);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -20,6 +21,15 @@ export const AuthScreen: React.FC = () => {
       sessionStorage.removeItem('ala_qaddi_open_registration');
       setIsRegister(true);
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/signup-offer', { cache: 'no-store' })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((offer) => { if (active && offer) setSignupOffer(offer); })
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,14 +74,21 @@ export const AuthScreen: React.FC = () => {
           <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-4 text-center shadow-sm">
-          <div className="flex items-center justify-center gap-2 text-sm font-black text-emerald-900">
-            <Sparkles className="h-4 w-4 text-amber-500" /> شهر كامل مجاني بعد إنشاء الحساب
+        {signupOffer?.available && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-4 text-center shadow-sm">
+            <div className="flex items-center justify-center gap-2 text-sm font-black text-emerald-900">
+              <Sparkles className="h-4 w-4 text-amber-500" /> فترة إطلاق مجانية للجميع
+            </div>
+            {signupOffer.endsAt && <p className="mt-1 text-[11px] text-emerald-800">متاحة حتى {new Date(signupOffer.endsAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })}</p>}
+            <p className="mt-1 text-[11px] leading-5 text-slate-600">الاستفادة تنتهي في نفس موعد نهاية العرض لكل الحسابات، ولا تتجدد بإنشاء حساب جديد. اشترك خلال أول ١٠ أيام من تسجيلك لتحصل على نصف سعر الاشتراك السنوي.</p>
           </div>
-          <p className="mt-1 text-[11px] leading-5 text-slate-600">
-            ادفع خلال أول ١٠ أيام لتحصل على الاشتراك السنوي بنصف السعر.
-          </p>
-        </div>
+        )}
+        {signupOffer && !signupOffer.available && (
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white/90 p-4 text-center shadow-sm">
+            <div className="text-sm font-black text-slate-800">انتهت فترة الإطلاق المجانية</div>
+            <p className="mt-1 text-[11px] leading-5 text-slate-600">يمكنك إنشاء حساب وتقديم طلب اشتراك من داخل التطبيق.</p>
+          </div>
+        )}
 
         {/* Auth Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 p-6 sm:p-8">
@@ -142,8 +159,12 @@ export const AuthScreen: React.FC = () => {
                   id="auth-phone"
                   type="tel"
                   required
+                  minLength={isRegister ? 11 : undefined}
+                  maxLength={isRegister ? 11 : 32}
+                  pattern={isRegister ? '01[0125][0-9]{8}' : undefined}
+                  title={isRegister ? 'اكتب رقم موبايل مصري صحيح مكوّنًا من 11 رقمًا ويبدأ بـ 010 أو 011 أو 012 أو 015' : undefined}
+                  inputMode="numeric"
                   autoComplete="tel"
-                  maxLength={32}
                   placeholder="010XXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

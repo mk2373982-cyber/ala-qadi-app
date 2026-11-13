@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { seedDefaultCategoriesIfEmpty } from '@/lib/db';
 import { installDriveBackupHooks, setDriveBackupUserId } from '@/lib/drive-backup';
 import { Header } from '@/components/Header';
 import { Navigation, TabType } from '@/components/Navigation';
@@ -29,8 +28,7 @@ export default function Home() {
 
   useEffect(() => {
     installDriveBackupHooks();
-    seedDefaultCategoriesIfEmpty();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     void setDriveBackupUserId(user?.id || null);

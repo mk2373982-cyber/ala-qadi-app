@@ -100,6 +100,9 @@ export interface DriveBackupKey {
   createdAt: string;
 }
 
+const LEGACY_DATABASE_NAME = 'AlaQaddiLocalDB';
+const LEGACY_DATABASE_OWNER_KEY = 'ala_qaddi_legacy_database_owner';
+
 export class AlaQaddiDatabase extends Dexie {
   transactions!: Table<Transaction>;
   categories!: Table<Category>;
@@ -112,8 +115,8 @@ export class AlaQaddiDatabase extends Dexie {
   savingsGoals!: Table<SavingsGoal>;
   recurringTransactions!: Table<RecurringTransaction>;
 
-  constructor() {
-    super('AlaQaddiLocalDB');
+  constructor(databaseName = LEGACY_DATABASE_NAME) {
+    super(databaseName);
     this.version(1).stores({
       transactions: '++id, type, category, date, createdAt',
       categories: '++id, name, type',
@@ -156,7 +159,99 @@ export class AlaQaddiDatabase extends Dexie {
   }
 }
 
-export const db = new AlaQaddiDatabase();
+export let db = new AlaQaddiDatabase();
+
+let databaseSwitchQueue: Promise<void> = Promise.resolve();
+
+function databaseNameForUser(userId: string | null) {
+  return userId
+    ? `AlaQaddiLocalDB_user_${encodeURIComponent(userId)}`
+    : 'AlaQaddiLocalDB_guest';
+}
+
+async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string, accountCreatedAt?: string, lockHeld = false) {
+  if (typeof window === 'undefined' || !accountCreatedAt) return;
+  if (!lockHeld && typeof navigator !== 'undefined' && navigator.locks?.request) {
+    await navigator.locks.request('ala-qaddi-legacy-database-migration', { mode: 'exclusive' }, () =>
+      migrateLegacyDataIfOwned(target, userId, accountCreatedAt, true));
+    return;
+  }
+  let existingOwner: string | null;
+  try {
+    existingOwner = window.localStorage.getItem(LEGACY_DATABASE_OWNER_KEY);
+  } catch {
+    return;
+  }
+  if (existingOwner && existingOwner !== userId) return;
+
+  const legacy = db.name === LEGACY_DATABASE_NAME ? db : new AlaQaddiDatabase(LEGACY_DATABASE_NAME);
+  await legacy.open();
+  try {
+    const [transactions, categories, budgets, debts, gam3eyet, savings, wallets, allBackupKeys, savingsGoals, recurringTransactions] = await Promise.all([
+      legacy.transactions.toArray(), legacy.categories.toArray(), legacy.budgets.toArray(), legacy.debts.toArray(),
+      legacy.gam3eyat.toArray(), legacy.savings.toArray(), legacy.wallets.toArray(), legacy.driveBackupKeys.toArray(),
+      legacy.savingsGoals.toArray(), legacy.recurringTransactions.toArray(),
+    ]);
+    const driveBackupKeys = allBackupKeys.filter((record) => record.userId === userId);
+    const legacyRows = [transactions, categories, budgets, debts, gam3eyet, savings, wallets, driveBackupKeys, savingsGoals, recurringTransactions];
+    if (!legacyRows.some((rows) => rows.length > 0)) return;
+
+    // Only let an account that predates this device's first financial entry claim
+    // the unscoped database. New/demo accounts therefore start with an empty DB.
+    const timestamps = [
+      ...transactions.map((row) => row.createdAt),
+      ...debts.map((row) => row.createdAt),
+      ...wallets.map((row) => row.createdAt),
+      ...savingsGoals.map((row) => row.createdAt),
+      ...recurringTransactions.map((row) => row.createdAt),
+      ...savings.map((row) => Date.parse(`${row.date}T00:00:00`)),
+    ].filter((timestamp) => Number.isFinite(timestamp) && timestamp > 0);
+    const accountTimestamp = Date.parse(accountCreatedAt);
+    if (!timestamps.length || !Number.isFinite(accountTimestamp) || accountTimestamp > Math.min(...timestamps)) return;
+
+    const targetTables = [target.transactions, target.categories, target.budgets, target.debts, target.gam3eyat, target.savings, target.wallets, target.driveBackupKeys, target.savingsGoals, target.recurringTransactions];
+    await target.transaction('rw', targetTables, async () => {
+      const currentCounts = await Promise.all(targetTables.map((table) => table.count()));
+      if (currentCounts.some((count) => count > 0)) return;
+      if (transactions.length) await target.transactions.bulkAdd(transactions);
+      if (categories.length) await target.categories.bulkAdd(categories);
+      if (budgets.length) await target.budgets.bulkAdd(budgets);
+      if (debts.length) await target.debts.bulkAdd(debts);
+      if (gam3eyet.length) await target.gam3eyat.bulkAdd(gam3eyet);
+      if (savings.length) await target.savings.bulkAdd(savings);
+      if (wallets.length) await target.wallets.bulkAdd(wallets);
+      if (driveBackupKeys.length) await target.driveBackupKeys.bulkAdd(driveBackupKeys);
+      if (savingsGoals.length) await target.savingsGoals.bulkAdd(savingsGoals);
+      if (recurringTransactions.length) await target.recurringTransactions.bulkAdd(recurringTransactions);
+    });
+    try {
+      window.localStorage.setItem(LEGACY_DATABASE_OWNER_KEY, userId);
+    } catch {
+      // Financial data has already been copied safely; IndexedDB remains authoritative.
+    }
+  } finally {
+    if (legacy !== db) legacy.close();
+  }
+}
+
+export function activateUserDatabase(userId: string | null, accountCreatedAt?: string, allowLegacyMigration = false) {
+  const operation = databaseSwitchQueue.then(async () => {
+    const targetName = databaseNameForUser(userId);
+    if (db.name !== targetName) {
+      const previous = db;
+      const next = new AlaQaddiDatabase(targetName);
+      await next.open();
+      db = next;
+      previous.close();
+    }
+    if (userId && allowLegacyMigration) {
+      await migrateLegacyDataIfOwned(db, userId, accountCreatedAt);
+    }
+    if (userId) await seedDefaultCategoriesIfEmpty();
+  });
+  databaseSwitchQueue = operation.catch(() => {});
+  return operation;
+}
 
 // Default Egyptian / Arabic categories
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [

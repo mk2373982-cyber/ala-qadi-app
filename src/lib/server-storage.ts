@@ -110,15 +110,73 @@ export async function listUsers() {
   return rows.map(mapUser);
 }
 
+interface SignupCampaign {
+  startsAt: string;
+  endsAt: string;
+}
+
+async function getOrStartSignupCampaign(): Promise<SignupCampaign> {
+  const query = '?key=eq.registration_promo&select=value&limit=1';
+  const readCampaign = async () => {
+    const rows = await db<{ value: SignupCampaign }[]>('app_settings', query);
+    return rows[0]?.value;
+  };
+  const existing = await readCampaign();
+  if (existing) {
+    if (Number.isFinite(Date.parse(existing.startsAt)) && Number.isFinite(Date.parse(existing.endsAt))) return existing;
+    throw new Error('إعداد فترة العرض المجاني غير صالح. تواصل مع المسؤول.');
+  }
+
+  const startsAt = new Date();
+  const endsAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  try {
+    await db('app_settings', '?on_conflict=key', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify({
+        key: 'registration_promo',
+        value: { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() },
+        updated_at: startsAt.toISOString(),
+      }),
+    });
+  } catch {
+    // A concurrent signup may have created the one-time campaign already.
+  }
+
+  const campaign = await readCampaign();
+  if (!campaign || !Number.isFinite(Date.parse(campaign.startsAt)) || !Number.isFinite(Date.parse(campaign.endsAt))) {
+    throw new Error('تعذر تفعيل فترة العرض المجاني. حاول مرة أخرى.');
+  }
+  return campaign;
+}
+
+export async function getSignupCampaignStatus() {
+  const rows = await db<{ value: SignupCampaign }[]>('app_settings', '?key=eq.registration_promo&select=value&limit=1');
+  const campaign = rows[0]?.value;
+  if (!campaign) return { available: true, endsAt: null as string | null };
+  const endsAt = Date.parse(campaign.endsAt);
+  if (!Number.isFinite(endsAt)) throw new Error('إعداد فترة العرض المجاني غير صالح.');
+  return { available: Date.now() < endsAt, endsAt: campaign.endsAt };
+}
+
 export async function createUser(name: string, phone: string, password: string) {
-  const startDate = new Date();
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + 30);
+  const normalizedPhone = normalizePhone(phone);
+  if (!/^01[0125]\d{8}$/.test(normalizedPhone)) {
+    throw new Error('رقم الهاتف لازم يكون رقم موبايل مصري صحيح مكوّن من 11 رقمًا.');
+  }
+  if (await findUserByPhone(normalizedPhone)) throw new Error('رقم الهاتف مسجل بالفعل');
+
+  const campaign = await getOrStartSignupCampaign();
+  const now = new Date();
+  const campaignEndsAt = new Date(campaign.endsAt);
+  const receivesLaunchAccess = now < campaignEndsAt;
   const rows = await db<DbUser[]>('app_users', '', {
     method: 'POST',
     body: JSON.stringify({
-      name: name.trim(), phone: normalizePhone(phone), password_hash: passwordHash(password.trim()),
-      status: 'active', plan: '1_month', start_date: startDate.toISOString(), end_date: endDate.toISOString(),
+      name: name.trim(), phone: normalizedPhone, password_hash: passwordHash(password.trim()),
+      status: receivesLaunchAccess ? 'active' : 'pending', plan: '1_month',
+      start_date: receivesLaunchAccess ? now.toISOString() : null,
+      end_date: receivesLaunchAccess ? campaign.endsAt : null,
     }),
   });
   return mapUser(rows[0]);

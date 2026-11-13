@@ -17,6 +17,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'الاسم بحد أقصى 80 حرفًا، وكلمة المرور من 8 إلى 128 حرفًا.' }, { status: 400 });
     }
 
+    if (!/^01[0125]\d{8}$/.test(phone.trim().replace(/\s+/g, ''))) {
+      return NextResponse.json({ error: 'رقم الهاتف لازم يكون رقم موبايل مصري صحيح مكوّن من 11 رقمًا.' }, { status: 400 });
+    }
+
     if (await isAuthRateLimited(req, { bucket: 'register', windowSeconds: 60 * 60, perIp: 12 })) {
       return NextResponse.json({ error: 'تم تجاوز عدد محاولات التسجيل. حاول بعد ساعة.' }, {
         status: 429,
@@ -37,6 +41,7 @@ export async function POST(req: Request) {
         startDate: newUser.startDate,
         endDate: newUser.endDate,
         isTrial: newUser.isTrial,
+        createdAt: newUser.createdAt,
       },
     }, { headers: { 'Cache-Control': 'no-store' } });
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(newUser.id)));
