@@ -38,6 +38,7 @@ interface PlansSummary {
   goalsSaved: number;
   recurringCount: number;
   recurringTotal: number;
+  recurringDueThisMonth: number;
 }
 
 const EMPTY_PLANS_SUMMARY: PlansSummary = {
@@ -45,6 +46,7 @@ const EMPTY_PLANS_SUMMARY: PlansSummary = {
   goalsSaved: 0,
   recurringCount: 0,
   recurringTotal: 0,
+  recurringDueThisMonth: 0,
 };
 
 interface DashboardViewProps {
@@ -226,6 +228,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const nextMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(nextMonthStr));
   const getDueTotal = (debts: Debt[]) =>
     debts.reduce((sum, debt) => sum + Math.max(0, debt.totalAmount - debt.paidAmount), 0);
+  const gam3eyaInstallmentsDueThisMonth = activeGam3eyat
+    .filter((group) => {
+      if (
+        group.startDate > currentMonthStr ||
+        group.paidMonths >= group.totalMonths ||
+        group.status !== 'active'
+      ) {
+        return false;
+      }
+
+      const installmentWasPaidThisMonth = currentMonthTransactions.some(
+        (transaction) =>
+          transaction.type === 'expense' &&
+          transaction.category === 'جمعيات شهرية' &&
+          transaction.note?.endsWith(` - ${group.name}`),
+      );
+      return !installmentWasPaidThisMonth;
+    })
+    .reduce((sum, group) => sum + group.monthlyAmount, 0);
+  const monthlyObligations =
+    getDueTotal(currentMonthDebts) +
+    plansSummary.recurringDueThisMonth +
+    gam3eyaInstallmentsDueThisMonth;
+  const safeBalanceAfterObligations = totalWalletBalance - monthlyObligations;
+  const dailySafeToSpend = Math.max(0, safeBalanceAfterObligations / daysLeftInMonth);
+  const hasNoFinancialPlaces = wallets.length === 0 && totalWalletBalance === 0;
 
   const handleSaveBudget = async () => {
     const limit = parseFloat(tempBudgetInput);
@@ -376,6 +404,76 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
           </div>
+
+          <section
+            aria-labelledby="daily-safe-to-spend-title"
+            className={`rounded-2xl border p-4 shadow-sm ${
+              hasNoFinancialPlaces
+                ? 'border-emerald-200 bg-emerald-50/70'
+                : dailySafeToSpend > 0
+                  ? 'border-emerald-200/80 bg-white'
+                  : 'border-amber-200 bg-amber-50/70'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    hasNoFinancialPlaces || dailySafeToSpend > 0
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  <Wallet aria-hidden="true" className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 pt-0.5">
+                  <h3 id="daily-safe-to-spend-title" className="text-xs font-black text-slate-900">
+                    مصروفي اليومي المتاح
+                  </h3>
+                  <p
+                    className={`mt-1 text-[10px] leading-4 ${
+                      hasNoFinancialPlaces
+                        ? 'text-emerald-900'
+                        : dailySafeToSpend > 0
+                          ? 'text-slate-600'
+                          : 'text-amber-950'
+                    }`}
+                  >
+                    {hasNoFinancialPlaces
+                      ? 'ضيف مكان مالي عشان نحسب المبلغ اليومي المناسب ليك.'
+                      : dailySafeToSpend > 0
+                        ? 'متاح لصرف اليوم بعد حساب التزامات الشهر.'
+                        : 'التزم بالضروريات فقط، التزامات الشهر تغطي الرصيد الحالي'}
+                  </p>
+                </div>
+              </div>
+
+              {!hasNoFinancialPlaces && (
+                <p className="shrink-0 text-left">
+                  <span className="block text-[9px] font-bold text-slate-500">متاح لصرف اليوم</span>
+                  <span className="mt-1 block text-base font-black tabular-nums text-emerald-900" dir="ltr">
+                    {formatCurrency(dailySafeToSpend)}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            {hasNoFinancialPlaces ? (
+              <button
+                type="button"
+                onClick={openWalletAdd}
+                className="mt-3 min-h-10 rounded-xl bg-emerald-600 px-3 text-[10px] font-black text-white transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              >
+                <Plus aria-hidden="true" className="ml-1 inline h-3.5 w-3.5" />
+                إضافة مكان مالي
+              </button>
+            ) : (
+              <p className="mt-3 border-t border-slate-200/70 pt-2 text-[9px] leading-4 text-slate-500">
+                الرصيد {formatCurrency(totalWalletBalance)} − التزامات الشهر{' '}
+                {formatCurrency(monthlyObligations)}، على {formatAmount(daysLeftInMonth)} يوم متبقي.
+              </p>
+            )}
+          </section>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
             <article className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">

@@ -37,6 +37,7 @@ interface FinancialPlansProps {
     goalsSaved: number;
     recurringCount: number;
     recurringTotal: number;
+    recurringDueThisMonth: number;
   }) => void;
 }
 
@@ -98,16 +99,20 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh, onSum
   }, [refresh]);
 
   const totalSavedTowardGoals = goals.reduce((sum, goal) => sum + goal.savedAmount, 0);
+  const today = getLocalDateString();
   useEffect(() => {
     const activeRules = rules.filter((rule) => rule.isActive);
+    const recurringDueThisMonth = activeRules
+      .filter((rule) => rule.type === 'expense' && rule.nextDueDate.startsWith(today.slice(0, 7)))
+      .reduce((sum, rule) => sum + rule.amount, 0);
     onSummaryChange?.({
       goalCount: goals.length,
       goalsSaved: totalSavedTowardGoals,
       recurringCount: activeRules.length,
       recurringTotal: activeRules.reduce((sum, rule) => sum + rule.amount, 0),
+      recurringDueThisMonth,
     });
-  }, [goals, onSummaryChange, rules, totalSavedTowardGoals]);
-  const today = getLocalDateString();
+  }, [goals, onSummaryChange, rules, today, totalSavedTowardGoals]);
   const currentCategories = useMemo(
     () => categories.filter((category) => category.type === ruleForm.type),
     [categories, ruleForm.type],
