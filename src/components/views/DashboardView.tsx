@@ -6,7 +6,6 @@ import {
   Transaction,
   Debt,
   Gam3eya,
-  SavingsAsset,
   WalletAccount,
   seedDefaultWalletsOnce,
 } from '@/lib/db';
@@ -16,17 +15,15 @@ import {
   AlertTriangle,
   TrendingDown,
   TrendingUp,
-  HandCoins,
   Landmark,
   Plus,
   ArrowUpRight,
   ArrowDownLeft,
-  ChevronDown,
-  ChevronLeft,
-  ChevronUp,
   Clock3,
   CreditCard,
   Smartphone,
+  Repeat2,
+  Target,
   Pencil,
   Trash2,
   X,
@@ -34,9 +31,25 @@ import {
 import { TabType } from '../Navigation';
 import { askForConfirmation } from '@/lib/confirm-action';
 import { FinancialPlans } from '@/components/views/FinancialPlans';
+import { formatAmount, formatCurrency, formatDate } from '@/lib/formatters';
+
+interface PlansSummary {
+  goalCount: number;
+  goalsSaved: number;
+  recurringCount: number;
+  recurringTotal: number;
+}
+
+const EMPTY_PLANS_SUMMARY: PlansSummary = {
+  goalCount: 0,
+  goalsSaved: 0,
+  recurringCount: 0,
+  recurringTotal: 0,
+};
 
 interface DashboardViewProps {
   userId: string;
+  userName?: string;
   onOpenAddModal: () => void;
   onNavigate: (tab: TabType) => void;
 }
@@ -50,6 +63,7 @@ function daysUntilDue(dateValue: string) {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   userId,
+  userName,
   onOpenAddModal,
   onNavigate,
 }) => {
@@ -67,6 +81,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [expandedDebtMonth, setExpandedDebtMonth] = useState<0 | 1 | null>(null);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
+  const [totalGoldValue, setTotalGoldValue] = useState(0);
+  const [plansSummary, setPlansSummary] = useState<PlansSummary>(EMPTY_PLANS_SUMMARY);
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [editingWalletId, setEditingWalletId] = useState<number | null>(null);
@@ -135,6 +151,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       return sum + s.quantity * price;
     }, 0);
     setTotalSavingsValue(sValue);
+    setTotalGoldValue(
+      savings
+        .filter((asset) => asset.type === 'gold_21' || asset.type === 'gold_24')
+        .reduce(
+          (sum, asset) =>
+            sum + asset.quantity * (asset.currentPricePerUnit || asset.buyPricePerUnit || 0),
+          0,
+        ),
+    );
 
     // Budget
     const b = await db.budgets.where('category').equals('TOTAL').first();
@@ -174,6 +199,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Totals
   const currentMonthExpense = currentMonthTransactions
     .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const currentMonthIncome = currentMonthTransactions
+    .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
   // Budget calculations
@@ -291,49 +319,86 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const walletBeingEdited = wallets.find((wallet) => wallet.id === editingWalletId);
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-4 pb-4 sm:space-y-5">
+      <header className="flex items-end justify-between gap-3 px-1 pt-1">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-black text-slate-900 sm:text-xl">
+            أهلاً {userName?.trim().split(/\s+/)[0] || 'بيك'}
+          </h2>
+          <p className="mt-0.5 text-xs font-medium text-slate-600">
+            {formatDate(`${currentMonthStr}-01`, { month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <p className="pb-0.5 text-[10px] text-slate-500">خلّي قراراتك على قدّك</p>
+      </header>
+
       {/* Unified money overview */}
-      <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-[#f0f8f3] via-white to-[#e7f4ed] shadow-[0_14px_40px_-28px_rgba(5,94,62,0.42)]">
-        <div className="p-4 sm:p-6">
+      <section className="space-y-3">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-800 text-white shadow-md shadow-emerald-900/15">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-white">
                 <Wallet className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-black text-slate-900">ملخص أموالي</h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">اضغط على أي مكان لتعديل بياناته</p>
+                <h3 className="text-sm font-black text-slate-900">ملخص أموالي</h3>
+                <p className="mt-0.5 text-[10px] text-slate-600">رصيدك الحالي على كل الأماكن</p>
               </div>
             </div>
             <button
               type="button"
               onClick={openWalletAdd}
-              className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-emerald-800 px-2.5 py-2.5 text-[11px] font-extrabold text-white shadow-sm transition hover:bg-emerald-900 sm:gap-1.5 sm:px-4 sm:text-xs"
+              aria-label="إضافة مكان مالي"
+              className="flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-950 transition-colors hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:gap-1.5 sm:px-4 sm:text-xs"
             >
               <Plus className="h-4 w-4" /> إضافة مكان
             </button>
           </div>
 
-          <div className="relative mt-4 overflow-hidden rounded-[22px] bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 px-4 py-4 text-white shadow-lg shadow-emerald-950/15 sm:px-5">
-            <div className="pointer-events-none absolute -left-8 -top-12 h-36 w-36 rounded-full border-[18px] border-white/5" />
+          <div className="relative overflow-hidden rounded-2xl bg-emerald-900 px-4 py-4 text-white sm:px-5">
             <div className="relative flex items-end justify-between gap-3">
               <div>
                 <div className="text-[11px] font-semibold text-emerald-100">
                   إجمالي رصيدك الحالي
                 </div>
-                <div className="mt-1 text-2xl font-black tracking-tight sm:text-3xl" dir="ltr">
-                  {totalWalletBalance.toLocaleString('ar-EG')}{' '}
-                  <span className="text-sm font-bold text-emerald-100">ج.م</span>
+                <div
+                  className="mt-1 text-2xl font-black tracking-tight tabular-nums sm:text-3xl"
+                  dir="ltr"
+                >
+                  {formatCurrency(totalWalletBalance)}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-center backdrop-blur-sm">
+              <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-center">
                 <div className="text-lg font-black leading-none">
-                  {wallets.length.toLocaleString('ar-EG')}
+                  {formatAmount(wallets.length)}
                 </div>
                 <div className="mt-1 text-[9px] font-semibold text-emerald-100">أماكن مالية</div>
               </div>
             </div>
           </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
+            <article className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
+              <p className="text-[10px] font-bold text-rose-900">مصروف الشهر</p>
+              <p className="mt-1 text-sm font-black tabular-nums text-rose-950" dir="ltr">
+                {formatCurrency(currentMonthExpense)}
+              </p>
+            </article>
+            <article className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+              <p className="text-[10px] font-bold text-emerald-900">دخل الشهر</p>
+              <p className="mt-1 text-sm font-black tabular-nums text-emerald-950" dir="ltr">
+                {formatCurrency(currentMonthIncome)}
+              </p>
+            </article>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenAddModal}
+            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          >
+            <Plus aria-hidden="true" className="h-5 w-5" /> إضافة حركة
+          </button>
 
           {wallets.length ? (
             <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
@@ -366,10 +431,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       className="mt-2 truncate text-[11px] font-black text-slate-950 sm:mt-3 sm:text-sm"
                       dir="ltr"
                     >
-                      {wallet.balance.toLocaleString('ar-EG')}{' '}
-                      <span className="text-[9px] font-bold text-slate-500 sm:text-[10px]">
-                        ج.م
-                      </span>
+                      {formatCurrency(wallet.balance)}
                     </div>
                   </button>
                 );
@@ -386,13 +448,132 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onOpenAddModal}
-          className="flex w-full items-center justify-center gap-2 bg-emerald-700 px-4 py-3.5 text-sm font-black text-white transition hover:bg-emerald-800"
-        >
-          <Plus className="h-4 w-4" /> تسجيل حركة
-        </button>
+      </section>
+
+      <section aria-labelledby="quick-summary-title" className="space-y-3">
+        <div className="flex items-end justify-between gap-3 px-1">
+          <div>
+            <h2 id="quick-summary-title" className="text-sm font-black text-slate-900">
+              ملخص سريع
+            </h2>
+            <p className="mt-0.5 text-[10px] text-slate-500">أهم أرقامك وأقرب التزاماتك</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <article className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:p-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <Clock3 aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <h3 className="text-[11px] font-black text-slate-800">الديون المستحقة</h3>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {([0, 1] as const).map((offset) => {
+                const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+                const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
+                const monthTotal = getDueTotal(monthDebts);
+                const isSelected = expandedDebtMonth === offset;
+                return (
+                  <button
+                    key={offset}
+                    type="button"
+                    onClick={() => setExpandedDebtMonth(isSelected ? null : offset)}
+                    aria-expanded={isSelected}
+                    aria-controls={isSelected ? 'due-debt-details' : undefined}
+                    className={`min-w-0 rounded-xl px-2 py-2 text-right transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 ${
+                      isSelected ? 'bg-emerald-100 text-emerald-950' : 'bg-slate-50 text-slate-800 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <span className="block truncate text-[9px] font-semibold text-slate-600">
+                      {offset === 0 ? 'الحالي' : 'القادم'} ·{' '}
+                      {monthDate.toLocaleDateString('ar-EG', { month: 'short' })}
+                    </span>
+                    <span className="mt-1 block truncate text-[10px] font-black tabular-nums" dir="ltr">
+                      {formatCurrency(monthTotal)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[9px] font-semibold text-slate-500">
+              عليّا {formatAmount(totalDebtsOnMe)} ج.م · ليّا {formatAmount(totalDebtsToMe)} ج.م
+            </p>
+            <button
+              type="button"
+              onClick={() => onNavigate('debts')}
+              className="mt-2 min-h-8 text-[10px] font-bold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+            >
+              عرض كل الديون
+            </button>
+          </article>
+
+          <button
+            type="button"
+            onClick={() => document.getElementById('savings-goals')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <Target aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="mt-2 block text-[11px] font-black text-slate-800">أهداف الادخار</span>
+            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+              {formatCurrency(plansSummary.goalsSaved)}
+            </span>
+            <span className="mt-1 block text-[9px] text-slate-500">
+              {formatAmount(plansSummary.goalCount)} {plansSummary.goalCount === 1 ? 'هدف' : 'أهداف'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => document.getElementById('recurring-transactions')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <Repeat2 aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="mt-2 block text-[11px] font-black text-slate-800">المتكرر</span>
+            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+              {formatCurrency(plansSummary.recurringTotal)}
+            </span>
+            <span className="mt-1 block text-[9px] text-slate-500">
+              {formatAmount(plansSummary.recurringCount)} معاملة نشطة
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('gam3eya_gold')}
+            className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <Landmark aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="mt-2 block text-[11px] font-black text-slate-800">الجمعيات</span>
+            <span className="mt-1 block text-xs font-black text-slate-900">
+              {formatAmount(activeGam3eyat.length)} جمعية نشطة
+            </span>
+            <span className="mt-1 block text-[9px] text-slate-500">عرض التفاصيل</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('gam3eya_gold')}
+          className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <Landmark aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="mt-2 block text-[11px] font-black text-slate-800">الذهب والأصول</span>
+            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+              {formatCurrency(totalGoldValue)}
+            </span>
+            <span className="mt-1 block truncate text-[9px] text-slate-500">
+              إجمالي الأصول {formatCurrency(totalSavingsValue)}
+            </span>
+          </button>
+        </div>
       </section>
 
       {dueDebtReminders.length > 0 && (
@@ -441,12 +622,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <p
                       className={`mt-0.5 text-[10px] font-bold ${days <= 0 ? 'text-rose-700' : 'text-orange-800'}`}
                     >
-                      {dueLabel} ·{' '}
-                      {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG')}
+                      {dueLabel} · {formatDate(debt.dueDate!)}
                     </p>
                   </div>
                   <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">
-                    {Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م
+                    {formatCurrency(Math.max(0, debt.totalAmount - debt.paidAmount))}
                   </p>
                 </div>
               );
@@ -460,108 +640,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
       )}
 
-      {/* Debts due this month or next month */}
-      <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
-        <div className="flex items-center gap-3 border-b border-orange-100 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-              <Clock3 className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ</h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">
-                إجمالي المبالغ غير المسددة حسب تاريخ الاستحقاق
-              </p>
-            </div>
+      {expandedDebtMonth !== null && (
+        <section
+          id="due-debt-details"
+          aria-labelledby="due-debt-details-title"
+          className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h3 id="due-debt-details-title" className="text-xs font-black text-slate-800">
+              تفاصيل ديون {selectedDebtMonthLabel}
+            </h3>
+            <button
+              type="button"
+              onClick={() => onNavigate('debts')}
+              className="shrink-0 text-[10px] font-bold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+            >
+              كل الديون
+            </button>
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 px-5 pt-4">
-          {([0, 1] as const).map((offset) => {
-            const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-            const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
-            const monthTotal = getDueTotal(monthDebts);
-            const isSelected = expandedDebtMonth === offset;
-            return (
-              <button
-                key={offset}
-                type="button"
-                onClick={() => setExpandedDebtMonth(isSelected ? null : offset)}
-                aria-expanded={isSelected}
-                aria-controls={isSelected ? 'due-debt-details' : undefined}
-                className={`rounded-2xl border p-3 text-right transition active:scale-[0.98] ${isSelected ? 'border-orange-500 bg-orange-600 text-white shadow-md shadow-orange-600/15' : 'border-orange-100 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50/60'}`}
-              >
-                <span
-                  className={`block text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}
-                >
-                  {offset === 0 ? 'الشهر الحالي' : 'الشهر القادم'} ·{' '}
-                  {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
-                </span>
-                <span className="mt-1.5 block text-lg font-black" dir="ltr">
-                  {monthTotal.toLocaleString('ar-EG')} <span className="text-[10px]">ج.م</span>
-                </span>
-                <span
-                  className={`mt-1 flex items-center justify-between gap-1 text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}
-                >
-                  {monthDebts.length.toLocaleString('ar-EG')}{' '}
-                  {monthDebts.length === 1 ? 'دين مستحق' : 'ديون مستحقة'}
-                  {isSelected ? (
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {expandedDebtMonth !== null && (
-          <div id="due-debt-details" className="border-t border-orange-100 px-5">
-            <p className="pt-3 text-[11px] font-black text-slate-700">
-              تفاصيل {selectedDebtMonthLabel}
-            </p>
-            {selectedMonthDebts.length ? (
-              <div className="divide-y divide-orange-100/80">
-                {selectedMonthDebts.map((debt) => (
-                  <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-xs font-extrabold text-slate-800">
-                        {debt.personName}
-                      </div>
-                      <div className="mt-1 text-[10px] text-slate-500">
-                        موعد السداد{' '}
-                        {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </div>
+          {selectedMonthDebts.length ? (
+            <div className="mt-2 divide-y divide-slate-100">
+              {selectedMonthDebts.map((debt) => (
+                <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-extrabold text-slate-800">
+                      {debt.personName}
                     </div>
-                    <div className="shrink-0 text-left">
-                      <div className="text-xs font-black text-slate-800" dir="ltr">
-                        {Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')}{' '}
-                        ج.م
-                      </div>
-                      {debt.paidAmount > 0 && (
-                        <div className="mt-1 text-[10px] text-slate-400">بعد السداد الجزئي</div>
-                      )}
+                    <div className="mt-1 text-[10px] text-slate-500">
+                      موعد السداد{' '}
+                      {formatDate(debt.dueDate!, { day: 'numeric', month: 'short' })}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-5 text-center text-xs text-slate-500">
-                لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
-              </div>
-            )}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => onNavigate('debts')}
-          className="flex w-full items-center justify-center gap-1 border-t border-orange-100 px-4 py-3 text-xs font-bold text-brand-700 transition hover:bg-brand-50/60"
-        >
-          عرض كل الديون <ChevronLeft className="h-4 w-4" />
-        </button>
-      </section>
+                  <div className="shrink-0 text-left">
+                    <div className="text-xs font-black tabular-nums text-slate-800" dir="ltr">
+                      {formatCurrency(Math.max(0, debt.totalAmount - debt.paidAmount))}
+                    </div>
+                    {debt.paidAmount > 0 && (
+                      <div className="mt-1 text-[10px] text-slate-500">بعد السداد الجزئي</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-5 text-center text-xs text-slate-500">
+              لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
+            </div>
+          )}
+        </section>
+      )}
 
       {isWalletModalOpen && (
         <div
@@ -680,7 +807,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <button
                     type="submit"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-800 py-3.5 text-sm font-black text-white shadow-md shadow-emerald-900/10 transition hover:bg-emerald-900 active:scale-[0.99]"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.99]"
                   >
                     <Pencil className="h-4 w-4" />
                     {editingWalletId === null ? 'حفظ المكان' : 'حفظ التعديلات'}
@@ -758,7 +885,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       setTempBudgetInput('');
                       setIsEditingBudget(true);
                     }}
-                    className="mt-2 rounded-xl bg-sky-800 px-3 py-2 text-[11px] font-black text-white"
+                    className="mt-2 rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-black text-white transition-colors hover:bg-emerald-700"
                   >
                     حدد ميزانية الشهر
                   </button>
@@ -787,7 +914,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => void handleSaveBudget()}
-              className="rounded-xl bg-sky-800 px-4 py-2 text-xs font-black text-white"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white transition-colors hover:bg-emerald-700"
             >
               حفظ
             </button>
@@ -813,86 +940,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         ) : null}
       </section>
 
-      <FinancialPlans onRefresh={loadData} />
-
-      {/* 3 Quick Cards: Debts, Gam3eyat, Gold */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Debts Card */}
-        <div
-          onClick={() => onNavigate('debts')}
-          className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-brand-300 cursor-pointer transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <HandCoins className="w-4 h-4" />
-            </div>
-            <ChevronLeft className="w-4 h-4 text-slate-300" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-medium">ليّا وعليّا (الديون)</div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs text-emerald-600 font-bold">
-                ليّا: {totalDebtsToMe.toLocaleString('ar-EG')}
-              </span>
-              <span className="text-xs text-rose-600 font-bold">
-                عليّا: {totalDebtsOnMe.toLocaleString('ar-EG')}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Gam3eyat Card */}
-        <div
-          onClick={() => onNavigate('gam3eya_gold')}
-          className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-brand-300 cursor-pointer transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
-            </div>
-            <ChevronLeft className="w-4 h-4 text-slate-300" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-medium">الجمعيات النشطة</div>
-            <div className="mt-1 font-bold text-sm text-slate-800">
-              {activeGam3eyat.length > 0
-                ? `${activeGam3eyat.length} جمعيات جارية`
-                : 'لا توجد جمعيات نشطة'}
-            </div>
-          </div>
-        </div>
-
-        {/* Gold & Savings Card */}
-        <div
-          onClick={() => onNavigate('gam3eya_gold')}
-          className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-brand-300 cursor-pointer transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Landmark className="w-4 h-4" />
-            </div>
-            <ChevronLeft className="w-4 h-4 text-slate-300" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-medium">محفظة الذهب والمدخرات</div>
-            <div className="mt-1 font-bold text-sm text-slate-800 font-mono">
-              {totalSavingsValue > 0
-                ? `${totalSavingsValue.toLocaleString('ar-EG')} ج.م`
-                : 'أضف مدخراتك'}
-            </div>
-          </div>
-        </div>
-      </div>
+      <FinancialPlans onRefresh={loadData} onSummaryChange={setPlansSummary} />
 
       {/* Recent Transactions List */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm">
+      <section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-sm text-slate-800">آخر المعاملات المسجلة</h3>
+          <h2 className="font-bold text-sm text-slate-800">آخر المعاملات المسجلة</h2>
           <button
+            type="button"
             onClick={() => onNavigate('transactions')}
-            className="text-xs text-brand-600 font-bold hover:underline"
+            className="min-h-10 rounded-lg px-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
-            عرض الكل ({currentMonthTransactions.length})
+            عرض الكل
           </button>
         </div>
 
@@ -902,7 +961,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {recentTransactions.map((tx) => (
+            {recentTransactions.slice(0, 3).map((tx) => (
               <div key={tx.id} className="py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div
@@ -916,13 +975,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
                   <div>
                     <div className="font-bold text-xs sm:text-sm text-slate-800">{tx.category}</div>
-                    <div className="text-[11px] text-slate-400">
-                      {tx.note ? `${tx.note} • ` : ''}
+                    <div className="text-[11px] text-slate-600">
+                      <span className="font-bold">{tx.type === 'expense' ? 'مصروف' : 'دخل'}</span>
+                      {tx.note ? ` · ${tx.note}` : ''}
                       {tx.walletId !== undefined &&
                       wallets.find((wallet) => wallet.id === tx.walletId)
-                        ? `${wallets.find((wallet) => wallet.id === tx.walletId)?.name} • `
+                        ? ` · ${wallets.find((wallet) => wallet.id === tx.walletId)?.name}`
                         : ''}
-                      {tx.date}
+                      {' · '}
+                      {formatDate(tx.date)}
                     </div>
                   </div>
                 </div>
@@ -932,14 +993,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     tx.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'
                   }`}
                 >
-                  {tx.type === 'expense' ? '-' : '+'}
-                  {tx.amount.toLocaleString('ar-EG')} ج.م
+                  <span className="block text-[9px] font-bold text-slate-700">
+                    {tx.type === 'expense' ? 'مصروف' : 'دخل'}
+                  </span>
+                  <span dir="ltr">
+                    {tx.type === 'expense' ? '−' : '+'}
+                    {formatCurrency(tx.amount)}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

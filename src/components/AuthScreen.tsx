@@ -65,7 +65,10 @@ export const AuthScreen: React.FC = () => {
   };
 
   return (
-    <div className="app-theme min-h-screen bg-gradient-to-b from-brand-100/70 via-[#f3f8f4] to-[#e6f0e8] flex items-center justify-center p-4">
+    <main
+      id="main-content"
+      className="app-theme min-h-screen bg-gradient-to-b from-brand-100/70 via-[#f3f8f4] to-[#e6f0e8] flex items-center justify-center p-4"
+    >
       <div className="max-w-md w-full">
         {/* Brand Banner */}
         <div className="text-center mb-6">
@@ -279,6 +282,6 @@ export const AuthScreen: React.FC = () => {
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 };

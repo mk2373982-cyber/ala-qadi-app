@@ -32,6 +32,12 @@ type PlanType = 'income' | 'expense';
 
 interface FinancialPlansProps {
   onRefresh: () => Promise<void>;
+  onSummaryChange?: (summary: {
+    goalCount: number;
+    goalsSaved: number;
+    recurringCount: number;
+    recurringTotal: number;
+  }) => void;
 }
 
 const dateLabel = (date: string) =>
@@ -58,7 +64,7 @@ const defaultRuleForm = {
   nextDueDate: getLocalDateString(),
 };
 
-export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => {
+export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh, onSummaryChange }) => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [rules, setRules] = useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
@@ -92,6 +98,15 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
   }, [refresh]);
 
   const totalSavedTowardGoals = goals.reduce((sum, goal) => sum + goal.savedAmount, 0);
+  useEffect(() => {
+    const activeRules = rules.filter((rule) => rule.isActive);
+    onSummaryChange?.({
+      goalCount: goals.length,
+      goalsSaved: totalSavedTowardGoals,
+      recurringCount: activeRules.length,
+      recurringTotal: activeRules.reduce((sum, rule) => sum + rule.amount, 0),
+    });
+  }, [goals, onSummaryChange, rules, totalSavedTowardGoals]);
   const today = getLocalDateString();
   const currentCategories = useMemo(
     () => categories.filter((category) => category.type === ruleForm.type),
@@ -317,7 +332,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-[26px] border border-emerald-200 bg-white shadow-[0_14px_34px_-28px_rgba(6,95,70,0.5)]">
+        <section id="savings-goals" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
           <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 p-5 text-white">
             <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full border-[18px] border-white/[0.07]" />
             <div className="relative flex items-start justify-between gap-3">
@@ -367,7 +382,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               <button
                 type="button"
                 onClick={openNewGoal}
-                className="mt-3 rounded-xl bg-emerald-800 px-4 py-2.5 text-xs font-black text-white"
+                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-emerald-700"
               >
                 إنشاء أول هدف
               </button>
@@ -471,7 +486,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
           </p>
         </section>
 
-        <section className="overflow-hidden rounded-[26px] border border-sky-200 bg-white shadow-[0_14px_34px_-28px_rgba(3,105,161,0.42)]">
+        <section id="recurring-transactions" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
           <div className="flex items-start justify-between gap-3 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-white p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-900">
@@ -488,7 +503,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               type="button"
               onClick={openNewRule}
               aria-label="إضافة معاملة متكررة"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-800 text-white shadow-sm transition hover:bg-sky-900"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -588,7 +603,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               <button
                 type="button"
                 onClick={openNewRule}
-                className="mt-3 rounded-xl bg-sky-800 px-4 py-2.5 text-xs font-black text-white"
+                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-700"
               >
                 أضف معاملة شهرية
               </button>
@@ -768,7 +783,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               </p>
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 py-3 text-sm font-black text-white"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-700"
               >
                 <Check className="h-4 w-4" />
                 حفظ الهدف
@@ -824,7 +839,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               />
               <button
                 type="submit"
-                className="w-full rounded-xl bg-emerald-800 py-3 text-sm font-black text-white"
+                className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-700"
               >
                 تحديث التقدم
               </button>
@@ -990,7 +1005,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               <button
                 type="submit"
                 disabled={!wallets.length || !currentCategories.length}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-900 py-3 text-sm font-black text-white disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
                 حفظ المعاملة المتكررة

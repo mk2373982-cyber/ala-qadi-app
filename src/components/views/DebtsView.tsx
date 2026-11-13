@@ -127,9 +127,11 @@ export const DebtsView: React.FC = () => {
 
       {/* Summary KPI Strip */}
       <div className="grid grid-cols-2 gap-3">
-        <div
+        <button
+          type="button"
           onClick={() => setActiveTab('to_me')}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all ${
+          aria-pressed={activeTab === 'to_me'}
+          className={`w-full p-4 rounded-3xl border text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition-all ${
             activeTab === 'to_me'
               ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm'
               : 'bg-white border-slate-200 hover:border-slate-300'
@@ -140,11 +142,13 @@ export const DebtsView: React.FC = () => {
             {totalToMeRemaining.toLocaleString('ar-EG')} ج.م
           </div>
           <div className="text-[11px] text-emerald-600 mt-1">سلف مستحق لك</div>
-        </div>
+        </button>
 
-        <div
+        <button
+          type="button"
           onClick={() => setActiveTab('on_me')}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all ${
+          aria-pressed={activeTab === 'on_me'}
+          className={`w-full p-4 rounded-3xl border text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 transition-all ${
             activeTab === 'on_me'
               ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-sm'
               : 'bg-white border-slate-200 hover:border-slate-300'
@@ -155,7 +159,7 @@ export const DebtsView: React.FC = () => {
             {totalOnMeRemaining.toLocaleString('ar-EG')} ج.م
           </div>
           <div className="text-[11px] text-rose-600 mt-1">واجبة السداد</div>
-        </div>
+        </button>
       </div>
 
       {/* Tabs */}

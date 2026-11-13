@@ -156,7 +156,7 @@ export const Gam3eyaGoldView: React.FC = () => {
           {activeSection === 'gam3eya' ? (
             <button
               onClick={() => setIsGam3eyaModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-sm transition-all"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة جمعية</span>
@@ -267,7 +267,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                     </div>
                     <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-purple-600 transition-all duration-500"
+                        className="h-full rounded-full bg-emerald-600 transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -278,7 +278,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                     <button
                       onClick={() => setWalletAction({ group: g, kind: 'pay' })}
                       disabled={g.paidMonths >= g.totalMonths}
-                      className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 disabled:opacity-50 text-purple-700 text-xs font-bold transition-colors"
+                      className="rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:opacity-50"
                     >
                       + سداد قسط هذا الشهر ({g.monthlyAmount} ج.م)
                     </button>
@@ -446,7 +446,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                 type="button"
                 disabled={!wallets.length}
                 onClick={confirmWalletAction}
-                className="flex-1 rounded-xl bg-emerald-700 py-2.5 text-xs font-bold text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
                 تأكيد وتحديث الرصيد
               </button>

@@ -3,40 +3,77 @@
 @tailwind utilities;
 
 :root {
-  --background: #f3f8f4;
-  --foreground: #14251b;
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic', 'Cairo', Tahoma, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans Arabic',
+    'Cairo',
+    Tahoma,
+    sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   max-width: 100%;
   overflow-x: hidden;
 }
 
-.app-theme .text-slate-400 { color: #64748b !important; }
-.app-theme .text-slate-500 { color: #475569 !important; }
-.app-theme .border-slate-200 { border-color: #cbd5cf; }
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
 
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #087c50 !important;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.app-theme .text-slate-400 {
+  color: #64748b !important;
+}
+.app-theme .text-slate-500 {
+  color: #475569 !important;
+}
 /* Custom scrollbars for clean look */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #e8f0ea;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #a8b9ad;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #71877a;
+  background: #94a3b8;
 }
 
 /* Print styles for reports */

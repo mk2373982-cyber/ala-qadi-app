@@ -294,6 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasLoggedOut.current = false;
       setUser(session);
       localStorage.setItem('ala_qaddi_user', JSON.stringify(session));
+      localStorage.setItem(`ala_qaddi_onboarding_pending_${session.id}`, '1');
       return { success: true };
     } catch {
       return { success: false, error: 'حدث خطأ في الاتصال بالشبكة' };

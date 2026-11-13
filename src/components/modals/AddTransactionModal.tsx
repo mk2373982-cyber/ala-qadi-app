@@ -3,19 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { db, Category, WalletAccount } from '@/lib/db';
 import { X, Check, Plus, Tag } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  initialType?: 'expense' | 'income';
 }
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   isOpen,
   onClose,
   onSaved,
+  initialType = 'expense',
 }) => {
-  const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [type, setType] = useState<'expense' | 'income'>(initialType);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
@@ -46,6 +49,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         });
     }
   }, [isOpen, type]);
+
+  useEffect(() => {
+    if (isOpen) setType(initialType);
+  }, [isOpen, initialType]);
 
   // When type changes, update category selection
   const handleTypeChange = (newType: 'expense' | 'income') => {
@@ -120,30 +127,40 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+    <div className="fixed inset-0 z-[75] flex items-end justify-center bg-slate-900/55 p-2 backdrop-blur-sm sm:items-center sm:p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-transaction-title"
+        className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:rounded-3xl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/70">
-          <h3 className="font-bold text-base text-slate-800">تسجيل معاملة جديدة</h3>
+          <h2 id="add-transaction-title" className="font-bold text-base text-slate-800">
+            {type === 'expense' ? 'تسجيل مصروف' : 'تسجيل دخل'}
+          </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
+            aria-label="إغلاق نموذج الحركة"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
-            <X className="w-5 h-5" />
+            <X aria-hidden="true" className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-5">
           {/* Type Toggle: Expense / Income */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
               onClick={() => handleTypeChange('expense')}
-              className={`py-2 rounded-lg font-bold text-xs sm:text-sm transition-all ${
+              aria-pressed={type === 'expense'}
+              className={`min-h-11 rounded-lg py-2 text-xs font-bold transition-colors sm:text-sm ${
                 type === 'expense'
-                  ? 'bg-rose-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-rose-700 text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-slate-200'
               }`}
             >
               مصروف (خرج مني)
@@ -151,10 +168,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             <button
               type="button"
               onClick={() => handleTypeChange('income')}
-              className={`py-2 rounded-lg font-bold text-xs sm:text-sm transition-all ${
+              aria-pressed={type === 'income'}
+              className={`min-h-11 rounded-lg py-2 text-xs font-bold transition-colors sm:text-sm ${
                 type === 'income'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-emerald-800 text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-slate-200'
               }`}
             >
               دخل (دخل لي)
@@ -163,14 +181,20 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
           {/* Amount Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">المبلغ (جنيه)</label>
+            <label
+              htmlFor="transaction-amount"
+              className="block text-xs font-bold text-slate-600 mb-1"
+            >
+              المبلغ (جنيه)
+            </label>
             <div className="relative">
               <input
+                id="transaction-amount"
+                name="amount"
                 type="number"
                 step="any"
                 min="0.01"
                 required
-                autoFocus
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -181,9 +205,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           </div>
 
           {/* Category Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-600">التصنيف</label>
+          <div role="group" aria-labelledby="transaction-category-label">
+            <div className="mb-1.5 flex items-center justify-between">
+              <p id="transaction-category-label" className="text-xs font-bold text-slate-600">
+                التصنيف
+              </p>
               <button
                 type="button"
                 onClick={() => setIsAddingNewCategory(!isAddingNewCategory)}
@@ -196,7 +222,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
             {isAddingNewCategory && (
               <div className="flex gap-2 mb-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+                <label htmlFor="new-category-name" className="sr-only">
+                  اسم التصنيف الجديد
+                </label>
                 <input
+                  id="new-category-name"
+                  name="newCategory"
                   type="text"
                   placeholder="اسم التصنيف الجديد..."
                   value={newCatName}
@@ -214,7 +245,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             )}
 
             {/* Chips */}
-            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 border border-slate-100 rounded-xl bg-slate-50/50">
+            <div className="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/50 p-1">
               {categories.map((c) => {
                 const isSelected = category === c.name;
                 return (
@@ -222,6 +253,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     key={c.name}
                     type="button"
                     onClick={() => setCategory(c.name)}
+                    aria-pressed={isSelected}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-1.5 ${
                       isSelected
                         ? 'bg-brand-600 text-white border-brand-600 shadow-sm scale-95'
@@ -237,11 +269,16 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">
+            <label
+              htmlFor="transaction-wallet"
+              className="block text-xs font-bold text-slate-600 mb-1"
+            >
               {type === 'expense' ? 'الخصم من' : 'إضافة الدخل إلى'}
             </label>
             {wallets.length ? (
               <select
+                id="transaction-wallet"
+                name="walletId"
                 value={walletId}
                 onChange={(e) => setWalletId(e.target.value)}
                 required
@@ -249,7 +286,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               >
                 {wallets.map((wallet) => (
                   <option key={wallet.id} value={wallet.id}>
-                    {wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م
+                    {wallet.name} · {formatCurrency(wallet.balance)}
                   </option>
                 ))}
               </select>
@@ -263,8 +300,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           {/* Date & Note in 2 columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">التاريخ</label>
+              <label
+                htmlFor="transaction-date"
+                className="block text-xs font-bold text-slate-600 mb-1"
+              >
+                التاريخ
+              </label>
               <input
+                id="transaction-date"
+                name="date"
                 type="date"
                 required
                 value={date}
@@ -273,10 +317,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">
+              <label
+                htmlFor="transaction-note"
+                className="block text-xs font-bold text-slate-600 mb-1"
+              >
                 ملاحظة (اختياري)
               </label>
               <input
+                id="transaction-note"
+                name="note"
                 type="text"
                 placeholder="تفاصيل إضافية..."
                 value={note}
@@ -292,11 +341,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             disabled={!wallets.length}
             className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Check className="w-4 h-4" />
+            <Check aria-hidden="true" className="w-4 h-4" />
             <span>حفظ المعاملة</span>
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 };

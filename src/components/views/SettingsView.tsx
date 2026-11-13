@@ -23,7 +23,7 @@ import {
 
 type PublicPaymentConfig = { whatsappNumber: string; pricingNote: string; instapayLink: string };
 
-export const SettingsView: React.FC = () => {
+export const SettingsView: React.FC<{ onShowOnboarding?: () => void }> = ({ onShowOnboarding }) => {
   const { user, daysRemaining, refreshStatus, isOnline, logout, trialMinutesRemaining } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -125,6 +125,15 @@ export const SettingsView: React.FC = () => {
         <p className="text-xs text-slate-500">
           حماية بياناتك، معلومات الاشتراك، وتثبيت التطبيق على الموبايل
         </p>
+        {onShowOnboarding && (
+          <button
+            type="button"
+            onClick={onShowOnboarding}
+            className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:bg-emerald-100"
+          >
+            عرض دليل استخدام التطبيق
+          </button>
+        )}
       </div>
 
       {statusMessage && (
@@ -359,23 +368,41 @@ export const SettingsView: React.FC = () => {
             الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول
           </p>
         </div>
-        <button
-          onClick={() => {
-            try {
-              localStorage.removeItem('ala_qaddi_user');
-              sessionStorage.clear();
-            } catch (e) {}
-            logout();
-            if (typeof window !== 'undefined') {
-              window.location.replace('/');
-              window.location.reload();
-            }
-          }}
-          className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>تسجيل خروج الآن</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {user?.isTrial && (
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('ala_qaddi_open_registration', '1');
+                } catch {}
+                logout();
+              }}
+              className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              <User className="h-4 w-4" />
+              <span>إنشاء حساب والاحتفاظ بالبيانات</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.removeItem('ala_qaddi_user');
+                sessionStorage.clear();
+              } catch (e) {}
+              logout();
+              if (typeof window !== 'undefined') {
+                window.location.replace('/');
+                window.location.reload();
+              }
+            }}
+            className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700 transition-colors hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-95"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>تسجيل خروج الآن</span>
+          </button>
+        </div>
       </div>
 
       {/* Danger Zone */}
