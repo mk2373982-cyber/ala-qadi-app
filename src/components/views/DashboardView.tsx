@@ -163,6 +163,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ? Math.min(Math.round((currentMonthExpense / monthlyBudgetLimit) * 100), 100)
       : 0;
   const remainingBudget = monthlyBudgetLimit > 0 ? monthlyBudgetLimit - currentMonthExpense : 0;
+  const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeftInMonth = Math.max(1, daysInCurrentMonth - now.getDate() + 1);
+  const dailyAvailableBudget = monthlyBudgetLimit > 0
+    ? Math.floor(Math.max(0, remainingBudget) / daysLeftInMonth)
+    : 0;
+  const projectedMonthExpense = Math.round((currentMonthExpense / Math.max(1, now.getDate())) * daysInCurrentMonth);
+  const projectedBudgetOverrun = monthlyBudgetLimit > 0 && projectedMonthExpense > monthlyBudgetLimit;
   const totalWalletBalance = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
   const selectedMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(selectedDebtMonthStr));
   const currentMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(currentMonthStr));
@@ -432,6 +439,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </section>
         </div>
       )}
+
+      <section className={`rounded-3xl border p-4 shadow-sm sm:p-5 ${projectedBudgetOverrun ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-sky-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50'}`}>
+        <div className="flex items-start gap-3">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${projectedBudgetOverrun ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-800'}`}>
+            {projectedBudgetOverrun ? <AlertTriangle className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-black text-slate-900">أصرف كام النهارده؟</h2>
+            {monthlyBudgetLimit > 0 ? (
+              <>
+                <p className={`mt-1 text-2xl font-black ${projectedBudgetOverrun ? 'text-rose-800' : 'text-emerald-800'}`} dir="ltr">
+                  {dailyAvailableBudget.toLocaleString('ar-EG')} <span className="text-xs">ج.م / يوم</span>
+                </p>
+                <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                  متوسط مقترح من المتبقي في الميزانية على {daysLeftInMonth.toLocaleString('ar-EG')} يوم حتى نهاية الشهر.
+                </p>
+                {projectedBudgetOverrun && (
+                  <p className="mt-2 rounded-xl border border-rose-200 bg-white/80 px-3 py-2 text-[11px] font-bold leading-5 text-rose-800">
+                    بمعدل صرفك الحالي، متوقع تتجاوز الميزانية بحوالي {Math.max(0, projectedMonthExpense - monthlyBudgetLimit).toLocaleString('ar-EG')} ج.م. قلّل متوسط الصرف اليومي عشان تقرّب من خطتك.
+                  </p>
+                )}
+                {!projectedBudgetOverrun && remainingBudget >= 0 && (
+                  <p className="mt-1 text-[10px] font-semibold text-emerald-800">أنت داخل حدود الميزانية حتى الآن.</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-xs leading-5 text-slate-600">حدد ميزانيتك الشهرية، وهقولك متوسط الصرف اليومي المناسب ومتى تكون قريبًا من تجاوزها.</p>
+                <button type="button" onClick={() => setIsEditingBudget(true)} className="mt-2 rounded-xl bg-sky-800 px-3 py-2 text-[11px] font-black text-white">حدد ميزانية الشهر</button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Debts due this month or next month */}
       <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
