@@ -8,6 +8,8 @@ export async function exportAllDataAsJSON() {
   const gam3eyat = await db.gam3eyat.toArray();
   const savings = await db.savings.toArray();
   const wallets = await db.wallets.toArray();
+  const savingsGoals = await db.savingsGoals.toArray();
+  const recurringTransactions = await db.recurringTransactions.toArray();
 
   const backup = {
     appName: 'على قدي',
@@ -21,6 +23,8 @@ export async function exportAllDataAsJSON() {
       gam3eyat,
       savings,
       wallets,
+      savingsGoals,
+      recurringTransactions,
     },
   };
 
@@ -48,9 +52,9 @@ export async function importDataFromJSON(file: File): Promise<{ success: boolean
           return resolve({ success: false, message: 'الملف غير صالح أو ليس نسخة احتياطية من على قدي' });
         }
 
-        const { transactions, categories, budgets, debts, gam3eyat, savings, wallets } = backup.data;
+        const { transactions, categories, budgets, debts, gam3eyat, savings, wallets, savingsGoals, recurringTransactions } = backup.data;
 
-        await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets], async () => {
+        await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
           if (transactions && transactions.length > 0) {
             await db.transactions.clear();
             await db.transactions.bulkAdd(transactions);
@@ -78,6 +82,15 @@ export async function importDataFromJSON(file: File): Promise<{ success: boolean
           if (wallets) {
             await db.wallets.clear();
             if (wallets.length > 0) await db.wallets.bulkAdd(wallets);
+          }
+          // New tables are optional in legacy JSON backups; replace only when present.
+          if (Array.isArray(savingsGoals)) {
+            await db.savingsGoals.clear();
+            if (savingsGoals.length > 0) await db.savingsGoals.bulkAdd(savingsGoals);
+          }
+          if (Array.isArray(recurringTransactions)) {
+            await db.recurringTransactions.clear();
+            if (recurringTransactions.length > 0) await db.recurringTransactions.bulkAdd(recurringTransactions);
           }
         });
 

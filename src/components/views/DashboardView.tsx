@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { TabType } from '../Navigation';
 import { askForConfirmation } from '@/lib/confirm-action';
+import { FinancialPlans } from '@/components/views/FinancialPlans';
 
 interface DashboardViewProps {
   userId: string;
@@ -473,6 +474,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </section>
+
+      <FinancialPlans onRefresh={loadData} />
 
       {/* Debts due this month or next month */}
       <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">

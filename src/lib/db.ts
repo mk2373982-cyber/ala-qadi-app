@@ -69,6 +69,29 @@ export interface SavingsAsset {
   date: string;
 }
 
+export interface SavingsGoal {
+  id?: number;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  targetDate?: string;
+  createdAt: number;
+}
+
+export interface RecurringTransaction {
+  id?: number;
+  name: string;
+  type: 'expense' | 'income';
+  amount: number;
+  category: string;
+  note?: string;
+  walletId: number;
+  dayOfMonth: number;
+  nextDueDate: string;
+  isActive: boolean;
+  createdAt: number;
+}
+
 export interface DriveBackupKey {
   userId: string;
   key: CryptoKey;
@@ -85,6 +108,8 @@ export class AlaQaddiDatabase extends Dexie {
   savings!: Table<SavingsAsset>;
   wallets!: Table<WalletAccount>;
   driveBackupKeys!: Table<DriveBackupKey>;
+  savingsGoals!: Table<SavingsGoal>;
+  recurringTransactions!: Table<RecurringTransaction>;
 
   constructor() {
     super('AlaQaddiLocalDB');
@@ -114,6 +139,18 @@ export class AlaQaddiDatabase extends Dexie {
       savings: '++id, type',
       wallets: '++id, name, kind, createdAt',
       driveBackupKeys: '&userId',
+    });
+    this.version(4).stores({
+      transactions: '++id, type, category, date, createdAt, walletId',
+      categories: '++id, name, type',
+      budgets: '++id, category',
+      debts: '++id, type, personName, isCompleted, dueDate',
+      gam3eyat: '++id, name, status',
+      savings: '++id, type',
+      wallets: '++id, name, kind, createdAt',
+      driveBackupKeys: '&userId',
+      savingsGoals: '++id, name, targetDate, createdAt',
+      recurringTransactions: '++id, type, category, walletId, nextDueDate, isActive, createdAt',
     });
   }
 }

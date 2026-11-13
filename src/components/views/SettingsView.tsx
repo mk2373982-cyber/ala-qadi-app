@@ -73,15 +73,15 @@ export const SettingsView: React.FC = () => {
   const handleClearAllData = async () => {
     const confirmed = await askForConfirmation({
       title: 'تأكيد مسح جميع البيانات',
-      message: 'سيتم حذف المعاملات والديون والجمعيات والأصول والميزانيات والتصنيفات المخصصة. ستبقى أماكن الفلوس التي أضفتها بأسمائها وأنواعها، لكن أرصدتها ستصبح صفرًا.',
+      message: 'سيتم حذف المعاملات والديون والجمعيات والأصول وأهداف الادخار والمعاملات المتكررة والميزانيات والتصنيفات المخصصة. ستبقى أماكن الفلوس بأسمائها وأنواعها، لكن أرصدتها ستصبح صفرًا.',
       itemName: 'كل البيانات المالية مع الاحتفاظ بأماكن الفلوس',
       confirmLabel: 'مسح كل البيانات',
     });
     if (!confirmed) return;
-    await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets], async () => {
+    await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
       await Promise.all([
         db.transactions.clear(), db.categories.clear(), db.budgets.clear(), db.debts.clear(),
-        db.gam3eyat.clear(), db.savings.clear(),
+        db.gam3eyat.clear(), db.savings.clear(), db.savingsGoals.clear(), db.recurringTransactions.clear(),
       ]);
       await db.wallets.toCollection().modify({ balance: 0 });
     });

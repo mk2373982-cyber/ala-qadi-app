@@ -286,6 +286,8 @@ async function makeLocalBackup(): Promise<LocalBackup> {
       gam3eyat: await db.gam3eyat.toArray(),
       savings: await db.savings.toArray(),
       wallets: await db.wallets.toArray(),
+      savingsGoals: await db.savingsGoals.toArray(),
+      recurringTransactions: await db.recurringTransactions.toArray(),
     },
   };
 }
@@ -395,7 +397,7 @@ export function installDriveBackupHooks() {
   if (hooksInstalled || typeof window === 'undefined') return;
   hooksInstalled = true;
 
-  const tables = [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets];
+  const tables = [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions];
   for (const table of tables) {
     table.hook('creating', () => { scheduleAutomaticDriveBackup(); });
     table.hook('updating', () => { scheduleAutomaticDriveBackup(); });
@@ -433,10 +435,10 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
 
   // Validate the complete payload before opening the transaction or clearing local tables.
   const data = decoded.backup.data;
-  await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets], async () => {
+  await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
     await Promise.all([
       db.transactions.clear(), db.categories.clear(), db.budgets.clear(), db.debts.clear(),
-      db.gam3eyat.clear(), db.savings.clear(), db.wallets.clear(),
+      db.gam3eyat.clear(), db.savings.clear(), db.wallets.clear(), db.savingsGoals.clear(), db.recurringTransactions.clear(),
     ]);
     if (data.transactions.length) await db.transactions.bulkAdd(data.transactions as never[]);
     if (data.categories.length) await db.categories.bulkAdd(data.categories as never[]);
@@ -445,6 +447,8 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
     if (data.gam3eyat.length) await db.gam3eyat.bulkAdd(data.gam3eyat as never[]);
     if (data.savings.length) await db.savings.bulkAdd(data.savings as never[]);
     if (data.wallets.length) await db.wallets.bulkAdd(data.wallets as never[]);
+    if (data.savingsGoals.length) await db.savingsGoals.bulkAdd(data.savingsGoals as never[]);
+    if (data.recurringTransactions.length) await db.recurringTransactions.bulkAdd(data.recurringTransactions as never[]);
   });
 
   if (decoded.encrypted && candidateKey) {

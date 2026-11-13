@@ -2,7 +2,7 @@ const APP_NAME = 'على قدي';
 const ENVELOPE_FORMAT = 'ala-qaddi-drive-backup';
 const ENVELOPE_VERSION = 2;
 const AUTHENTICATED_CONTEXT = new TextEncoder().encode('ala-qaddi-drive-backup:v2');
-const BACKUP_TABLES = ['transactions', 'categories', 'budgets', 'debts', 'gam3eyat', 'savings', 'wallets'] as const;
+const BACKUP_TABLES = ['transactions', 'categories', 'budgets', 'debts', 'gam3eyat', 'savings', 'wallets', 'savingsGoals', 'recurringTransactions'] as const;
 
 export interface LocalBackup {
   appName: string;
