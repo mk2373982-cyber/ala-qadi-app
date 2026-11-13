@@ -36,7 +36,7 @@ export async function applyRecurringOccurrence(ruleId: number, action: Recurring
         amount: rule.amount,
         category: rule.category,
         note: [rule.name, rule.note].filter(Boolean).join(' · '),
-        date: rule.nextDueDate,
+        date: today,
         createdAt: Date.now(),
         walletId: rule.walletId,
       });
@@ -47,6 +47,6 @@ export async function applyRecurringOccurrence(ruleId: number, action: Recurring
 
     const followingDate = getNextMonthlyDate(rule.nextDueDate, rule.dayOfMonth);
     await db.recurringTransactions.update(ruleId, { nextDueDate: followingDate });
-    return { action, transactionDate: rule.nextDueDate, nextDueDate: followingDate, name: rule.name };
+    return { action, transactionDate: action === 'record' ? today : rule.nextDueDate, nextDueDate: followingDate, name: rule.name };
   });
 }

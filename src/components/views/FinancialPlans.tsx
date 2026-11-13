@@ -217,6 +217,20 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
     }
   };
 
+  const confirmRecurringCompletion = async (rule: RecurringTransaction) => {
+    const isExpense = rule.type === 'expense';
+    const confirmed = await askForConfirmation({
+      title: isExpense ? 'هل دفعت المصروف فعلًا؟' : 'هل استلمت الدخل فعلًا؟',
+      message: isExpense
+        ? `تأكيدك هيسجل المصروف بتاريخ النهارده ويخصم ${rule.amount.toLocaleString('ar-EG')} ج.م من ${walletName(rule.walletId)}. إضافة الموعد وحدها لا تخصم أي مبلغ.`
+        : `تأكيدك هيسجل الدخل بتاريخ النهارده ويضيف ${rule.amount.toLocaleString('ar-EG')} ج.م إلى ${walletName(rule.walletId)}. إضافة الموعد وحدها لا تغيّر أي رصيد.`,
+      itemName: rule.name,
+      confirmLabel: isExpense ? 'تم الدفع والخصم' : 'تم الاستلام والإضافة',
+      tone: 'primary',
+    });
+    if (confirmed) await runRecurring(rule, 'record');
+  };
+
   const toggleRule = async (rule: RecurringTransaction) => {
     if (rule.id === undefined) return;
     await db.recurringTransactions.update(rule.id, { isActive: !rule.isActive });
@@ -346,7 +360,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
                       <p className={`shrink-0 text-xs font-black ${rule.type === 'income' ? 'text-emerald-800' : 'text-slate-900'}`} dir="ltr">{rule.amount.toLocaleString('ar-EG')} ج.م</p>
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <button type="button" disabled={busyId === rule.id || !wallets.some((wallet) => wallet.id === rule.walletId)} onClick={() => void runRecurring(rule, 'record')} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-sky-800 px-3 py-2.5 text-[10px] font-black text-white transition hover:bg-sky-900 disabled:opacity-50"><Check className="h-3.5 w-3.5" />سجّل المعاملة</button>
+                      <button type="button" disabled={busyId === rule.id || !wallets.some((wallet) => wallet.id === rule.walletId)} onClick={() => void confirmRecurringCompletion(rule)} aria-label={rule.type === 'expense' ? `تأكيد دفع ${rule.name} وخصمه من ${walletName(rule.walletId)}` : `تأكيد استلام ${rule.name} وإضافته إلى ${walletName(rule.walletId)}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[10px] font-black text-emerald-900 transition hover:bg-emerald-100 disabled:opacity-50"><span className="flex h-4 w-4 items-center justify-center rounded border border-emerald-500 bg-white"><Check className="h-3 w-3" /></span>{rule.type === 'expense' ? 'تم الدفع' : 'تم الاستلام'}</button>
                       <button type="button" disabled={busyId === rule.id} onClick={() => void runRecurring(rule, 'skip')} className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[10px] font-bold text-slate-600 disabled:opacity-50"><SkipForward className="h-3.5 w-3.5" />تخطي</button>
                     </div>
                     {!wallets.some((wallet) => wallet.id === rule.walletId) && <p className="mt-2 text-[10px] font-bold text-rose-700">المكان المالي المرتبط اتحذف. عدّل القاعدة واختر مكانًا جديدًا.</p>}
@@ -388,7 +402,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               })}
             </div>
           )}
-          <p className="border-t border-sky-100 bg-sky-50/50 px-4 py-2.5 text-[9px] leading-4 text-slate-500">مش هيتسجل دخل أو مصروف لوحده؛ راجع كل موعد واضغط «سجّل المعاملة» أو «تخطي».</p>
+          <p className="border-t border-sky-100 bg-sky-50/50 px-4 py-2.5 text-[9px] leading-4 text-slate-500">إضافة الموعد لا تخصم ولا تضيف شيئًا. علّم «تم الدفع» أو «تم الاستلام» بعد التنفيذ ليُحدّث التطبيق المعاملة والمكان المالي، أو اضغط «تخطي».</p>
         </section>
       </div>
 
@@ -426,7 +440,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setRuleModalOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="recurring-dialog-title" className="flex max-h-[94dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] bg-[#f9fcfd] shadow-2xl sm:rounded-[28px]">
             <header className="flex items-center justify-between border-b border-sky-100 bg-sky-950 px-5 py-4 text-white">
-              <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><Repeat2 className="h-4 w-4" /></div><div><h3 id="recurring-dialog-title" className="text-sm font-black">{ruleEditingId === null ? 'معاملة شهرية متكررة' : 'تعديل المعاملة المتكررة'}</h3><p className="mt-0.5 text-[10px] text-sky-100">راجعها عند موعدها قبل تسجيلها</p></div></div>
+              <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><Repeat2 className="h-4 w-4" /></div><div><h3 id="recurring-dialog-title" className="text-sm font-black">{ruleEditingId === null ? 'معاملة شهرية متكررة' : 'تعديل المعاملة المتكررة'}</h3><p className="mt-0.5 text-[10px] text-sky-100">موعد للتذكير؛ الرصيد لا يتغير إلا عند التأكيد</p></div></div>
               <button type="button" onClick={() => setRuleModalOpen(false)} aria-label="إغلاق" className="rounded-xl p-2 text-sky-100 hover:bg-white/10"><X className="h-4 w-4" /></button>
             </header>
             <form onSubmit={saveRule} className="space-y-3 overflow-y-auto p-4 sm:p-5">
