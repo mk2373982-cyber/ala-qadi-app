@@ -9,14 +9,12 @@ export function getLocalDateString(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-export function getNextMonthlyDate(currentDate: string, dayOfMonth: number) {
+export function getNextMonthlyCycleDate(currentDate: string) {
   const [year, month] = currentDate.split('-').map(Number);
   const nextMonthFirst = new Date(Date.UTC(year, month, 1));
   const nextYear = nextMonthFirst.getUTCFullYear();
-  const nextMonth = nextMonthFirst.getUTCMonth() + 1;
-  const daysInNextMonth = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate();
-  const nextDay = Math.min(Math.max(1, dayOfMonth), daysInNextMonth);
-  return `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
+  const nextMonth = String(nextMonthFirst.getUTCMonth() + 1).padStart(2, '0');
+  return `${nextYear}-${nextMonth}-01`;
 }
 
 export async function applyRecurringOccurrence(ruleId: number, action: RecurringAction) {
@@ -45,8 +43,12 @@ export async function applyRecurringOccurrence(ruleId: number, action: Recurring
       });
     }
 
-    const followingDate = getNextMonthlyDate(rule.nextDueDate, rule.dayOfMonth);
-    await db.recurringTransactions.update(ruleId, { nextDueDate: followingDate });
+    const followingDate = getNextMonthlyCycleDate(today);
+    const completedMonth = action === 'record' ? today.slice(0, 7) : undefined;
+    await db.recurringTransactions.update(ruleId, {
+      nextDueDate: followingDate,
+      ...(completedMonth ? { lastCompletedMonth: completedMonth } : {}),
+    });
     return { action, transactionDate: action === 'record' ? today : rule.nextDueDate, nextDueDate: followingDate, name: rule.name };
   });
 }

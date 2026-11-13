@@ -381,11 +381,16 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
             <div className="divide-y divide-sky-50">
               {rules.map((rule) => {
                 const daysUntil = daysBetween(today, rule.nextDueDate);
-                const dueDescription = !rule.isActive ? 'متوقفة مؤقتًا' : daysUntil <= 0 ? 'مستحقة للمراجعة' : `الموعد ${dateLabel(rule.nextDueDate)}`;
+                const completedThisMonth = rule.lastCompletedMonth === today.slice(0, 7);
+                const dueDescription = !rule.isActive
+                  ? 'متوقفة مؤقتًا'
+                  : completedThisMonth
+                    ? `تم التنفيذ هذا الشهر · تتجدد ${dateLabel(rule.nextDueDate)}`
+                    : daysUntil <= 0 ? 'مستحقة للمراجعة' : `الموعد ${dateLabel(rule.nextDueDate)}`;
                 return (
                   <article key={rule.id} className={`flex items-center gap-3 px-4 py-3 ${!rule.isActive ? 'opacity-60' : ''}`}>
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${rule.type === 'income' ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
-                      {rule.type === 'income' ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${completedThisMonth ? 'bg-emerald-100 text-emerald-800' : rule.type === 'income' ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
+                      {completedThisMonth ? <Check className="h-4 w-4" /> : rule.type === 'income' ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] font-extrabold text-slate-900">{rule.name}</p>
@@ -451,12 +456,12 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
               <label className="block text-[11px] font-bold text-slate-700">اسم واضح<input required maxLength={48} value={ruleForm.name} onChange={(event) => setRuleForm({ ...ruleForm, name: event.target.value })} placeholder={ruleForm.type === 'expense' ? 'مثال: إيجار البيت' : 'مثال: المرتب'} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700" /></label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-[11px] font-bold text-slate-700">المبلغ<input required min="0.01" step="0.01" type="number" value={ruleForm.amount} onChange={(event) => setRuleForm({ ...ruleForm, amount: event.target.value })} placeholder="0.00" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700" dir="ltr" /></label>
-                <label className="block text-[11px] font-bold text-slate-700">أول موعد<input required type="date" min={ruleEditingId === null ? today : undefined} value={ruleForm.nextDueDate} onChange={(event) => setRuleForm({ ...ruleForm, nextDueDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] outline-none focus:border-sky-700" /></label>
+              <label className="block text-[11px] font-bold text-slate-700">أول موعد للتنفيذ<input required type="date" min={ruleEditingId === null ? today : undefined} value={ruleForm.nextDueDate} onChange={(event) => setRuleForm({ ...ruleForm, nextDueDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] outline-none focus:border-sky-700" /></label>
               </div>
               <label className="block text-[11px] font-bold text-slate-700">التصنيف<select required value={ruleForm.category} onChange={(event) => setRuleForm({ ...ruleForm, category: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"><option value="">اختر التصنيف</option>{currentCategories.map((category) => <option key={category.name} value={category.name}>{category.name}</option>)}</select></label>
               <label className="block text-[11px] font-bold text-slate-700">{ruleForm.type === 'income' ? 'إضافة الدخل إلى' : 'الخصم من'}<select required value={ruleForm.walletId} onChange={(event) => setRuleForm({ ...ruleForm, walletId: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"><option value="">اختر مكان الفلوس</option>{wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select></label>
               <label className="block text-[11px] font-bold text-slate-700">ملاحظة (اختياري)<input maxLength={100} value={ruleForm.note} onChange={(event) => setRuleForm({ ...ruleForm, note: event.target.value })} placeholder="أي تفاصيل تساعدك تفتكر" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700" /></label>
-              <p className="flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-[10px] leading-5 text-sky-950"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />هتظهر كل شهر في موعدها. التطبيق مش هيضيفها أو يخصمها إلا لما تراجعها وتأكد التسجيل.</p>
+              <p className="flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-[10px] leading-5 text-sky-950"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />ده موعدها الأول فقط. بعد ما تعلّمها «تم الدفع» أو «تم الاستلام»، تتجدد مع بداية الشهر القادم؛ ولن يتغير أي رصيد قبل تأكيدك.</p>
               <button type="submit" disabled={!wallets.length || !currentCategories.length} className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-900 py-3 text-sm font-black text-white disabled:opacity-50"><Check className="h-4 w-4" />حفظ المعاملة المتكررة</button>
             </form>
           </section>

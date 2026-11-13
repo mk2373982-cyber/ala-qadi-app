@@ -21,7 +21,7 @@
 ## Review Focus
 
 - Double-clicking a due recurring item must never duplicate its transaction or wallet adjustment.
-- Monthly recurrence from day 29, 30, or 31 must clamp correctly in short months and recover the intended day in later months.
+- After a completed or skipped occurrence, the next monthly occurrence becomes available on the first day of the next calendar month.
 - Deleted or missing linked wallet/category must produce a clear recovery path, not a failed transaction.
 - Legacy JSON backups without new fields must remain restorable.
 - Empty tables in a new backup must replace existing data during restore.

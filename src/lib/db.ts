@@ -88,6 +88,7 @@ export interface RecurringTransaction {
   walletId: number;
   dayOfMonth: number;
   nextDueDate: string;
+  lastCompletedMonth?: string;
   isActive: boolean;
   createdAt: number;
 }

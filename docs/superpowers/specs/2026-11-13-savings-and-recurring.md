@@ -9,9 +9,9 @@ Help customers plan toward a savings target and reduce repeated entry for regula
 - Add local savings goals with a name, target amount, saved amount, and optional target date. Customers can create, edit, add progress, and delete a goal.
 - Goal progress is informational and does not change wallet balances or transactions.
 - Add monthly recurring income/expense templates with amount, category, wallet, first due date, and name.
-- Show upcoming recurring items on the dashboard. When due, the customer explicitly records or skips that occurrence; never post money automatically.
-- Recording an occurrence creates one normal transaction dated for the scheduled date, updates its selected wallet once, and advances the schedule atomically.
-- Paused recurring templates do not appear as due. Customers can edit, pause, resume, or delete them.
+- Show upcoming recurring items on the dashboard. Adding a monthly obligation never changes a wallet. When due, the customer explicitly confirms completion or skips that occurrence; never post money automatically.
+- Confirming completion creates one normal transaction dated for the actual completion day, updates its selected wallet once, and makes the next occurrence available on the first day of the following month.
+- After completion, show a completed-this-month state and do not offer another completion until the next month starts. Paused recurring templates do not appear as due. Customers can edit, pause, resume, or delete them.
 - Keep goals and recurring templates local and include them in JSON and encrypted Drive backup/restore.
 - Clearing financial data deletes goals and recurring templates while retaining wallet definitions and resetting wallet balances to zero.
 
