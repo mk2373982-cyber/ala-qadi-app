@@ -13,7 +13,9 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownLeft,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   Clock3,
   CreditCard,
   Smartphone,
@@ -54,7 +56,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
   const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
   const [dueDebtReminders, setDueDebtReminders] = useState<Debt[]>([]);
-  const [debtMonthOffset, setDebtMonthOffset] = useState<0 | 1>(0);
+  const [expandedDebtMonth, setExpandedDebtMonth] = useState<0 | 1 | null>(null);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
@@ -70,7 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const now = new Date();
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const selectedDebtMonthStr = debtMonthOffset === 0 ? currentMonthStr : nextMonthStr;
+  const selectedDebtMonthStr = expandedDebtMonth === 1 ? nextMonthStr : currentMonthStr;
   const selectedDebtMonthLabel = new Date(
     Number(selectedDebtMonthStr.slice(0, 4)),
     Number(selectedDebtMonthStr.slice(5, 7)) - 1,
@@ -162,7 +164,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const projectedMonthExpense = Math.round((currentMonthExpense / Math.max(1, now.getDate())) * daysInCurrentMonth);
   const projectedBudgetOverrun = monthlyBudgetLimit > 0 && projectedMonthExpense > monthlyBudgetLimit;
   const totalWalletBalance = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
-  const selectedMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(selectedDebtMonthStr));
+  const selectedMonthDebts = expandedDebtMonth === null
+    ? []
+    : debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(selectedDebtMonthStr));
   const currentMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(currentMonthStr));
   const nextMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(nextMonthStr));
   const getDueTotal = (debts: Debt[]) => debts.reduce(
@@ -354,7 +358,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ</h3>
               <p className="mt-0.5 text-[11px] text-slate-500">
-                {selectedDebtMonthLabel} · حسب تاريخ الاستحقاق
+                إجمالي المبالغ غير المسددة حسب تاريخ الاستحقاق
               </p>
             </div>
           </div>
@@ -364,28 +368,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
             const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
             const monthTotal = getDueTotal(monthDebts);
-            const isSelected = debtMonthOffset === offset;
+            const isSelected = expandedDebtMonth === offset;
             return (
               <button
                 key={offset}
                 type="button"
-                onClick={() => setDebtMonthOffset(offset)}
-                aria-pressed={isSelected}
+                onClick={() => setExpandedDebtMonth(isSelected ? null : offset)}
+                aria-expanded={isSelected}
+                aria-controls={isSelected ? 'due-debt-details' : undefined}
                 className={`rounded-2xl border p-3 text-right transition active:scale-[0.98] ${isSelected ? 'border-orange-500 bg-orange-600 text-white shadow-md shadow-orange-600/15' : 'border-orange-100 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50/60'}`}
               >
                 <span className={`block text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
-                  {offset === 0 ? 'هذا الشهر' : 'الشهر القادم'} · {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
+                  {offset === 0 ? 'الشهر الحالي' : 'الشهر القادم'} · {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
                 </span>
-                <span className="mt-1 block text-sm font-black" dir="ltr">{monthTotal.toLocaleString('ar-EG')} ج.م</span>
-                <span className={`mt-1 block text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}>
+                <span className="mt-1.5 block text-lg font-black" dir="ltr">{monthTotal.toLocaleString('ar-EG')} <span className="text-[10px]">ج.م</span></span>
+                <span className={`mt-1 flex items-center justify-between gap-1 text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}>
                   {monthDebts.length.toLocaleString('ar-EG')} {monthDebts.length === 1 ? 'دين مستحق' : 'ديون مستحقة'}
+                  {isSelected ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 </span>
               </button>
             );
           })}
         </div>
+        {expandedDebtMonth !== null && <div id="due-debt-details" className="border-t border-orange-100 px-5">
+          <p className="pt-3 text-[11px] font-black text-slate-700">تفاصيل {selectedDebtMonthLabel}</p>
         {selectedMonthDebts.length ? (
-          <div className="divide-y divide-orange-100/80 px-5">
+          <div className="divide-y divide-orange-100/80">
             {selectedMonthDebts.map((debt) => (
               <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
@@ -405,10 +413,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ))}
           </div>
         ) : (
-          <div className="px-5 py-5 text-center text-xs text-slate-500">
+          <div className="py-5 text-center text-xs text-slate-500">
             لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
           </div>
         )}
+        </div>}
         <button
           type="button"
           onClick={() => onNavigate('debts')}
