@@ -11,10 +11,12 @@ export async function exportAllDataAsJSON() {
   const savingsGoals = await db.savingsGoals.toArray();
   const recurringTransactions = await db.recurringTransactions.toArray();
 
+  const exportedAt = new Date().toISOString();
   const backup = {
     appName: 'على قدي',
-    version: '1.0',
-    exportDate: new Date().toISOString(),
+    version: '3.0',
+    exportedAt,
+    exportDate: exportedAt,
     data: {
       transactions,
       categories,

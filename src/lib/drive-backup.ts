@@ -8,12 +8,14 @@ import {
 } from '@/lib/drive-backup-crypto';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
-const CURRENT_BACKUP_FILE_NAME = 'ala-qaddi-auto-backup.json';
-const PREVIOUS_BACKUP_FILE_NAME = 'ala-qaddi-auto-backup-previous.json';
+const CURRENT_BACKUP_FILE_NAME = 'ala-qaddi-backup.json';
+const PREVIOUS_BACKUP_FILE_NAME = 'ala-qaddi-backup-previous.json';
+const LEGACY_CURRENT_BACKUP_FILE_NAME = 'ala-qaddi-auto-backup.json';
+const LEGACY_PREVIOUS_BACKUP_FILE_NAME = 'ala-qaddi-auto-backup-previous.json';
 const LEGACY_AUTO_KEY = 'ala_qaddi_drive_auto';
 const STATUS_EVENT = 'ala-qaddi-drive-backup-status';
 
-type BackupSlot = 'current' | 'previous';
+export type BackupSlot = 'current' | 'previous';
 type DriveFile = {
   id: string;
   name: string;
@@ -22,6 +24,14 @@ type DriveFile = {
 };
 type BackupFileInfo = { modifiedTime: string | null; encrypted: boolean };
 export type DriveBackupInfo = { current: BackupFileInfo | null; previous: BackupFileInfo | null };
+export type DriveBackupCounts = Record<string, number>;
+export type PreparedDriveRestore = {
+  userId: string;
+  backup: LocalBackup;
+  encrypted: boolean;
+  recoveryKey: CryptoKey | null;
+  counts: DriveBackupCounts;
+};
 export type DriveBackupState = {
   connected: boolean;
   autoBackup: boolean;
@@ -38,7 +48,7 @@ let activeRecoveryKey: CryptoKey | null = null;
 let recoveryKeyAcknowledged = false;
 let pendingTimer: ReturnType<typeof setTimeout> | undefined;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
-let uploadInFlight: Promise<void> | null = null;
+let uploadInFlight: Promise<string | null> | null = null;
 let uploadRequested = false;
 const hookedDatabases = new WeakSet<object>();
 let backupListenersInstalled = false;
@@ -234,9 +244,12 @@ async function driveRequest(url: string, init: RequestInit = {}) {
   if (!response.ok) {
     if (response.status === 401) {
       clearDriveAccessToken();
-      throw new Error('انتهت صلاحية اتصال Google؛ أعد ربط الحساب لمتابعة النسخ.');
+      throw new Error('انتهت صلاحية اتصال Google. اضغط النسخ أو الاسترداد وأعد السماح بالاتصال.');
     }
-    throw new Error('تعذر الوصول إلى نسخة Google Drive. ستتم إعادة المحاولة لاحقًا.');
+    if (response.status === 403) {
+      throw new Error('حساب Google لم يمنح إذن مساحة التطبيق الخاصة في Drive. أعد ربط الحساب.');
+    }
+    throw new Error('تعذر الوصول إلى Google Drive. تحقق من الإنترنت وحاول مرة أخرى.');
   }
   return response;
 }
@@ -246,11 +259,33 @@ async function listDriveBackupFiles() {
     spaces: 'appDataFolder',
     fields: 'files(id,name,modifiedTime,appProperties)',
     pageSize: '100',
+    q: 'trashed = false',
   });
   const response = await driveRequest(`${DRIVE_API}/files?${query}`);
   const result = (await response.json()) as { files?: DriveFile[] };
-  const names = new Set([CURRENT_BACKUP_FILE_NAME, PREVIOUS_BACKUP_FILE_NAME]);
+  const names = new Set([
+    CURRENT_BACKUP_FILE_NAME,
+    PREVIOUS_BACKUP_FILE_NAME,
+    LEGACY_CURRENT_BACKUP_FILE_NAME,
+    LEGACY_PREVIOUS_BACKUP_FILE_NAME,
+  ]);
   return (result.files || []).filter((file) => names.has(file.name));
+}
+
+function fileForSlot(files: DriveFile[], slot: BackupSlot) {
+  const names =
+    slot === 'current'
+      ? [CURRENT_BACKUP_FILE_NAME, LEGACY_CURRENT_BACKUP_FILE_NAME]
+      : [PREVIOUS_BACKUP_FILE_NAME, LEGACY_PREVIOUS_BACKUP_FILE_NAME];
+  return names.map((name) => files.find((file) => file.name === name)).find(Boolean);
+}
+
+function latestDriveBackupFile(files: DriveFile[]) {
+  return [...files].sort((left, right) => {
+    const leftTime = left.modifiedTime ? Date.parse(left.modifiedTime) : 0;
+    const rightTime = right.modifiedTime ? Date.parse(right.modifiedTime) : 0;
+    return rightTime - leftTime;
+  })[0];
 }
 
 async function downloadDriveFile(fileId: string) {
@@ -294,10 +329,14 @@ async function writeDriveFile(
 }
 
 async function makeLocalBackup(): Promise<LocalBackup> {
+  const exportedAt = new Date().toISOString();
+  // driveBackupKeys holds a device-local, non-exportable CryptoKey. The restore flow
+  // derives it again only after the user supplies the recovery code, so it stays local.
   return {
     appName: 'على قدي',
-    version: '2.0',
-    exportDate: new Date().toISOString(),
+    version: '3.0',
+    exportedAt,
+    exportDate: exportedAt,
     data: {
       transactions: await db.transactions.toArray(),
       categories: await db.categories.toArray(),
@@ -320,8 +359,8 @@ async function writeEncryptedSnapshot() {
   const encrypted = await encryptBackup(currentBackup, activeRecoveryKey);
   const serialized = JSON.stringify(encrypted);
   const files = await listDriveBackupFiles();
-  const currentFile = files.find((file) => file.name === CURRENT_BACKUP_FILE_NAME);
-  const previousFile = files.find((file) => file.name === PREVIOUS_BACKUP_FILE_NAME);
+  const currentFile = fileForSlot(files, 'current');
+  const previousFile = fileForSlot(files, 'previous');
 
   // Preserve the exact previous current payload before replacing it.
   if (currentFile) {
@@ -338,17 +377,21 @@ async function writeEncryptedSnapshot() {
     await writeDriveFile(previousFile, 'previous', oldContent, oldEncrypted);
   }
   await writeDriveFile(currentFile, 'current', serialized, true);
-  return currentBackup.exportDate;
+  return currentBackup.exportedAt;
 }
 
-async function performUploadLoop() {
+async function performUploadLoop(): Promise<string | null> {
+  let lastSuccessfulBackup: string | null = null;
   while (uploadRequested) {
     uploadRequested = false;
-    if (!activeUserId || !accessToken || !activeRecoveryKey || !recoveryKeyAcknowledged) return;
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (!activeUserId || !accessToken || !activeRecoveryKey || !recoveryKeyAcknowledged) {
+      return lastSuccessfulBackup;
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return lastSuccessfulBackup;
 
     const uploadedRevision = localRevision;
     const exportDate = await writeEncryptedSnapshot();
+    lastSuccessfulBackup = exportDate;
     if (localRevision === uploadedRevision) {
       clearPending(exportDate);
     } else {
@@ -356,9 +399,10 @@ async function performUploadLoop() {
       uploadRequested = true;
     }
   }
+  return lastSuccessfulBackup;
 }
 
-export function uploadBackupToDrive() {
+export function uploadBackupToDrive(): Promise<string | null> {
   if (!activeUserId) return Promise.reject(new Error('سجّل الدخول إلى حساب على قدي أولًا.'));
   if (!accessToken) return Promise.reject(new Error('اربط Google Drive لمتابعة النسخ.'));
   if (!activeRecoveryKey || !recoveryKeyAcknowledged)
@@ -472,29 +516,45 @@ export async function getDriveBackupInfo(): Promise<DriveBackupInfo> {
         }
       : null;
   return {
-    current: info(files.find((file) => file.name === CURRENT_BACKUP_FILE_NAME)),
-    previous: info(files.find((file) => file.name === PREVIOUS_BACKUP_FILE_NAME)),
+    current: info(fileForSlot(files, 'current')),
+    previous: info(fileForSlot(files, 'previous')),
   };
 }
 
-export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: string) {
+export async function prepareDriveRestore(
+  slot: BackupSlot | 'latest' = 'latest',
+  recoveryCode?: string,
+): Promise<PreparedDriveRestore> {
   if (!activeUserId) throw new Error('سجّل الدخول إلى حساب على قدي أولًا.');
   const files = await listDriveBackupFiles();
-  const file = files.find((entry) => entry.name === fileSlotName(slot));
-  if (!file)
-    throw new Error(
-      slot === 'current'
-        ? 'لا توجد نسخة حالية في Google Drive.'
-        : 'لا توجد نسخة سابقة في Google Drive.',
-    );
+  const file = slot === 'latest' ? latestDriveBackupFile(files) : fileForSlot(files, slot);
+  if (!file) throw new Error('لا توجد نسخة احتياطية محفوظة على هذا الحساب بعد');
 
   const rawContent = await downloadDriveFile(file.id);
   let candidateKey = activeRecoveryKey;
   if (recoveryCode) candidateKey = await importRecoveryKey(recoveryCode);
   const decoded = await decodeDriveBackup(rawContent, candidateKey || undefined);
+  const counts = Object.fromEntries(
+    Object.entries(decoded.backup.data).map(([table, rows]) => [table, rows.length]),
+  );
 
-  // Validate the complete payload before opening the transaction or clearing local tables.
-  const data = decoded.backup.data;
+  return {
+    userId: activeUserId,
+    backup: decoded.backup,
+    encrypted: decoded.encrypted,
+    recoveryKey: candidateKey,
+    counts,
+  };
+}
+
+export async function applyPreparedDriveRestore(prepared: PreparedDriveRestore) {
+  if (!activeUserId) throw new Error('سجّل الدخول إلى حساب على قدي أولًا.');
+  if (prepared.userId !== activeUserId) {
+    throw new Error('تغير الحساب أثناء الاسترداد. أعد تحميل النسخة من الحساب الحالي.');
+  }
+
+  // The decrypted backup is fully validated before atomically replacing device data.
+  const data = prepared.backup.data;
   await db.transaction(
     'rw',
     [
@@ -507,6 +567,7 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
       db.wallets,
       db.savingsGoals,
       db.recurringTransactions,
+      db.driveBackupKeys,
     ],
     async () => {
       await Promise.all([
@@ -530,24 +591,32 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
       if (data.savingsGoals.length) await db.savingsGoals.bulkAdd(data.savingsGoals as never[]);
       if (data.recurringTransactions.length)
         await db.recurringTransactions.bulkAdd(data.recurringTransactions as never[]);
+
+      if (prepared.encrypted && prepared.recoveryKey) {
+        await db.driveBackupKeys.put({
+          userId: activeUserId!,
+          key: prepared.recoveryKey,
+          recoveryAcknowledged: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
     },
   );
 
-  if (decoded.encrypted && candidateKey) {
-    const record: DriveBackupKey = {
-      userId: activeUserId,
-      key: candidateKey,
-      recoveryAcknowledged: true,
-      createdAt: new Date().toISOString(),
-    };
-    await db.driveBackupKeys.put(record);
-    activeRecoveryKey = candidateKey;
+  if (prepared.encrypted && prepared.recoveryKey) {
+    activeRecoveryKey = prepared.recoveryKey;
     recoveryKeyAcknowledged = true;
     setStorage(scopedKey('auto'), 'true');
   }
-  setStorage(scopedKey('last_backup'), decoded.backup.exportDate);
+  const exportedAt = prepared.backup.exportedAt || prepared.backup.exportDate;
+  setStorage(scopedKey('last_backup'), exportedAt);
   removeStorage(scopedKey('pending'));
   removeStorage(scopedKey('error'));
-  window.dispatchEvent(new Event(STATUS_EVENT));
-  return { exportDate: decoded.backup.exportDate, encrypted: decoded.encrypted };
+  dispatchStatus();
+  return { exportDate: exportedAt, encrypted: prepared.encrypted, counts: prepared.counts };
+}
+
+export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: string) {
+  const prepared = await prepareDriveRestore(slot, recoveryCode);
+  return applyPreparedDriveRestore(prepared);
 }

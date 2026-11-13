@@ -17,6 +17,7 @@ const BACKUP_TABLES = [
 export interface LocalBackup {
   appName: string;
   version: string;
+  exportedAt: string;
   exportDate: string;
   data: Record<string, unknown[]>;
 }
@@ -25,6 +26,8 @@ export interface EncryptedDriveBackup {
   appName: typeof APP_NAME;
   format: typeof ENVELOPE_FORMAT;
   formatVersion: typeof ENVELOPE_VERSION;
+  version: string;
+  exportedAt: string;
   exportDate: string;
   algorithm: 'AES-GCM-128';
   iv: string;
@@ -79,10 +82,18 @@ export function validateLocalBackup(value: unknown): LocalBackup {
     data[table] = (entries as unknown[] | undefined) ?? [];
   }
 
+  const exportedAt =
+    typeof value.exportedAt === 'string'
+      ? value.exportedAt
+      : typeof value.exportDate === 'string'
+        ? value.exportDate
+        : new Date().toISOString();
+
   return {
     appName: APP_NAME,
     version: typeof value.version === 'string' ? value.version : 'legacy',
-    exportDate: typeof value.exportDate === 'string' ? value.exportDate : new Date().toISOString(),
+    exportedAt,
+    exportDate: typeof value.exportDate === 'string' ? value.exportDate : exportedAt,
     data,
   };
 }
@@ -118,6 +129,8 @@ export async function encryptBackup(
     appName: APP_NAME,
     format: ENVELOPE_FORMAT,
     formatVersion: ENVELOPE_VERSION,
+    version: backup.version,
+    exportedAt: backup.exportedAt,
     exportDate: backup.exportDate,
     algorithm: 'AES-GCM-128',
     iv: bytesToBase64Url(iv),

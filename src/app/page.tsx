@@ -210,8 +210,12 @@ export default function Home() {
         {currentTab === 'budget_reports' && <BudgetReportsView key={`budget_${refreshKey}`} />}
         {currentTab === 'settings' && (
           <SettingsView
-            key={`settings_${refreshKey}`}
             onShowOnboarding={() => setShowOnboarding(true)}
+            onDataRestored={() => {
+              setRefreshKey((previous) => previous + 1);
+              setSaveMessage('تم استرداد بياناتك بنجاح');
+              window.setTimeout(() => setSaveMessage(''), 3200);
+            }}
           />
         )}
       </main>

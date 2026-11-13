@@ -23,7 +23,10 @@ import {
 
 type PublicPaymentConfig = { whatsappNumber: string; pricingNote: string; instapayLink: string };
 
-export const SettingsView: React.FC<{ onShowOnboarding?: () => void }> = ({ onShowOnboarding }) => {
+export const SettingsView: React.FC<{
+  onShowOnboarding?: () => void;
+  onDataRestored?: () => void;
+}> = ({ onShowOnboarding, onDataRestored }) => {
   const { user, daysRemaining, refreshStatus, isOnline, logout, trialMinutesRemaining } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -314,7 +317,7 @@ export const SettingsView: React.FC<{ onShowOnboarding?: () => void }> = ({ onSh
         </div>
       </div>
 
-      <GoogleDriveBackupPanel />
+      <GoogleDriveBackupPanel onDataRestored={onDataRestored} />
 
       {/* PWA Mobile Installation Guide */}
       <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
