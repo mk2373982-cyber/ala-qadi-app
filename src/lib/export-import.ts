@@ -40,7 +40,9 @@ export async function exportAllDataAsJSON() {
   URL.revokeObjectURL(url);
 }
 
-export async function importDataFromJSON(file: File): Promise<{ success: boolean; message: string }> {
+export async function importDataFromJSON(
+  file: File,
+): Promise<{ success: boolean; message: string }> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -49,50 +51,78 @@ export async function importDataFromJSON(file: File): Promise<{ success: boolean
         const backup = JSON.parse(text);
 
         if (!backup.appName || !backup.data) {
-          return resolve({ success: false, message: 'الملف غير صالح أو ليس نسخة احتياطية من على قدي' });
+          return resolve({
+            success: false,
+            message: 'الملف غير صالح أو ليس نسخة احتياطية من على قدي',
+          });
         }
 
-        const { transactions, categories, budgets, debts, gam3eyat, savings, wallets, savingsGoals, recurringTransactions } = backup.data;
+        const {
+          transactions,
+          categories,
+          budgets,
+          debts,
+          gam3eyat,
+          savings,
+          wallets,
+          savingsGoals,
+          recurringTransactions,
+        } = backup.data;
 
-        await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
-          if (transactions && transactions.length > 0) {
-            await db.transactions.clear();
-            await db.transactions.bulkAdd(transactions);
-          }
-          if (categories && categories.length > 0) {
-            await db.categories.clear();
-            await db.categories.bulkAdd(categories);
-          }
-          if (budgets && budgets.length > 0) {
-            await db.budgets.clear();
-            await db.budgets.bulkAdd(budgets);
-          }
-          if (debts && debts.length > 0) {
-            await db.debts.clear();
-            await db.debts.bulkAdd(debts);
-          }
-          if (gam3eyat && gam3eyat.length > 0) {
-            await db.gam3eyat.clear();
-            await db.gam3eyat.bulkAdd(gam3eyat);
-          }
-          if (savings && savings.length > 0) {
-            await db.savings.clear();
-            await db.savings.bulkAdd(savings);
-          }
-          if (wallets) {
-            await db.wallets.clear();
-            if (wallets.length > 0) await db.wallets.bulkAdd(wallets);
-          }
-          // New tables are optional in legacy JSON backups; replace only when present.
-          if (Array.isArray(savingsGoals)) {
-            await db.savingsGoals.clear();
-            if (savingsGoals.length > 0) await db.savingsGoals.bulkAdd(savingsGoals);
-          }
-          if (Array.isArray(recurringTransactions)) {
-            await db.recurringTransactions.clear();
-            if (recurringTransactions.length > 0) await db.recurringTransactions.bulkAdd(recurringTransactions);
-          }
-        });
+        await db.transaction(
+          'rw',
+          [
+            db.transactions,
+            db.categories,
+            db.budgets,
+            db.debts,
+            db.gam3eyat,
+            db.savings,
+            db.wallets,
+            db.savingsGoals,
+            db.recurringTransactions,
+          ],
+          async () => {
+            if (transactions && transactions.length > 0) {
+              await db.transactions.clear();
+              await db.transactions.bulkAdd(transactions);
+            }
+            if (categories && categories.length > 0) {
+              await db.categories.clear();
+              await db.categories.bulkAdd(categories);
+            }
+            if (budgets && budgets.length > 0) {
+              await db.budgets.clear();
+              await db.budgets.bulkAdd(budgets);
+            }
+            if (debts && debts.length > 0) {
+              await db.debts.clear();
+              await db.debts.bulkAdd(debts);
+            }
+            if (gam3eyat && gam3eyat.length > 0) {
+              await db.gam3eyat.clear();
+              await db.gam3eyat.bulkAdd(gam3eyat);
+            }
+            if (savings && savings.length > 0) {
+              await db.savings.clear();
+              await db.savings.bulkAdd(savings);
+            }
+            if (wallets) {
+              await db.wallets.clear();
+              if (wallets.length > 0) await db.wallets.bulkAdd(wallets);
+            }
+            // New tables are optional in legacy JSON backups; replace only when present.
+            if (Array.isArray(savingsGoals)) {
+              await db.savingsGoals.clear();
+              if (savingsGoals.length > 0) await db.savingsGoals.bulkAdd(savingsGoals);
+            }
+            if (Array.isArray(recurringTransactions)) {
+              await db.recurringTransactions.clear();
+              if (recurringTransactions.length > 0)
+                await db.recurringTransactions.bulkAdd(recurringTransactions);
+            }
+          },
+        );
 
         resolve({ success: true, message: 'تم استرجاع النسخة الاحتياطية بنجاح!' });
       } catch (err: any) {

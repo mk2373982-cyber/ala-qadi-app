@@ -12,7 +12,9 @@ export const InstallPrompt: React.FC = () => {
     // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone;
 
     if (isIosDevice && !isStandalone) {
       setIsIOS(true);
@@ -50,7 +52,9 @@ export const InstallPrompt: React.FC = () => {
         <Smartphone className="w-4 h-4 text-emerald-200 shrink-0" />
         {isIOS ? (
           <span>
-            لتثبيت التطبيق على آيفون: اضغط زر <span className="font-bold underline">المشاركة (Share)</span> ثم اختر <span className="font-bold underline">"إضافة للشاشة الرئيسية"</span>.
+            لتثبيت التطبيق على آيفون: اضغط زر{' '}
+            <span className="font-bold underline">المشاركة (Share)</span> ثم اختر{' '}
+            <span className="font-bold underline">"إضافة للشاشة الرئيسية"</span>.
           </span>
         ) : (
           <span>هل تريد تثبيت تطبيق "على قدي" على هاتفك ليفتح كأي تطبيق أصلي؟</span>

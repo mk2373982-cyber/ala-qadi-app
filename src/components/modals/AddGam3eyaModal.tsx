@@ -10,11 +10,7 @@ interface AddGam3eyaModalProps {
   onSaved: () => void;
 }
 
-export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
-  isOpen,
-  onClose,
-  onSaved,
-}) => {
+export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({ isOpen, onClose, onSaved }) => {
   const [name, setName] = useState('');
   const [monthlyAmount, setMonthlyAmount] = useState('');
   const [totalMonths, setTotalMonths] = useState('10');
@@ -75,7 +71,9 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">اسم أو وصف الجمعية</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">
+              اسم أو وصف الجمعية
+            </label>
             <input
               type="text"
               required
@@ -88,7 +86,9 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">القسط الشهري (جنيه)</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                القسط الشهري (جنيه)
+              </label>
               <input
                 type="number"
                 min="10"
@@ -100,7 +100,9 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">عدد الشهور (المدة)</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                عدد الشهور (المدة)
+              </label>
               <input
                 type="number"
                 min="2"
@@ -125,7 +127,9 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">دورك في القبض (رقم الشهر)</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                دورك في القبض (رقم الشهر)
+              </label>
               <input
                 type="number"
                 min="1"
@@ -138,7 +142,9 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
               <span className="text-[10px] text-slate-400">مثال: 3 يعني هتقبض في الشهر الثالث</span>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">شهور مدفوعة مسبقاً</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                شهور مدفوعة مسبقاً
+              </label>
               <input
                 type="number"
                 min="0"
@@ -170,7 +176,10 @@ export const AddGam3eyaModal: React.FC<AddGam3eyaModalProps> = ({
               onChange={(e) => setIsCollected(e.target.checked)}
               className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300"
             />
-            <label htmlFor="isCollectedCheck" className="text-xs font-medium text-slate-700 cursor-pointer">
+            <label
+              htmlFor="isCollectedCheck"
+              className="text-xs font-medium text-slate-700 cursor-pointer"
+            >
               قبضت دوري بالفعل في هذه الجمعية
             </label>
           </div>

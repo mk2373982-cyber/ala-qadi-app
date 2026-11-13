@@ -15,17 +15,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'البيانات المدخلة غير صالحة' }, { status: 400 });
     }
 
-    if (await isAuthRateLimited(req, {
-      bucket: 'login',
-      windowSeconds: 15 * 60,
-      perIp: 40,
-      identity: phone,
-      perIdentity: 8,
-    })) {
-      return NextResponse.json({ error: 'محاولات كثيرة. انتظر 15 دقيقة ثم حاول مرة أخرى.' }, {
-        status: 429,
-        headers: { 'Cache-Control': 'no-store', 'Retry-After': '900' },
-      });
+    if (
+      await isAuthRateLimited(req, {
+        bucket: 'login',
+        windowSeconds: 15 * 60,
+        perIp: 40,
+        identity: phone,
+        perIdentity: 8,
+      })
+    ) {
+      return NextResponse.json(
+        { error: 'محاولات كثيرة. انتظر 15 دقيقة ثم حاول مرة أخرى.' },
+        {
+          status: 429,
+          headers: { 'Cache-Control': 'no-store', 'Retry-After': '900' },
+        },
+      );
     }
 
     const user = await verifyUserPassword(phone, password.trim());
@@ -43,24 +48,30 @@ export async function POST(req: Request) {
       }
     }
 
-    const response = NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        status: status,
-        plan: user.plan,
-        startDate: user.startDate,
-        endDate: user.endDate,
-        isTrial: user.isTrial,
-        createdAt: user.createdAt,
+    const response = NextResponse.json(
+      {
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          status: status,
+          plan: user.plan,
+          startDate: user.startDate,
+          endDate: user.endDate,
+          isTrial: user.isTrial,
+          createdAt: user.createdAt,
+        },
       },
-    }, { headers: { 'Cache-Control': 'no-store' } });
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));
     return response;
   } catch (error: any) {
     const status = error instanceof AuthRateLimitUnavailableError ? 503 : 500;
-    return NextResponse.json({ error: error.message || 'فشل تسجيل الدخول' }, { status, headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(
+      { error: error.message || 'فشل تسجيل الدخول' },
+      { status, headers: { 'Cache-Control': 'no-store' } },
+    );
   }
 }

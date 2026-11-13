@@ -89,7 +89,9 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
             <HandCoins className="w-5 h-5 text-brand-600" />
-            <h3 className="font-bold text-base text-slate-800">{initialDebt ? 'تعديل بيانات الدين' : 'إضافة دين أو مستحق جديد'}</h3>
+            <h3 className="font-bold text-base text-slate-800">
+              {initialDebt ? 'تعديل بيانات الدين' : 'إضافة دين أو مستحق جديد'}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -155,7 +157,9 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">تم سداد منه حتى الآن</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                تم سداد منه حتى الآن
+              </label>
               <input
                 type="number"
                 step="any"
@@ -170,7 +174,9 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">موعد السداد المتوقع (اختياري)</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                موعد السداد المتوقع (اختياري)
+              </label>
               <input
                 type="date"
                 value={dueDate}

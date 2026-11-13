@@ -30,7 +30,8 @@ export const SettingsView: React.FC = () => {
   const [paymentConfig, setPaymentConfig] = useState<PublicPaymentConfig | null>(null);
 
   useEffect(() => {
-    fetch('/api/public/config').then((res) => res.ok ? res.json() : null)
+    fetch('/api/public/config')
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => data && setPaymentConfig(data))
       .catch(() => {});
   }, []);
@@ -38,7 +39,9 @@ export const SettingsView: React.FC = () => {
   const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
   const annualOfferDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
   if (annualOfferDeadline) annualOfferDeadline.setDate(annualOfferDeadline.getDate() + 10);
-  const annualOfferIsOpen = Boolean(annualOfferDeadline && Date.now() <= annualOfferDeadline.getTime());
+  const annualOfferIsOpen = Boolean(
+    annualOfferDeadline && Date.now() <= annualOfferDeadline.getTime(),
+  );
 
   const handleExport = async () => {
     await exportAllDataAsJSON();
@@ -52,7 +55,8 @@ export const SettingsView: React.FC = () => {
 
     const confirmed = await askForConfirmation({
       title: 'تأكيد استرجاع النسخة',
-      message: 'استرجاع النسخة الاحتياطية سيستبدل بياناتك الحالية بالبيانات الموجودة في الملف المحدد. هل تريد المتابعة؟',
+      message:
+        'استرجاع النسخة الاحتياطية سيستبدل بياناتك الحالية بالبيانات الموجودة في الملف المحدد. هل تريد المتابعة؟',
       itemName: file.name,
       confirmLabel: 'استرجاع النسخة',
       tone: 'primary',
@@ -73,20 +77,43 @@ export const SettingsView: React.FC = () => {
   const handleClearAllData = async () => {
     const confirmed = await askForConfirmation({
       title: 'تأكيد مسح جميع البيانات',
-      message: 'سيتم حذف المعاملات والديون والجمعيات والأصول وأهداف الادخار والمعاملات المتكررة والميزانيات والتصنيفات المخصصة. ستبقى أماكن الفلوس بأسمائها وأنواعها، لكن أرصدتها ستصبح صفرًا.',
+      message:
+        'سيتم حذف المعاملات والديون والجمعيات والأصول وأهداف الادخار والمعاملات المتكررة والميزانيات والتصنيفات المخصصة. ستبقى أماكن الفلوس بأسمائها وأنواعها، لكن أرصدتها ستصبح صفرًا.',
       itemName: 'كل البيانات المالية مع الاحتفاظ بأماكن الفلوس',
       confirmLabel: 'مسح كل البيانات',
     });
     if (!confirmed) return;
-    await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
-      await Promise.all([
-        db.transactions.clear(), db.categories.clear(), db.budgets.clear(), db.debts.clear(),
-        db.gam3eyat.clear(), db.savings.clear(), db.savingsGoals.clear(), db.recurringTransactions.clear(),
-      ]);
-      await db.wallets.toCollection().modify({ balance: 0 });
-    });
+    await db.transaction(
+      'rw',
+      [
+        db.transactions,
+        db.categories,
+        db.budgets,
+        db.debts,
+        db.gam3eyat,
+        db.savings,
+        db.wallets,
+        db.savingsGoals,
+        db.recurringTransactions,
+      ],
+      async () => {
+        await Promise.all([
+          db.transactions.clear(),
+          db.categories.clear(),
+          db.budgets.clear(),
+          db.debts.clear(),
+          db.gam3eyat.clear(),
+          db.savings.clear(),
+          db.savingsGoals.clear(),
+          db.recurringTransactions.clear(),
+        ]);
+        await db.wallets.toCollection().modify({ balance: 0 });
+      },
+    );
     await seedDefaultCategoriesIfEmpty();
-    setStatusMessage('تم مسح البيانات والميزانيات، وإعادة التصنيفات الافتراضية. أماكن الفلوس موجودة وأرصدتها صفر.');
+    setStatusMessage(
+      'تم مسح البيانات والميزانيات، وإعادة التصنيفات الافتراضية. أماكن الفلوس موجودة وأرصدتها صفر.',
+    );
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
@@ -95,7 +122,9 @@ export const SettingsView: React.FC = () => {
       {/* Top Header Card */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-black text-slate-800">الإعدادات والنسخ الاحتياطي</h2>
-        <p className="text-xs text-slate-500">حماية بياناتك، معلومات الاشتراك، وتثبيت التطبيق على الموبايل</p>
+        <p className="text-xs text-slate-500">
+          حماية بياناتك، معلومات الاشتراك، وتثبيت التطبيق على الموبايل
+        </p>
       </div>
 
       {statusMessage && (
@@ -141,7 +170,9 @@ export const SettingsView: React.FC = () => {
             <Phone className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">رقم الهاتف</div>
-              <div className="text-xs font-bold text-slate-800 font-mono">{user?.phone || 'غير مطلوب'}</div>
+              <div className="text-xs font-bold text-slate-800 font-mono">
+                {user?.phone || 'غير مطلوب'}
+              </div>
             </div>
           </div>
 
@@ -151,12 +182,14 @@ export const SettingsView: React.FC = () => {
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
               <div className="text-xs font-bold text-brand-700">
                 {user?.isTrial
-                  ? trialMinutesRemaining !== null ? 'تجربة ضيف قصيرة' : 'شهر مجاني'
+                  ? trialMinutesRemaining !== null
+                    ? 'تجربة ضيف قصيرة'
+                    : 'شهر مجاني'
                   : user?.plan === 'lifetime'
-                  ? 'اشتراك دائم (مدى الحياة)'
-                  : user?.plan === '1_year'
-                  ? 'اشتراك سنوي'
-                  : 'اشتراك شهري'}
+                    ? 'اشتراك دائم (مدى الحياة)'
+                    : user?.plan === '1_year'
+                      ? 'اشتراك سنوي'
+                      : 'اشتراك شهري'}
               </div>
             </div>
           </div>
@@ -168,7 +201,9 @@ export const SettingsView: React.FC = () => {
               <div className="text-xs font-bold text-slate-800">
                 {user?.isTrial && trialMinutesRemaining !== null
                   ? `تجربة الضيف: متبقي ${Math.floor(trialMinutesRemaining / 60)} ساعة و${trialMinutesRemaining % 60} دقيقة`
-                  : daysRemaining === null ? 'نشط دائماً' : `متبقي ${daysRemaining} يوم`}
+                  : daysRemaining === null
+                    ? 'نشط دائماً'
+                    : `متبقي ${daysRemaining} يوم`}
               </div>
             </div>
           </div>
@@ -178,14 +213,36 @@ export const SettingsView: React.FC = () => {
       {user && isRegisteredTrial && user.endDate && (
         <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
           <h3 className="text-sm font-black text-amber-950">عرض الاشتراك السنوي بنصف السعر</h3>
-          <p className="mt-1 text-xs leading-5 text-amber-900">{annualOfferIsOpen ? `خصم ٥٠٪ متاح إذا تم الدفع قبل ${annualOfferDeadline?.toLocaleDateString('ar-EG')}.` : `انتهت مهلة الخصم. إذا كان الدفع تم خلال أول ١٠ أيام، أرسل الإيصال للمسؤول للمراجعة.`} الشهر المجاني يستمر ٣٠ يومًا. بعد مراجعة التحويل، يفعّل المسؤول الباقة السنوية.</p>
-          {paymentConfig?.pricingNote && <p className="mt-2 rounded-xl bg-white/80 p-3 text-xs font-bold leading-5 text-slate-700">{paymentConfig.pricingNote}</p>}
+          <p className="mt-1 text-xs leading-5 text-amber-900">
+            {annualOfferIsOpen
+              ? `خصم ٥٠٪ متاح إذا تم الدفع قبل ${annualOfferDeadline?.toLocaleDateString('ar-EG')}.`
+              : `انتهت مهلة الخصم. إذا كان الدفع تم خلال أول ١٠ أيام، أرسل الإيصال للمسؤول للمراجعة.`}{' '}
+            الشهر المجاني يستمر ٣٠ يومًا. بعد مراجعة التحويل، يفعّل المسؤول الباقة السنوية.
+          </p>
+          {paymentConfig?.pricingNote && (
+            <p className="mt-2 rounded-xl bg-white/80 p-3 text-xs font-bold leading-5 text-slate-700">
+              {paymentConfig.pricingNote}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
-            {paymentConfig?.instapayLink && /^https:\/\/ipn\.eg\//i.test(paymentConfig.instapayLink) && (
-              <a href={paymentConfig.instapayLink} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-pink-600 px-3 py-2 text-xs font-bold text-white">التحويل عبر InstaPay</a>
-            )}
+            {paymentConfig?.instapayLink &&
+              /^https:\/\/ipn\.eg\//i.test(paymentConfig.instapayLink) && (
+                <a
+                  href={paymentConfig.instapayLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl bg-pink-600 px-3 py-2 text-xs font-bold text-white"
+                >
+                  التحويل عبر InstaPay
+                </a>
+              )}
             {paymentConfig?.whatsappNumber && (
-              <a href={`https://wa.me/${paymentConfig.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`مرحباً، أريد الاشتراك السنوي بعرض نصف السعر. الاسم: ${user.name}، رقم الهاتف: ${user.phone}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white">
+              <a
+                href={`https://wa.me/${paymentConfig.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`مرحباً، أريد الاشتراك السنوي بعرض نصف السعر. الاسم: ${user.name}، رقم الهاتف: ${user.phone}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white"
+              >
                 <Send className="h-3.5 w-3.5" /> إرسال الإيصال للمسؤول
               </a>
             )}
@@ -258,7 +315,9 @@ export const SettingsView: React.FC = () => {
           </div>
           <div>
             <h3 className="font-bold text-sm text-slate-800">تثبيت التطبيق على شاشة هاتفك (PWA)</h3>
-            <p className="text-[11px] text-slate-400">يفتح كتطبيق ويب مثبت؛ تحتاج المزامنة والتحقق من الاشتراك إلى الإنترنت</p>
+            <p className="text-[11px] text-slate-400">
+              يفتح كتطبيق ويب مثبت؛ تحتاج المزامنة والتحقق من الاشتراك إلى الإنترنت
+            </p>
           </div>
         </div>
 
@@ -267,7 +326,10 @@ export const SettingsView: React.FC = () => {
             <div className="font-bold text-slate-800 text-xs">لهواتف أندرويد (Chrome):</div>
             <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500">
               <li>اضغط على زر الخيارات (⋮) أعلى يمين المتصفح.</li>
-              <li>اختر <span className="font-bold text-slate-700">"تثبيت التطبيق"</span> أو <span className="font-bold text-slate-700">"إضافة إلى الشاشة الرئيسية"</span>.</li>
+              <li>
+                اختر <span className="font-bold text-slate-700">"تثبيت التطبيق"</span> أو{' '}
+                <span className="font-bold text-slate-700">"إضافة إلى الشاشة الرئيسية"</span>.
+              </li>
               <li>سيظهر لك أيقونة "على قدي" على هاتفك كأي تطبيق رسمي!</li>
             </ol>
           </div>
@@ -276,7 +338,13 @@ export const SettingsView: React.FC = () => {
             <div className="font-bold text-slate-800 text-xs">لهواتف آيفون (iPhone Safari):</div>
             <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500">
               <li>اضغط على زر المشاركة (Share) أسفل الشاشة.</li>
-              <li>اختر <span className="font-bold text-slate-700">"إضافة إلى الصفحة الرئيسية (Add to Home Screen)"</span>.</li>
+              <li>
+                اختر{' '}
+                <span className="font-bold text-slate-700">
+                  "إضافة إلى الصفحة الرئيسية (Add to Home Screen)"
+                </span>
+                .
+              </li>
               <li>اضغط "إضافة (Add)" وسيفتح معك كأنه تطبيق من متجر آبل.</li>
             </ol>
           </div>
@@ -287,7 +355,9 @@ export const SettingsView: React.FC = () => {
       <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h4 className="font-bold text-sm text-slate-800">تسجيل الخروج من الحساب</h4>
-          <p className="text-xs text-slate-400 mt-0.5">الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول
+          </p>
         </div>
         <button
           onClick={() => {

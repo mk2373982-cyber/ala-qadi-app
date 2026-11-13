@@ -3,9 +3,19 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { db, Transaction } from '@/lib/db';
 import { exportTransactionsToCSV } from '@/lib/export-import';
-import { Printer, Download, TrendingDown, TrendingUp, DollarSign, BarChart3, Lightbulb, ReceiptText } from 'lucide-react';
+import {
+  Printer,
+  Download,
+  TrendingDown,
+  TrendingUp,
+  DollarSign,
+  BarChart3,
+  Lightbulb,
+  ReceiptText,
+} from 'lucide-react';
 
-const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const monthKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
 export const BudgetReportsView: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(() => monthKey(new Date()));
@@ -13,8 +23,12 @@ export const BudgetReportsView: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    db.transactions.toArray().then((all) => { if (active) setAllTransactions(all); });
-    return () => { active = false; };
+    db.transactions.toArray().then((all) => {
+      if (active) setAllTransactions(all);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const transactions = useMemo(
@@ -54,17 +68,26 @@ export const BudgetReportsView: React.FC = () => {
     return Array.from({ length: 6 }, (_, index) => {
       const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - (5 - index), 1);
       const key = monthKey(date);
-      const monthTransactions = allTransactions.filter((transaction) => transaction.date.startsWith(key));
+      const monthTransactions = allTransactions.filter((transaction) =>
+        transaction.date.startsWith(key),
+      );
       return {
         key,
         label: date.toLocaleDateString('ar-EG', { month: 'short' }),
-        income: monthTransactions.filter((transaction) => transaction.type === 'income').reduce((sum, transaction) => sum + transaction.amount, 0),
-        expense: monthTransactions.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
+        income: monthTransactions
+          .filter((transaction) => transaction.type === 'income')
+          .reduce((sum, transaction) => sum + transaction.amount, 0),
+        expense: monthTransactions
+          .filter((transaction) => transaction.type === 'expense')
+          .reduce((sum, transaction) => sum + transaction.amount, 0),
       };
     });
   }, [allTransactions, selectedMonth]);
   const chartMax = Math.max(1, ...monthlyTrend.flatMap((month) => [month.income, month.expense]));
-  const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+  const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('ar-EG', {
+    month: 'long',
+    year: 'numeric',
+  });
 
   const handlePrint = () => {
     window.print();
@@ -76,7 +99,9 @@ export const BudgetReportsView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm no-print">
         <div>
           <h2 className="text-lg font-black text-slate-800">التقارير والتحليل الشهري</h2>
-          <p className="text-xs text-slate-500">ملخص شهري يساعدك تعرف دخلت كام، صرفت فين، وإيه اتجاه مصروفاتك</p>
+          <p className="text-xs text-slate-500">
+            ملخص شهري يساعدك تعرف دخلت كام، صرفت فين، وإيه اتجاه مصروفاتك
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -109,7 +134,9 @@ export const BudgetReportsView: React.FC = () => {
 
       {/* Printable Report Header (visible on print) */}
       <div className="hidden print:block p-4 border-b border-slate-300 text-center mb-6">
-        <h1 className="text-2xl font-black text-slate-900">تقرير الإدارة المالية - تطبيق على قدي</h1>
+        <h1 className="text-2xl font-black text-slate-900">
+          تقرير الإدارة المالية - تطبيق على قدي
+        </h1>
         <p className="text-sm text-slate-600 mt-1">كشف حساب شهر: {selectedMonthLabel}</p>
       </div>
 
@@ -162,8 +189,14 @@ export const BudgetReportsView: React.FC = () => {
       </div>
 
       {transactions.length > 0 && categoryBreakdown[0] && (
-        <section className={`flex items-start gap-3 rounded-3xl border p-4 shadow-sm ${netSavings < 0 ? 'border-rose-200 bg-rose-50 text-rose-950' : 'border-emerald-200 bg-emerald-50 text-emerald-950'}`}>
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${netSavings < 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'}`}><Lightbulb className="h-4 w-4" /></span>
+        <section
+          className={`flex items-start gap-3 rounded-3xl border p-4 shadow-sm ${netSavings < 0 ? 'border-rose-200 bg-rose-50 text-rose-950' : 'border-emerald-200 bg-emerald-50 text-emerald-950'}`}
+        >
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${netSavings < 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'}`}
+          >
+            <Lightbulb className="h-4 w-4" />
+          </span>
           <div>
             <h3 className="text-xs font-black">ملخص يساعدك تاخد قرار</h3>
             <p className="mt-1 text-[11px] leading-5">
@@ -179,30 +212,67 @@ export const BudgetReportsView: React.FC = () => {
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-slate-900"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-800"><BarChart3 className="h-4 w-4" /></span><h3 className="text-sm font-black">اتجاه الدخل والمصروف</h3></div>
-            <p className="mt-2 text-[10px] text-slate-500">مقارنة آخر ٦ شهور حتى {selectedMonthLabel}</p>
+            <div className="flex items-center gap-2 text-slate-900">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-800">
+                <BarChart3 className="h-4 w-4" />
+              </span>
+              <h3 className="text-sm font-black">اتجاه الدخل والمصروف</h3>
+            </div>
+            <p className="mt-2 text-[10px] text-slate-500">
+              مقارنة آخر ٦ شهور حتى {selectedMonthLabel}
+            </p>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5 pt-1 text-[9px] font-bold text-slate-600 sm:flex-row sm:gap-3">
-            <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />الدخل</span>
-            <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-rose-400" />المصروف</span>
+            <span className="flex items-center gap-1.5">
+              <i className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />
+              الدخل
+            </span>
+            <span className="flex items-center gap-1.5">
+              <i className="h-2.5 w-2.5 rounded-sm bg-rose-400" />
+              المصروف
+            </span>
           </div>
         </div>
         {allTransactions.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-500">سجّل أول حركة عشان يظهر اتجاه الدخل والمصروف هنا.</div>
+          <div className="py-10 text-center text-xs text-slate-500">
+            سجّل أول حركة عشان يظهر اتجاه الدخل والمصروف هنا.
+          </div>
         ) : (
-          <div role="img" aria-label="رسم بياني يقارن إجمالي الدخل والمصروف خلال آخر ستة أشهر" className="mt-5 grid grid-cols-6 gap-2 border-b border-slate-100 pb-2" dir="ltr">
+          <div
+            role="img"
+            aria-label="رسم بياني يقارن إجمالي الدخل والمصروف خلال آخر ستة أشهر"
+            className="mt-5 grid grid-cols-6 gap-2 border-b border-slate-100 pb-2"
+            dir="ltr"
+          >
             {monthlyTrend.map((month) => (
               <div key={month.key} className="flex min-w-0 flex-col items-center">
                 <div className="flex h-32 w-full items-end justify-center gap-1 border-b border-slate-100 bg-gradient-to-t from-slate-50/80 to-white px-1">
-                  <div title={`الدخل ${month.label}: ${month.income.toLocaleString('ar-EG')} ج.م`} className="w-3 rounded-t-md bg-emerald-500 transition-[height] duration-500 sm:w-5" style={{ height: `${month.income > 0 ? Math.max(4, (month.income / chartMax) * 100) : 0}%` }} />
-                  <div title={`المصروف ${month.label}: ${month.expense.toLocaleString('ar-EG')} ج.م`} className="w-3 rounded-t-md bg-rose-400 transition-[height] duration-500 sm:w-5" style={{ height: `${month.expense > 0 ? Math.max(4, (month.expense / chartMax) * 100) : 0}%` }} />
+                  <div
+                    title={`الدخل ${month.label}: ${month.income.toLocaleString('ar-EG')} ج.م`}
+                    className="w-3 rounded-t-md bg-emerald-500 transition-[height] duration-500 sm:w-5"
+                    style={{
+                      height: `${month.income > 0 ? Math.max(4, (month.income / chartMax) * 100) : 0}%`,
+                    }}
+                  />
+                  <div
+                    title={`المصروف ${month.label}: ${month.expense.toLocaleString('ar-EG')} ج.م`}
+                    className="w-3 rounded-t-md bg-rose-400 transition-[height] duration-500 sm:w-5"
+                    style={{
+                      height: `${month.expense > 0 ? Math.max(4, (month.expense / chartMax) * 100) : 0}%`,
+                    }}
+                  />
                 </div>
-                <span className="mt-2 truncate text-[9px] font-bold text-slate-500">{month.label}</span>
+                <span className="mt-2 truncate text-[9px] font-bold text-slate-500">
+                  {month.label}
+                </span>
               </div>
             ))}
           </div>
         )}
-        <div className="mt-3 flex items-center gap-1.5 text-[9px] text-slate-400"><ReceiptText className="h-3.5 w-3.5" />حرّك المؤشر فوق أي عمود لمعرفة المبلغ المسجل.</div>
+        <div className="mt-3 flex items-center gap-1.5 text-[9px] text-slate-400">
+          <ReceiptText className="h-3.5 w-3.5" />
+          حرّك المؤشر فوق أي عمود لمعرفة المبلغ المسجل.
+        </div>
       </section>
 
       {/* Category Breakdown (Where does money go?) */}

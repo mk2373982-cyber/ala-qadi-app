@@ -24,15 +24,19 @@ function digest(value: string) {
   return createHmac('sha256', key).update(value).digest('hex');
 }
 
-function consumeLocally(entries: Array<{ keyHash: string; maxAttempts: number }>, windowSeconds: number) {
+function consumeLocally(
+  entries: Array<{ keyHash: string; maxAttempts: number }>,
+  windowSeconds: number,
+) {
   const now = Date.now();
   let allowed = true;
 
   for (const entry of entries) {
     const current = localBuckets.get(entry.keyHash);
-    const bucket = !current || current.resetsAt <= now
-      ? { count: 1, resetsAt: now + windowSeconds * 1000 }
-      : { ...current, count: current.count + 1 };
+    const bucket =
+      !current || current.resetsAt <= now
+        ? { count: 1, resetsAt: now + windowSeconds * 1000 }
+        : { ...current, count: current.count + 1 };
     localBuckets.set(entry.keyHash, bucket);
     if (bucket.count > entry.maxAttempts) allowed = false;
   }
@@ -48,13 +52,19 @@ function consumeLocally(entries: Array<{ keyHash: string; maxAttempts: number }>
 
 /** Uses the atomic Supabase RPC when installed, with a per-instance fallback during migration rollout. */
 export async function isAuthRateLimited(request: Request, options: RateLimitOptions) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')?.trim()
-    || 'unknown';
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip')?.trim() ||
+    'unknown';
   const entries = [
     { keyHash: digest(`${options.bucket}:ip:${ip}`), maxAttempts: options.perIp },
     ...(options.identity
-      ? [{ keyHash: digest(`${options.bucket}:identity:${options.identity.trim().toLowerCase()}`), maxAttempts: options.perIdentity ?? options.perIp }]
+      ? [
+          {
+            keyHash: digest(`${options.bucket}:identity:${options.identity.trim().toLowerCase()}`),
+            maxAttempts: options.perIdentity ?? options.perIp,
+          },
+        ]
       : []),
   ];
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
@@ -62,7 +72,9 @@ export async function isAuthRateLimited(request: Request, options: RateLimitOpti
 
   if (!supabaseUrl || !serviceKey) {
     if (!warnedAboutLocalFallback) {
-      console.warn('Shared auth rate limits are unavailable; using a per-instance fallback until Supabase is configured.');
+      console.warn(
+        'Shared auth rate limits are unavailable; using a per-instance fallback until Supabase is configured.',
+      );
       warnedAboutLocalFallback = true;
     }
     return !consumeLocally(entries, options.windowSeconds);
@@ -85,7 +97,9 @@ export async function isAuthRateLimited(request: Request, options: RateLimitOpti
 
   if (response.status === 404) {
     if (!warnedAboutLocalFallback) {
-      console.error('Shared auth rate limit RPC is missing; apply the Supabase auth rate limit migration.');
+      console.error(
+        'Shared auth rate limit RPC is missing; apply the Supabase auth rate limit migration.',
+      );
       warnedAboutLocalFallback = true;
     }
     return !consumeLocally(entries, options.windowSeconds);

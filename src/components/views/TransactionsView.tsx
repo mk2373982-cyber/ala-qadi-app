@@ -26,9 +26,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7)
-  );
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
 
   const loadData = async () => {
     const all = await db.transactions.toArray();
@@ -58,7 +56,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
         const wallet = await db.wallets.get(transaction.walletId);
         if (wallet?.id) {
           await db.wallets.update(wallet.id, {
-            balance: wallet.balance + (transaction.type === 'income' ? -transaction.amount : transaction.amount),
+            balance:
+              wallet.balance +
+              (transaction.type === 'income' ? -transaction.amount : transaction.amount),
           });
         }
       }
@@ -90,9 +90,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0);
 
-  const totalIncome = filtered
-    .filter((t) => t.type === 'income')
-    .reduce((s, t) => s + t.amount, 0);
+  const totalIncome = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
   return (
     <div className="space-y-4 pb-16">
@@ -244,14 +242,13 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
                     )}
                   </div>
                   <div>
-                    <div className="font-bold text-xs sm:text-sm text-slate-800">
-                      {tx.category}
-                    </div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-800">{tx.category}</div>
                     <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                       <span>{tx.date}</span>
-                      {tx.walletId !== undefined && wallets.find((wallet) => wallet.id === tx.walletId) && (
-                        <span>• {wallets.find((wallet) => wallet.id === tx.walletId)?.name}</span>
-                      )}
+                      {tx.walletId !== undefined &&
+                        wallets.find((wallet) => wallet.id === tx.walletId) && (
+                          <span>• {wallets.find((wallet) => wallet.id === tx.walletId)?.name}</span>
+                        )}
                       {tx.note && <span>• {tx.note}</span>}
                     </div>
                   </div>

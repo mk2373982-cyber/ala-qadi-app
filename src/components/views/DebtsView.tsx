@@ -78,24 +78,24 @@ export const DebtsView: React.FC = () => {
       await db.debts.update(paymentModalDebt.id!, { paidAmount: newPaid, isCompleted });
       if (paymentModalDebt.type === 'to_me') {
         await db.transactions.add({
-        type: 'income',
-        amount: payment,
-        category: 'استرداد سلفة أو دين',
-        note: `سداد من ${paymentModalDebt.personName}`,
-        date: new Date().toISOString().slice(0, 10),
-        createdAt: Date.now(),
-        walletId: selectedWallet.id,
-      });
+          type: 'income',
+          amount: payment,
+          category: 'استرداد سلفة أو دين',
+          note: `سداد من ${paymentModalDebt.personName}`,
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: Date.now(),
+          walletId: selectedWallet.id,
+        });
       } else {
         await db.transactions.add({
-        type: 'expense',
-        amount: payment,
-        category: 'أقساط ومستحقات',
-        note: `سداد دين لـ ${paymentModalDebt.personName}`,
-        date: new Date().toISOString().slice(0, 10),
-        createdAt: Date.now(),
-        walletId: selectedWallet.id,
-      });
+          type: 'expense',
+          amount: payment,
+          category: 'أقساط ومستحقات',
+          note: `سداد دين لـ ${paymentModalDebt.personName}`,
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: Date.now(),
+          walletId: selectedWallet.id,
+        });
       }
       await db.wallets.update(selectedWallet.id!, {
         balance: selectedWallet.balance + (paymentModalDebt.type === 'to_me' ? payment : -payment),
@@ -325,7 +325,9 @@ export const DebtsView: React.FC = () => {
 
             <form onSubmit={handleRegisterPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">المبلغ المسدد الآن (جنيه)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  المبلغ المسدد الآن (جنيه)
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -343,10 +345,24 @@ export const DebtsView: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-600 mb-1">
                   {paymentModalDebt.type === 'to_me' ? 'إضافة المبلغ إلى' : 'الخصم من'}
                 </label>
-                <select required value={paymentWalletId} onChange={(event) => setPaymentWalletId(event.target.value)} disabled={!wallets.length} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold disabled:bg-slate-100">
-                  {wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م</option>)}
+                <select
+                  required
+                  value={paymentWalletId}
+                  onChange={(event) => setPaymentWalletId(event.target.value)}
+                  disabled={!wallets.length}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold disabled:bg-slate-100"
+                >
+                  {wallets.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م
+                    </option>
+                  ))}
                 </select>
-                {!wallets.length && <p className="mt-1 text-[11px] text-rose-600">أضف مكانًا للأموال من الصفحة الرئيسية أولًا.</p>}
+                {!wallets.length && (
+                  <p className="mt-1 text-[11px] text-rose-600">
+                    أضف مكانًا للأموال من الصفحة الرئيسية أولًا.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2">

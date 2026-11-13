@@ -2,7 +2,17 @@ const APP_NAME = 'على قدي';
 const ENVELOPE_FORMAT = 'ala-qaddi-drive-backup';
 const ENVELOPE_VERSION = 2;
 const AUTHENTICATED_CONTEXT = new TextEncoder().encode('ala-qaddi-drive-backup:v2');
-const BACKUP_TABLES = ['transactions', 'categories', 'budgets', 'debts', 'gam3eyat', 'savings', 'wallets', 'savingsGoals', 'recurringTransactions'] as const;
+const BACKUP_TABLES = [
+  'transactions',
+  'categories',
+  'budgets',
+  'debts',
+  'gam3eyat',
+  'savings',
+  'wallets',
+  'savingsGoals',
+  'recurringTransactions',
+] as const;
 
 export interface LocalBackup {
   appName: string;
@@ -46,7 +56,7 @@ function bytesToBase64Url(bytes: Uint8Array) {
 
 function base64UrlToBytes(value: string) {
   const normalized = value.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
@@ -79,7 +89,10 @@ export function validateLocalBackup(value: unknown): LocalBackup {
 
 export async function createRecoveryKey() {
   const raw = crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  const key = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, [
+    'encrypt',
+    'decrypt',
+  ]);
   return { key, recoveryCode: bytesToBase64Url(raw) };
 }
 
@@ -89,7 +102,10 @@ export async function importRecoveryKey(recoveryCode: string) {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
-export async function encryptBackup(backup: LocalBackup, key: CryptoKey): Promise<EncryptedDriveBackup> {
+export async function encryptBackup(
+  backup: LocalBackup,
+  key: CryptoKey,
+): Promise<EncryptedDriveBackup> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = new TextEncoder().encode(JSON.stringify(backup));
   const ciphertext = await crypto.subtle.encrypt(
@@ -109,7 +125,10 @@ export async function encryptBackup(backup: LocalBackup, key: CryptoKey): Promis
   };
 }
 
-export async function decodeDriveBackup(raw: unknown, key?: CryptoKey): Promise<{ backup: LocalBackup; encrypted: boolean }> {
+export async function decodeDriveBackup(
+  raw: unknown,
+  key?: CryptoKey,
+): Promise<{ backup: LocalBackup; encrypted: boolean }> {
   let envelope = raw;
   if (typeof raw === 'string') {
     if (raw.length > 25_000_000) throw new Error('حجم النسخة أكبر من الحد المسموح.');
@@ -122,13 +141,23 @@ export async function decodeDriveBackup(raw: unknown, key?: CryptoKey): Promise<
 
   if (isRecord(envelope) && envelope.format === ENVELOPE_FORMAT) {
     if (!key) throw new BackupRecoveryKeyRequiredError();
-    if (envelope.appName !== APP_NAME || envelope.formatVersion !== ENVELOPE_VERSION || envelope.algorithm !== 'AES-GCM-128'
-      || typeof envelope.iv !== 'string' || typeof envelope.ciphertext !== 'string') {
+    if (
+      envelope.appName !== APP_NAME ||
+      envelope.formatVersion !== ENVELOPE_VERSION ||
+      envelope.algorithm !== 'AES-GCM-128' ||
+      typeof envelope.iv !== 'string' ||
+      typeof envelope.ciphertext !== 'string'
+    ) {
       throw new Error('صيغة النسخة المشفرة غير مدعومة.');
     }
     try {
       const plaintext = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: base64UrlToBytes(envelope.iv), additionalData: AUTHENTICATED_CONTEXT, tagLength: 128 },
+        {
+          name: 'AES-GCM',
+          iv: base64UrlToBytes(envelope.iv),
+          additionalData: AUTHENTICATED_CONTEXT,
+          tagLength: 128,
+        },
         key,
         base64UrlToBytes(envelope.ciphertext),
       );

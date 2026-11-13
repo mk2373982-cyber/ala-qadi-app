@@ -5,14 +5,20 @@ import { ConfirmActionModal, ConfirmActionOptions } from '@/components/modals/Co
 import { registerConfirmAction } from '@/lib/confirm-action';
 
 type PendingConfirmation = ConfirmActionOptions & { resolve: (confirmed: boolean) => void };
-const ConfirmActionContext = createContext<((options: ConfirmActionOptions) => Promise<boolean>) | null>(null);
+const ConfirmActionContext = createContext<
+  ((options: ConfirmActionOptions) => Promise<boolean>) | null
+>(null);
 
 export const ConfirmActionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
 
-  const confirm = useCallback((options: ConfirmActionOptions) => new Promise<boolean>((resolve) => {
-    setPending({ ...options, resolve });
-  }), []);
+  const confirm = useCallback(
+    (options: ConfirmActionOptions) =>
+      new Promise<boolean>((resolve) => {
+        setPending({ ...options, resolve });
+      }),
+    [],
+  );
 
   const finish = useCallback((confirmed: boolean) => {
     setPending((current) => {

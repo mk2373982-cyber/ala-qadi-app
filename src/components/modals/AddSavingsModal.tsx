@@ -10,11 +10,7 @@ interface AddSavingsModalProps {
   onSaved: () => void;
 }
 
-export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({
-  isOpen,
-  onClose,
-  onSaved,
-}) => {
+export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClose, onSaved }) => {
   const [type, setType] = useState<'gold_21' | 'gold_24' | 'usd' | 'cash_cert'>('gold_21');
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -145,7 +141,9 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({
 
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">الكمية ({unitLabel})</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                الكمية ({unitLabel})
+              </label>
               <input
                 type="number"
                 step="any"
@@ -158,7 +156,9 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">سعر الشراء للوحدة</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                سعر الشراء للوحدة
+              </label>
               <input
                 type="number"
                 step="any"
@@ -170,7 +170,9 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">السعر الحالي للوحدة</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                السعر الحالي للوحدة
+              </label>
               <input
                 type="number"
                 step="any"

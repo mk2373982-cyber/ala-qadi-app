@@ -28,10 +28,19 @@ export interface AdminSettings {
 }
 
 type DbUser = {
-  id: string; name: string; phone: string; password_hash?: string; status: UserStatus;
-  plan: SubscriptionPlan; start_date: string | null; end_date: string | null;
-  notes: string | null; payment_status: UserAccount['paymentStatus'];
-  payment_reference: string | null; payment_submitted_at: string | null; created_at: string;
+  id: string;
+  name: string;
+  phone: string;
+  password_hash?: string;
+  status: UserStatus;
+  plan: SubscriptionPlan;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+  payment_status: UserAccount['paymentStatus'];
+  payment_reference: string | null;
+  payment_submitted_at: string | null;
+  created_at: string;
 };
 
 const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/$/, '');
@@ -39,7 +48,9 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function requireSupabase() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error('قاعدة البيانات غير متصلة. أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في إعدادات البيئة.');
+    throw new Error(
+      'قاعدة البيانات غير متصلة. أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في إعدادات البيئة.',
+    );
   }
 }
 
@@ -68,16 +79,28 @@ async function db<T>(table: string, query = '', init: RequestInit = {}): Promise
 
 function mapUser(row: DbUser): UserAccount {
   return {
-    id: row.id, name: row.name, phone: row.phone, status: row.status, plan: row.plan,
-    startDate: row.start_date, endDate: row.end_date, notes: row.notes || undefined,
-    paymentStatus: row.payment_status, paymentReference: row.payment_reference || undefined,
-    paymentSubmittedAt: row.payment_submitted_at, createdAt: row.created_at,
-    isTrial: row.payment_status !== 'confirmed' && row.end_date !== null
-      && (row.status === 'active' || row.status === 'expired'),
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    status: row.status,
+    plan: row.plan,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    notes: row.notes || undefined,
+    paymentStatus: row.payment_status,
+    paymentReference: row.payment_reference || undefined,
+    paymentSubmittedAt: row.payment_submitted_at,
+    createdAt: row.created_at,
+    isTrial:
+      row.payment_status !== 'confirmed' &&
+      row.end_date !== null &&
+      (row.status === 'active' || row.status === 'expired'),
   };
 }
 
-function normalizePhone(phone: string) { return phone.trim().replace(/\s+/g, ''); }
+function normalizePhone(phone: string) {
+  return phone.trim().replace(/\s+/g, '');
+}
 function passwordHash(password: string) {
   const salt = randomBytes(16).toString('hex');
   return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`;
@@ -91,7 +114,10 @@ function passwordMatches(password: string, stored: string) {
 }
 
 export async function findUserByPhone(phone: string, withPassword = false) {
-  const rows = await db<DbUser[]>('app_users', `?phone=eq.${encodeURIComponent(normalizePhone(phone))}&select=${withPassword ? '*' : 'id,name,phone,status,plan,start_date,end_date,notes,payment_status,payment_reference,payment_submitted_at,created_at'}&limit=1`);
+  const rows = await db<DbUser[]>(
+    'app_users',
+    `?phone=eq.${encodeURIComponent(normalizePhone(phone))}&select=${withPassword ? '*' : 'id,name,phone,status,plan,start_date,end_date,notes,payment_status,payment_reference,payment_submitted_at,created_at'}&limit=1`,
+  );
   return rows[0] ? { ...mapUser(rows[0]), passwordHash: rows[0].password_hash } : undefined;
 }
 
@@ -123,7 +149,11 @@ async function getOrStartSignupCampaign(): Promise<SignupCampaign> {
   };
   const existing = await readCampaign();
   if (existing) {
-    if (Number.isFinite(Date.parse(existing.startsAt)) && Number.isFinite(Date.parse(existing.endsAt))) return existing;
+    if (
+      Number.isFinite(Date.parse(existing.startsAt)) &&
+      Number.isFinite(Date.parse(existing.endsAt))
+    )
+      return existing;
     throw new Error('إعداد فترة العرض المجاني غير صالح. تواصل مع المسؤول.');
   }
 
@@ -144,14 +174,21 @@ async function getOrStartSignupCampaign(): Promise<SignupCampaign> {
   }
 
   const campaign = await readCampaign();
-  if (!campaign || !Number.isFinite(Date.parse(campaign.startsAt)) || !Number.isFinite(Date.parse(campaign.endsAt))) {
+  if (
+    !campaign ||
+    !Number.isFinite(Date.parse(campaign.startsAt)) ||
+    !Number.isFinite(Date.parse(campaign.endsAt))
+  ) {
     throw new Error('تعذر تفعيل فترة العرض المجاني. حاول مرة أخرى.');
   }
   return campaign;
 }
 
 export async function getSignupCampaignStatus() {
-  const rows = await db<{ value: SignupCampaign }[]>('app_settings', '?key=eq.registration_promo&select=value&limit=1');
+  const rows = await db<{ value: SignupCampaign }[]>(
+    'app_settings',
+    '?key=eq.registration_promo&select=value&limit=1',
+  );
   const campaign = rows[0]?.value;
   if (!campaign) return { available: true, endsAt: null as string | null };
   const endsAt = Date.parse(campaign.endsAt);
@@ -173,8 +210,11 @@ export async function createUser(name: string, phone: string, password: string) 
   const rows = await db<DbUser[]>('app_users', '', {
     method: 'POST',
     body: JSON.stringify({
-      name: name.trim(), phone: normalizedPhone, password_hash: passwordHash(password.trim()),
-      status: receivesLaunchAccess ? 'active' : 'pending', plan: '1_month',
+      name: name.trim(),
+      phone: normalizedPhone,
+      password_hash: passwordHash(password.trim()),
+      status: receivesLaunchAccess ? 'active' : 'pending',
+      plan: '1_month',
       start_date: receivesLaunchAccess ? now.toISOString() : null,
       end_date: receivesLaunchAccess ? campaign.endsAt : null,
     }),
@@ -194,13 +234,19 @@ export function calculateEndDate(plan: SubscriptionPlan): string | null {
 
 async function patchUser(userId: string, changes: Record<string, unknown>) {
   const rows = await db<DbUser[]>('app_users', `?id=eq.${encodeURIComponent(userId)}`, {
-    method: 'PATCH', body: JSON.stringify({ ...changes, updated_at: new Date().toISOString() }),
+    method: 'PATCH',
+    body: JSON.stringify({ ...changes, updated_at: new Date().toISOString() }),
   });
   if (!rows[0]) throw new Error('المستخدم غير موجود');
   return mapUser(rows[0]);
 }
 
-export async function updateUserStatus(userId: string, status: UserStatus, plan?: SubscriptionPlan, customEndDate?: string | null) {
+export async function updateUserStatus(
+  userId: string,
+  status: UserStatus,
+  plan?: SubscriptionPlan,
+  customEndDate?: string | null,
+) {
   const existing = await findUserById(userId);
   if (!existing) throw new Error('المستخدم غير موجود');
   const changes: Record<string, unknown> = { status };
@@ -214,17 +260,33 @@ export async function updateUserStatus(userId: string, status: UserStatus, plan?
   return patchUser(userId, changes);
 }
 
-export async function reviewPayment(userId: string, decision: 'confirm' | 'reject', plan?: SubscriptionPlan) {
+export async function reviewPayment(
+  userId: string,
+  decision: 'confirm' | 'reject',
+  plan?: SubscriptionPlan,
+) {
   const user = await findUserById(userId);
   if (!user) throw new Error('المستخدم غير موجود');
   if (user.status === 'suspended') throw new Error('لا يمكن تفعيل حساب موقوف.');
-  if (decision === 'reject' && user.paymentStatus !== 'pending_review') throw new Error('لا يوجد طلب دفع بانتظار المراجعة');
-  if (decision === 'confirm' && user.status === 'active' && !user.isTrial && (!user.endDate || new Date(user.endDate).getTime() > Date.now())) {
+  if (decision === 'reject' && user.paymentStatus !== 'pending_review')
+    throw new Error('لا يوجد طلب دفع بانتظار المراجعة');
+  if (
+    decision === 'confirm' &&
+    user.status === 'active' &&
+    !user.isTrial &&
+    (!user.endDate || new Date(user.endDate).getTime() > Date.now())
+  ) {
     throw new Error('الاشتراك مفعل بالفعل.');
   }
   if (decision === 'reject') return patchUser(userId, { payment_status: 'rejected' });
   const activePlan = plan ?? user.plan;
-  return patchUser(userId, { status: 'active', plan: activePlan, start_date: new Date().toISOString(), end_date: calculateEndDate(activePlan), payment_status: 'confirmed' });
+  return patchUser(userId, {
+    status: 'active',
+    plan: activePlan,
+    start_date: new Date().toISOString(),
+    end_date: calculateEndDate(activePlan),
+    payment_status: 'confirmed',
+  });
 }
 
 export async function deleteUser(userId: string) {
@@ -240,7 +302,10 @@ const defaultSettings: AdminSettings = {
 };
 
 export async function getSettings(): Promise<AdminSettings> {
-  const rows = await db<{ value: Partial<AdminSettings> }[]>('app_settings', '?key=eq.payment&select=value&limit=1');
+  const rows = await db<{ value: Partial<AdminSettings> }[]>(
+    'app_settings',
+    '?key=eq.payment&select=value&limit=1',
+  );
   const saved = rows[0]?.value || {};
   return {
     ...defaultSettings,
@@ -252,17 +317,33 @@ export async function getSettings(): Promise<AdminSettings> {
 }
 
 export async function updateSettings(settings: Partial<AdminSettings>) {
-  const allowed = { paymentPhone: settings.paymentPhone, paymentInstapay: settings.paymentInstapay, instapayLink: settings.instapayLink, whatsappNumber: settings.whatsappNumber, pricingNote: settings.pricingNote };
+  const allowed = {
+    paymentPhone: settings.paymentPhone,
+    paymentInstapay: settings.paymentInstapay,
+    instapayLink: settings.instapayLink,
+    whatsappNumber: settings.whatsappNumber,
+    pricingNote: settings.pricingNote,
+  };
   const current = await getSettings();
-  const value = { ...current, ...Object.fromEntries(Object.entries(allowed).filter(([, item]) => item !== undefined)) };
-  await db('app_settings', '?key=eq.payment', { method: 'PATCH', body: JSON.stringify({ value, updated_at: new Date().toISOString() }) });
+  const value = {
+    ...current,
+    ...Object.fromEntries(Object.entries(allowed).filter(([, item]) => item !== undefined)),
+  };
+  await db('app_settings', '?key=eq.payment', {
+    method: 'PATCH',
+    body: JSON.stringify({ value, updated_at: new Date().toISOString() }),
+  });
   return value;
 }
 
 export function verifyAdminPassword(password: string) {
   const configured = process.env.ADMIN_PASSWORD;
-  if (!configured) throw new Error('اضبط ADMIN_PASSWORD في إعدادات البيئة قبل استخدام لوحة الإدارة.');
-  if (configured.length < 14) throw new Error('كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.');
+  if (!configured)
+    throw new Error('اضبط ADMIN_PASSWORD في إعدادات البيئة قبل استخدام لوحة الإدارة.');
+  if (configured.length < 14)
+    throw new Error(
+      'كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.',
+    );
   const actual = createHash('sha256').update(password).digest();
   const expected = createHash('sha256').update(configured).digest();
   return timingSafeEqual(actual, expected);
@@ -271,7 +352,10 @@ export function verifyAdminPassword(password: string) {
 export function createAdminSession() {
   const secret = process.env.ADMIN_PASSWORD;
   if (!secret) throw new Error('اضبط ADMIN_PASSWORD في إعدادات البيئة قبل استخدام لوحة الإدارة.');
-  if (secret.length < 14) throw new Error('كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.');
+  if (secret.length < 14)
+    throw new Error(
+      'كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.',
+    );
   const expiresAt = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
   const signature = createHmac('sha256', secret).update(String(expiresAt)).digest('base64url');
   return `${expiresAt}.${signature}`;
@@ -282,10 +366,15 @@ export function verifyAdminSession(session: string | undefined) {
   if (!secret || secret.length < 14 || !session) return false;
   const [expiresText, signature] = session.split('.');
   const expiresAt = Number(expiresText);
-  if (!Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000) || !signature) return false;
+  if (!Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000) || !signature)
+    return false;
   const expected = createHmac('sha256', secret).update(expiresText).digest();
   let actual: Buffer;
-  try { actual = Buffer.from(signature, 'base64url'); } catch { return false; }
+  try {
+    actual = Buffer.from(signature, 'base64url');
+  } catch {
+    return false;
+  }
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
@@ -336,6 +425,9 @@ export function clearUserSessionCookie() {
 
 export function getUserIdFromSession(request: Request) {
   const cookieHeader = request.headers.get('cookie') || '';
-  const cookie = cookieHeader.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${USER_SESSION_COOKIE}=`));
+  const cookie = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${USER_SESSION_COOKIE}=`));
   return verifyUserSession(cookie?.slice(USER_SESSION_COOKIE.length + 1));
 }

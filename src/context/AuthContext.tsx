@@ -22,7 +22,11 @@ interface AuthContextType {
   isLoading: boolean;
   isOnline: boolean;
   login: (phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    name: string,
+    phone: string,
+    pass: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   startTrial: () => Promise<{ success: boolean; error?: string }>;
   isTrialUsed: boolean;
   trialMinutesRemaining: number | null;
@@ -70,7 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsTrialUsed(localStorage.getItem(TRIAL_STARTED_KEY) !== null);
         if (stored) {
           restoredUser = JSON.parse(stored) as UserSession;
-          if (restoredUser.isTrial && restoredUser.trialExpiresAt && restoredUser.trialExpiresAt <= Date.now()) {
+          if (
+            restoredUser.isTrial &&
+            restoredUser.trialExpiresAt &&
+            restoredUser.trialExpiresAt <= Date.now()
+          ) {
             localStorage.removeItem('ala_qaddi_user');
             restoredUser = null;
           }
@@ -81,7 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (restoredUser && !restoredUser.isTrial && !restoredUser.createdAt && navigator.onLine) {
         try {
-          const response = await fetch('/api/auth/check-status', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          const response = await fetch('/api/auth/check-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
           if (response.ok) {
             const data = await response.json();
             restoredUser = { ...restoredUser, createdAt: data.createdAt };
@@ -101,16 +112,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Could not open isolated account storage', error);
         restoredUser = null;
-        try { await activateUserDatabase(null); } catch {}
+        try {
+          await activateUserDatabase(null);
+        } catch {}
       }
 
       if (!cancelled && restoredUser) setUser(restoredUser);
       if (!cancelled) {
         setIsLoading(false);
       }
-    }
+    };
     void restoreSession();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // If another tab signs into a different account, move this tab to that account's
@@ -119,9 +134,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const syncAccountAcrossTabs = (event: StorageEvent) => {
       if (event.key !== 'ala_qaddi_user') return;
       let nextUser: UserSession | null = null;
-      try { nextUser = event.newValue ? JSON.parse(event.newValue) as UserSession : null; } catch { return; }
+      try {
+        nextUser = event.newValue ? (JSON.parse(event.newValue) as UserSession) : null;
+      } catch {
+        return;
+      }
       if (nextUser?.id === user?.id) return;
-      void activateUserDatabase(nextUser?.id ?? null, nextUser?.createdAt, Boolean(nextUser && !nextUser.isTrial))
+      void activateUserDatabase(
+        nextUser?.id ?? null,
+        nextUser?.createdAt,
+        Boolean(nextUser && !nextUser.isTrial),
+      )
         .then(() => setUser(nextUser))
         .catch((error) => {
           console.error('Could not switch account storage in another tab', error);
@@ -147,7 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('ala_qaddi_user');
         sessionStorage.removeItem('ala_qaddi_user');
         setUser(null);
-        void activateUserDatabase(null).catch((error) => console.error('Could not close expired account storage', error));
+        void activateUserDatabase(null).catch((error) =>
+          console.error('Could not close expired account storage', error),
+        );
         return;
       }
 
@@ -219,7 +244,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const expireTrialIfNeeded = () => {
       if (Date.now() >= user.trialExpiresAt!) logout();
     };
-    const timeout = window.setTimeout(expireTrialIfNeeded, Math.max(0, user.trialExpiresAt - Date.now()));
+    const timeout = window.setTimeout(
+      expireTrialIfNeeded,
+      Math.max(0, user.trialExpiresAt - Date.now()),
+    );
     document.addEventListener('visibilitychange', expireTrialIfNeeded);
     return () => {
       window.clearTimeout(timeout);
@@ -309,7 +337,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
     }
     setUser(null);
-    void activateUserDatabase(null).catch((error) => console.error('Could not close account storage on logout', error));
+    void activateUserDatabase(null).catch((error) =>
+      console.error('Could not close account storage on logout', error),
+    );
     // Clear the server session without delaying the local logout interaction.
     void fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
   };
@@ -321,7 +351,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (user) {
     if (user.isTrial && user.trialExpiresAt) {
       isLicenseActive = user.trialExpiresAt > Date.now();
-      daysRemaining = isLicenseActive ? Math.ceil((user.trialExpiresAt - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+      daysRemaining = isLicenseActive
+        ? Math.ceil((user.trialExpiresAt - Date.now()) / (1000 * 60 * 60 * 24))
+        : 0;
     } else if (user.status === 'active') {
       if (!user.endDate) {
         // Lifetime plan
@@ -340,9 +372,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const trialMinutesRemaining = user?.isTrial && user.trialExpiresAt
-    ? Math.max(0, Math.ceil((user.trialExpiresAt - (clock || Date.now())) / 60_000))
-    : null;
+  const trialMinutesRemaining =
+    user?.isTrial && user.trialExpiresAt
+      ? Math.max(0, Math.ceil((user.trialExpiresAt - (clock || Date.now())) / 60_000))
+      : null;
 
   return (
     <AuthContext.Provider

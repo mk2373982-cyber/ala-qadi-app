@@ -46,15 +46,28 @@ let contextGeneration = 0;
 let localRevision = 0;
 let retryAttempt = 0;
 
-const scopedKey = (kind: string, userId = activeUserId) => `ala_qaddi_drive_${kind}_${userId || 'anonymous'}`;
+const scopedKey = (kind: string, userId = activeUserId) =>
+  `ala_qaddi_drive_${kind}_${userId || 'anonymous'}`;
 const getStorage = (key: string) => {
-  try { return typeof window === 'undefined' ? null : localStorage.getItem(key); } catch { return null; }
+  try {
+    return typeof window === 'undefined' ? null : localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 };
 const setStorage = (key: string, value: string) => {
-  try { if (typeof window !== 'undefined') localStorage.setItem(key, value); } catch { /* storage may be unavailable */ }
+  try {
+    if (typeof window !== 'undefined') localStorage.setItem(key, value);
+  } catch {
+    /* storage may be unavailable */
+  }
 };
 const removeStorage = (key: string) => {
-  try { if (typeof window !== 'undefined') localStorage.removeItem(key); } catch { /* storage may be unavailable */ }
+  try {
+    if (typeof window !== 'undefined') localStorage.removeItem(key);
+  } catch {
+    /* storage may be unavailable */
+  }
 };
 
 function dispatchStatus() {
@@ -235,7 +248,7 @@ async function listDriveBackupFiles() {
     pageSize: '100',
   });
   const response = await driveRequest(`${DRIVE_API}/files?${query}`);
-  const result = await response.json() as { files?: DriveFile[] };
+  const result = (await response.json()) as { files?: DriveFile[] };
   const names = new Set([CURRENT_BACKUP_FILE_NAME, PREVIOUS_BACKUP_FILE_NAME]);
   return (result.files || []).filter((file) => names.has(file.name));
 }
@@ -245,7 +258,8 @@ async function downloadDriveFile(fileId: string) {
   return response.text();
 }
 
-const fileSlotName = (slot: BackupSlot) => slot === 'current' ? CURRENT_BACKUP_FILE_NAME : PREVIOUS_BACKUP_FILE_NAME;
+const fileSlotName = (slot: BackupSlot) =>
+  slot === 'current' ? CURRENT_BACKUP_FILE_NAME : PREVIOUS_BACKUP_FILE_NAME;
 
 function multipartBody(metadata: object, content: string) {
   const boundary = `ala_qaddi_${crypto.randomUUID()}`;
@@ -257,7 +271,12 @@ function multipartBody(metadata: object, content: string) {
   return { boundary, body };
 }
 
-async function writeDriveFile(existing: DriveFile | undefined, slot: BackupSlot, content: string, encrypted: boolean) {
+async function writeDriveFile(
+  existing: DriveFile | undefined,
+  slot: BackupSlot,
+  content: string,
+  encrypted: boolean,
+) {
   const name = fileSlotName(slot);
   const appProperties = { format: encrypted ? 'encrypted-v2' : 'legacy-json' };
   const metadata = existing
@@ -312,7 +331,9 @@ async function writeEncryptedSnapshot() {
       oldEncrypted = JSON.parse(oldContent)?.format === 'ala-qaddi-drive-backup';
       if (oldEncrypted) await decodeDriveBackup(oldContent, activeRecoveryKey);
     } catch {
-      throw new Error('مفتاح الاسترداد الحالي لا يطابق نسخة Drive. استرجع النسخة بمفتاحها الصحيح قبل الرفع.');
+      throw new Error(
+        'مفتاح الاسترداد الحالي لا يطابق نسخة Drive. استرجع النسخة بمفتاحها الصحيح قبل الرفع.',
+      );
     }
     await writeDriveFile(previousFile, 'previous', oldContent, oldEncrypted);
   }
@@ -340,7 +361,8 @@ async function performUploadLoop() {
 export function uploadBackupToDrive() {
   if (!activeUserId) return Promise.reject(new Error('سجّل الدخول إلى حساب على قدي أولًا.'));
   if (!accessToken) return Promise.reject(new Error('اربط Google Drive لمتابعة النسخ.'));
-  if (!activeRecoveryKey || !recoveryKeyAcknowledged) return Promise.reject(new Error('مفتاح الاسترداد غير جاهز.'));
+  if (!activeRecoveryKey || !recoveryKeyAcknowledged)
+    return Promise.reject(new Error('مفتاح الاسترداد غير جاهز.'));
   setPending();
   uploadRequested = true;
   if (uploadInFlight) return uploadInFlight;
@@ -369,18 +391,26 @@ function schedulePendingUpload(delay: number) {
     return;
   }
   if (pendingTimer) clearTimeout(pendingTimer);
-  pendingTimer = setTimeout(() => {
-    pendingTimer = undefined;
-    void uploadBackupToDrive().catch((error) => {
-      retryAttempt += 1;
-      const delays = [2_000, 5_000, 15_000, 30_000, 60_000];
-      if (retryAttempt <= delays.length && accessToken && typeof navigator !== 'undefined' && navigator.onLine) {
-        if (retryTimer) clearTimeout(retryTimer);
-        retryTimer = setTimeout(() => schedulePendingUpload(0), delays[retryAttempt - 1]);
-      }
-      console.warn('Automatic Google Drive backup failed; pending marker was retained.', error);
-    });
-  }, Math.max(0, delay));
+  pendingTimer = setTimeout(
+    () => {
+      pendingTimer = undefined;
+      void uploadBackupToDrive().catch((error) => {
+        retryAttempt += 1;
+        const delays = [2_000, 5_000, 15_000, 30_000, 60_000];
+        if (
+          retryAttempt <= delays.length &&
+          accessToken &&
+          typeof navigator !== 'undefined' &&
+          navigator.onLine
+        ) {
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = setTimeout(() => schedulePendingUpload(0), delays[retryAttempt - 1]);
+        }
+        console.warn('Automatic Google Drive backup failed; pending marker was retained.', error);
+      });
+    },
+    Math.max(0, delay),
+  );
 }
 
 export function scheduleAutomaticDriveBackup() {
@@ -400,11 +430,27 @@ export function installDriveBackupHooks() {
   if (hookedDatabases.has(activeDatabase)) return;
   hookedDatabases.add(activeDatabase);
 
-  const tables = [activeDatabase.transactions, activeDatabase.categories, activeDatabase.budgets, activeDatabase.debts, activeDatabase.gam3eyat, activeDatabase.savings, activeDatabase.wallets, activeDatabase.savingsGoals, activeDatabase.recurringTransactions];
+  const tables = [
+    activeDatabase.transactions,
+    activeDatabase.categories,
+    activeDatabase.budgets,
+    activeDatabase.debts,
+    activeDatabase.gam3eyat,
+    activeDatabase.savings,
+    activeDatabase.wallets,
+    activeDatabase.savingsGoals,
+    activeDatabase.recurringTransactions,
+  ];
   for (const table of tables) {
-    table.hook('creating', () => { scheduleAutomaticDriveBackup(); });
-    table.hook('updating', () => { scheduleAutomaticDriveBackup(); });
-    table.hook('deleting', () => { scheduleAutomaticDriveBackup(); });
+    table.hook('creating', () => {
+      scheduleAutomaticDriveBackup();
+    });
+    table.hook('updating', () => {
+      scheduleAutomaticDriveBackup();
+    });
+    table.hook('deleting', () => {
+      scheduleAutomaticDriveBackup();
+    });
   }
   if (!backupListenersInstalled) {
     backupListenersInstalled = true;
@@ -418,10 +464,13 @@ export function installDriveBackupHooks() {
 export async function getDriveBackupInfo(): Promise<DriveBackupInfo> {
   if (!accessToken) return { current: null, previous: null };
   const files = await listDriveBackupFiles();
-  const info = (file: DriveFile | undefined): BackupFileInfo | null => file ? {
-    modifiedTime: file.modifiedTime || null,
-    encrypted: file.appProperties?.format === 'encrypted-v2',
-  } : null;
+  const info = (file: DriveFile | undefined): BackupFileInfo | null =>
+    file
+      ? {
+          modifiedTime: file.modifiedTime || null,
+          encrypted: file.appProperties?.format === 'encrypted-v2',
+        }
+      : null;
   return {
     current: info(files.find((file) => file.name === CURRENT_BACKUP_FILE_NAME)),
     previous: info(files.find((file) => file.name === PREVIOUS_BACKUP_FILE_NAME)),
@@ -432,7 +481,12 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
   if (!activeUserId) throw new Error('سجّل الدخول إلى حساب على قدي أولًا.');
   const files = await listDriveBackupFiles();
   const file = files.find((entry) => entry.name === fileSlotName(slot));
-  if (!file) throw new Error(slot === 'current' ? 'لا توجد نسخة حالية في Google Drive.' : 'لا توجد نسخة سابقة في Google Drive.');
+  if (!file)
+    throw new Error(
+      slot === 'current'
+        ? 'لا توجد نسخة حالية في Google Drive.'
+        : 'لا توجد نسخة سابقة في Google Drive.',
+    );
 
   const rawContent = await downloadDriveFile(file.id);
   let candidateKey = activeRecoveryKey;
@@ -441,21 +495,43 @@ export async function restoreBackupFromDrive(slot: BackupSlot, recoveryCode?: st
 
   // Validate the complete payload before opening the transaction or clearing local tables.
   const data = decoded.backup.data;
-  await db.transaction('rw', [db.transactions, db.categories, db.budgets, db.debts, db.gam3eyat, db.savings, db.wallets, db.savingsGoals, db.recurringTransactions], async () => {
-    await Promise.all([
-      db.transactions.clear(), db.categories.clear(), db.budgets.clear(), db.debts.clear(),
-      db.gam3eyat.clear(), db.savings.clear(), db.wallets.clear(), db.savingsGoals.clear(), db.recurringTransactions.clear(),
-    ]);
-    if (data.transactions.length) await db.transactions.bulkAdd(data.transactions as never[]);
-    if (data.categories.length) await db.categories.bulkAdd(data.categories as never[]);
-    if (data.budgets.length) await db.budgets.bulkAdd(data.budgets as never[]);
-    if (data.debts.length) await db.debts.bulkAdd(data.debts as never[]);
-    if (data.gam3eyat.length) await db.gam3eyat.bulkAdd(data.gam3eyat as never[]);
-    if (data.savings.length) await db.savings.bulkAdd(data.savings as never[]);
-    if (data.wallets.length) await db.wallets.bulkAdd(data.wallets as never[]);
-    if (data.savingsGoals.length) await db.savingsGoals.bulkAdd(data.savingsGoals as never[]);
-    if (data.recurringTransactions.length) await db.recurringTransactions.bulkAdd(data.recurringTransactions as never[]);
-  });
+  await db.transaction(
+    'rw',
+    [
+      db.transactions,
+      db.categories,
+      db.budgets,
+      db.debts,
+      db.gam3eyat,
+      db.savings,
+      db.wallets,
+      db.savingsGoals,
+      db.recurringTransactions,
+    ],
+    async () => {
+      await Promise.all([
+        db.transactions.clear(),
+        db.categories.clear(),
+        db.budgets.clear(),
+        db.debts.clear(),
+        db.gam3eyat.clear(),
+        db.savings.clear(),
+        db.wallets.clear(),
+        db.savingsGoals.clear(),
+        db.recurringTransactions.clear(),
+      ]);
+      if (data.transactions.length) await db.transactions.bulkAdd(data.transactions as never[]);
+      if (data.categories.length) await db.categories.bulkAdd(data.categories as never[]);
+      if (data.budgets.length) await db.budgets.bulkAdd(data.budgets as never[]);
+      if (data.debts.length) await db.debts.bulkAdd(data.debts as never[]);
+      if (data.gam3eyat.length) await db.gam3eyat.bulkAdd(data.gam3eyat as never[]);
+      if (data.savings.length) await db.savings.bulkAdd(data.savings as never[]);
+      if (data.wallets.length) await db.wallets.bulkAdd(data.wallets as never[]);
+      if (data.savingsGoals.length) await db.savingsGoals.bulkAdd(data.savingsGoals as never[]);
+      if (data.recurringTransactions.length)
+        await db.recurringTransactions.bulkAdd(data.recurringTransactions as never[]);
+    },
+  );
 
   if (decoded.encrypted && candidateKey) {
     const record: DriveBackupKey = {

@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getSettings, updateSettings, verifyAdminSession } from '@/lib/server-storage';
 
-function authorized(req: NextRequest) { return verifyAdminSession(req.cookies.get('ala_qaddi_admin')?.value); }
+function authorized(req: NextRequest) {
+  return verifyAdminSession(req.cookies.get('ala_qaddi_admin')?.value);
+}
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });

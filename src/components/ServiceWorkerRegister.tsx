@@ -8,7 +8,8 @@ export function ServiceWorkerRegister() {
 
     let cancelled = false;
 
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker
+      .register('/sw.js')
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         if (cancelled) return;
@@ -16,7 +17,8 @@ export function ServiceWorkerRegister() {
         const worker = navigator.serviceWorker.controller || registration.active;
         if (!worker) return;
 
-        const urls = performance.getEntriesByType('resource')
+        const urls = performance
+          .getEntriesByType('resource')
           .map((entry) => new URL(entry.name, window.location.href))
           .filter((url) => url.origin === window.location.origin)
           .map((url) => `${url.pathname}${url.search}`);
@@ -27,7 +29,9 @@ export function ServiceWorkerRegister() {
         console.warn('Service Worker registration failed:', err);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return null;

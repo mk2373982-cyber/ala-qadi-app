@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.3",
+    "prettier": "^3.10.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2"
   }

@@ -37,7 +37,7 @@ export const PendingScreen: React.FC = () => {
   };
 
   const whatsappMessage = encodeURIComponent(
-    `مرحباً، قمت بالتحويل لتفعيل حسابي في تطبيق (على قدي). أرفق صورة إيصال التحويل.\nالاسم: ${user?.name || ''}\nرقم الهاتف: ${user?.phone || ''}`
+    `مرحباً، قمت بالتحويل لتفعيل حسابي في تطبيق (على قدي). أرفق صورة إيصال التحويل.\nالاسم: ${user?.name || ''}\nرقم الهاتف: ${user?.phone || ''}`,
   );
 
   const whatsappLink = config?.whatsappNumber
@@ -75,8 +75,8 @@ export const PendingScreen: React.FC = () => {
           {isExpired
             ? 'انتهت فترة الاشتراك'
             : isSuspended
-            ? 'الحساب موقوف حالياً'
-            : 'حسابك في انتظار التفعيل'}
+              ? 'الحساب موقوف حالياً'
+              : 'حسابك في انتظار التفعيل'}
         </h2>
         <p className="text-sm text-slate-500 mb-6">
           أهلاً بك يا <span className="font-bold text-slate-700">{user?.name}</span>،{' '}
@@ -85,8 +85,8 @@ export const PendingScreen: React.FC = () => {
               ? 'انتهى الشهر المجاني. بياناتك المالية المحفوظة على هذا الجهاز لم تُحذف. جدّد الاشتراك للعودة لاستخدام التطبيق.'
               : 'يرجى تجديد الاشتراك لمتابعة إدارة حساباتك بأمان. بياناتك المحلية لم تُحذف.'
             : isSuspended
-            ? 'يرجى التواصل مع المسؤول لمعرفة سبب إيقاف الحساب.'
-            : 'تم تسجيل بياناتك بنجاح. لتفعيل حسابك والبدء، يرجى تحويل قيمة الاشتراك وإرسال الإشعار.'}
+              ? 'يرجى التواصل مع المسؤول لمعرفة سبب إيقاف الحساب.'
+              : 'تم تسجيل بياناتك بنجاح. لتفعيل حسابك والبدء، يرجى تحويل قيمة الاشتراك وإرسال الإشعار.'}
         </p>
 
         {/* Payment Details Box */}
@@ -140,7 +140,11 @@ export const PendingScreen: React.FC = () => {
 
             {config.instapayLink && (
               <a
-                href={/^https:\/\/ipn\.eg\//i.test(config.instapayLink) ? config.instapayLink : undefined}
+                href={
+                  /^https:\/\/ipn\.eg\//i.test(config.instapayLink)
+                    ? config.instapayLink
+                    : undefined
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block min-w-0 max-w-full rounded-xl bg-pink-50 border border-pink-200 p-3 text-center text-sm font-bold text-pink-700 hover:bg-pink-100 active:scale-[0.99] transition break-all"
@@ -155,8 +159,13 @@ export const PendingScreen: React.FC = () => {
 
         {user?.status !== 'active' && !isExpired && !isSuspended && (
           <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-right space-y-2">
-            <p className="text-sm font-bold text-slate-700">بعد التحويل، أرسل صورة الإيصال للمسؤول عبر واتساب. سيفحص التحويل ويفعّل الاشتراك من لوحة الإدارة.</p>
-            <p className="text-xs text-slate-500">بعد ما يبلغك المسؤول بالتفعيل، اضغط «تحديث حالة التفعيل».</p>
+            <p className="text-sm font-bold text-slate-700">
+              بعد التحويل، أرسل صورة الإيصال للمسؤول عبر واتساب. سيفحص التحويل ويفعّل الاشتراك من
+              لوحة الإدارة.
+            </p>
+            <p className="text-xs text-slate-500">
+              بعد ما يبلغك المسؤول بالتفعيل، اضغط «تحديث حالة التفعيل».
+            </p>
           </div>
         )}
 

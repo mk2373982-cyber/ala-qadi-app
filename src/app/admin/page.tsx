@@ -56,10 +56,15 @@ export default function AdminPage() {
   useEffect(() => {
     const session = localStorage.getItem('ala_qaddi_admin_auth');
     if (session === 'true') {
-      fetch('/api/admin/users').then((res) => {
-        if (res.ok) { setIsAuthenticated(true); fetchUsers(); fetchSettings(); }
-        else localStorage.removeItem('ala_qaddi_admin_auth');
-      }).catch(() => localStorage.removeItem('ala_qaddi_admin_auth'));
+      fetch('/api/admin/users')
+        .then((res) => {
+          if (res.ok) {
+            setIsAuthenticated(true);
+            fetchUsers();
+            fetchSettings();
+          } else localStorage.removeItem('ala_qaddi_admin_auth');
+        })
+        .catch(() => localStorage.removeItem('ala_qaddi_admin_auth'));
     }
   }, []);
 
@@ -134,7 +139,7 @@ export default function AdminPage() {
   const handleUpdateStatus = async (
     userId: string,
     status: UserAccount['status'],
-    plan?: UserAccount['plan']
+    plan?: UserAccount['plan'],
   ) => {
     try {
       const res = await fetch('/api/admin/users', {
@@ -166,7 +171,9 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'تعذرت مراجعة الطلب');
-      setActionMessage(decision === 'confirm' ? 'تم تأكيد الدفع وتفعيل الاشتراك' : 'تم رفض طلب الدفع');
+      setActionMessage(
+        decision === 'confirm' ? 'تم تأكيد الدفع وتفعيل الاشتراك' : 'تم رفض طلب الدفع',
+      );
       await fetchUsers();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (error) {
@@ -251,7 +258,9 @@ export default function AdminPage() {
               <ShieldCheck className="w-7 h-7" />
             </div>
             <h1 className="text-xl font-black">لوحة تحكم المسؤول</h1>
-            <p className="text-xs text-slate-400 mt-1">تطبيق "على قدي" - إدارة المشتركين والتراخيص</p>
+            <p className="text-xs text-slate-400 mt-1">
+              تطبيق "على قدي" - إدارة المشتركين والتراخيص
+            </p>
           </div>
 
           {loginError && (
@@ -262,7 +271,9 @@ export default function AdminPage() {
 
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">كلمة مرور الأدمن</label>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                كلمة مرور الأدمن
+              </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                 <input
@@ -275,7 +286,9 @@ export default function AdminPage() {
                   className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-white text-sm focus:outline-none focus:border-brand-500"
                 />
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">كلمة المرور تُضبط في إعدادات النشر الآمنة. سيتذكرك هذا الجهاز لمدة 30 يوماً.</p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                كلمة المرور تُضبط في إعدادات النشر الآمنة. سيتذكرك هذا الجهاز لمدة 30 يوماً.
+              </p>
             </div>
 
             <button
@@ -287,7 +300,10 @@ export default function AdminPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <a href="/" className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1">
+            <a
+              href="/"
+              className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1"
+            >
               <span>العودة لصفحة التطبيق الرئيسية</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
@@ -313,7 +329,9 @@ export default function AdminPage() {
                   لوحة المبيعات المباشرة
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">تحكم كامل في تفعيل المشتركين، وإيقاف الحسابات، ومدد الاشتراكات</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                تحكم كامل في تفعيل المشتركين، وإيقاف الحسابات، ومدد الاشتراكات
+              </p>
             </div>
           </div>
 
@@ -372,7 +390,9 @@ export default function AdminPage() {
               <Clock className="w-3.5 h-3.5" />
               <span>بانتظار التفعيل</span>
             </div>
-            <div className="text-2xl font-black text-amber-300 font-mono mt-1">{stats.pendingUsers}</div>
+            <div className="text-2xl font-black text-amber-300 font-mono mt-1">
+              {stats.pendingUsers}
+            </div>
           </div>
 
           <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/30">
@@ -380,7 +400,9 @@ export default function AdminPage() {
               <CheckCircle className="w-3.5 h-3.5" />
               <span>حسابات نشطة</span>
             </div>
-            <div className="text-2xl font-black text-emerald-300 font-mono mt-1">{stats.activeUsers}</div>
+            <div className="text-2xl font-black text-emerald-300 font-mono mt-1">
+              {stats.activeUsers}
+            </div>
           </div>
 
           <div className="bg-orange-500/10 p-4 rounded-2xl border border-orange-500/30">
@@ -388,7 +410,9 @@ export default function AdminPage() {
               <AlertCircle className="w-3.5 h-3.5" />
               <span>اشتراكات منتهية</span>
             </div>
-            <div className="text-2xl font-black text-orange-300 font-mono mt-1">{stats.expiredUsers}</div>
+            <div className="text-2xl font-black text-orange-300 font-mono mt-1">
+              {stats.expiredUsers}
+            </div>
           </div>
 
           <div className="bg-rose-500/10 p-4 rounded-2xl border border-rose-500/30 col-span-2 sm:col-span-1">
@@ -396,7 +420,9 @@ export default function AdminPage() {
               <Ban className="w-3.5 h-3.5" />
               <span>موقوفين / مطرودين</span>
             </div>
-            <div className="text-2xl font-black text-rose-300 font-mono mt-1">{stats.suspendedUsers}</div>
+            <div className="text-2xl font-black text-rose-300 font-mono mt-1">
+              {stats.suspendedUsers}
+            </div>
           </div>
         </div>
 
@@ -416,7 +442,10 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveSettings} className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
+            <form
+              onSubmit={handleSaveSettings}
+              className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4"
+            >
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
                   رقم فودافون كاش / المحفظة لاستلام الفلوس
@@ -446,7 +475,9 @@ export default function AdminPage() {
               </div>
 
               <div className="min-w-0">
-                <label className="block text-xs font-bold text-slate-300 mb-1">رابط InstaPay للتحويل المباشر</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  رابط InstaPay للتحويل المباشر
+                </label>
                 <input
                   type="url"
                   value={instapayLink}
@@ -455,7 +486,9 @@ export default function AdminPage() {
                   className="block min-w-0 w-full max-w-full box-border px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   dir="ltr"
                 />
-                <span className="block mt-1 text-[10px] text-slate-500">الصق رابط المشاركة الذي تنشئه من تطبيق InstaPay، وسيظهر زر للعميل لفتحه مباشرة.</span>
+                <span className="block mt-1 text-[10px] text-slate-500">
+                  الصق رابط المشاركة الذي تنشئه من تطبيق InstaPay، وسيظهر زر للعميل لفتحه مباشرة.
+                </span>
               </div>
 
               <div>
@@ -525,12 +558,12 @@ export default function AdminPage() {
                 {st === 'all'
                   ? 'الكل'
                   : st === 'pending'
-                  ? 'المعلقين'
-                  : st === 'active'
-                  ? 'النشطين'
-                  : st === 'expired'
-                  ? 'المنتهين'
-                  : 'الموقوفين'}
+                    ? 'المعلقين'
+                    : st === 'active'
+                      ? 'النشطين'
+                      : st === 'expired'
+                        ? 'المنتهين'
+                        : 'الموقوفين'}
               </button>
             ))}
           </div>
@@ -609,9 +642,17 @@ export default function AdminPage() {
                           )}
                           {u.isTrial && u.endDate && (
                             <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] leading-5 text-sky-100">
-                              <div className="font-bold">تجربة مجانية — عرض ٥٠٪ على الاشتراك السنوي</div>
-                              <div>الموعد النهائي للدفع بالعرض: {trialOfferDeadline.toLocaleDateString('ar-EG')}</div>
-                              <div>راجع تاريخ التحويل في الإيصال؛ إذا كان خلال أول ١٠ أيام، فعّل السنوي بعد مراجعة المبلغ المخفّض.</div>
+                              <div className="font-bold">
+                                تجربة مجانية — عرض ٥٠٪ على الاشتراك السنوي
+                              </div>
+                              <div>
+                                الموعد النهائي للدفع بالعرض:{' '}
+                                {trialOfferDeadline.toLocaleDateString('ar-EG')}
+                              </div>
+                              <div>
+                                راجع تاريخ التحويل في الإيصال؛ إذا كان خلال أول ١٠ أيام، فعّل السنوي
+                                بعد مراجعة المبلغ المخفّض.
+                              </div>
                             </div>
                           )}
                           {isPending && (
@@ -622,17 +663,37 @@ export default function AdminPage() {
                           )}
                           {needsActivation && u.paymentStatus !== 'pending_review' && (
                             <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-100">
-                              <div>بعد مراجعة التحويل وصورة الإيصال على واتساب، فعّل الاشتراك من أزرار الباقة.</div>
-                              <button onClick={() => handleReviewPayment(u.id, 'confirm')} className="mt-2 rounded bg-emerald-600 px-2 py-1 font-bold text-white">تأكيد الدفع وتفعيل الباقة الحالية</button>
+                              <div>
+                                بعد مراجعة التحويل وصورة الإيصال على واتساب، فعّل الاشتراك من أزرار
+                                الباقة.
+                              </div>
+                              <button
+                                onClick={() => handleReviewPayment(u.id, 'confirm')}
+                                className="mt-2 rounded bg-emerald-600 px-2 py-1 font-bold text-white"
+                              >
+                                تأكيد الدفع وتفعيل الباقة الحالية
+                              </button>
                             </div>
                           )}
                           {u.paymentStatus === 'pending_review' && (
                             <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
                               <div className="font-bold">طلب الدفع بانتظار قرارك</div>
-                              {u.paymentSubmittedAt && <div>{new Date(u.paymentSubmittedAt).toLocaleString('ar-EG')}</div>}
+                              {u.paymentSubmittedAt && (
+                                <div>{new Date(u.paymentSubmittedAt).toLocaleString('ar-EG')}</div>
+                              )}
                               <div className="mt-2 flex gap-2">
-                                <button onClick={() => handleReviewPayment(u.id, 'confirm')} className="rounded bg-emerald-600 px-2 py-1 font-bold text-white">تأكيد الدفع</button>
-                                <button onClick={() => handleReviewPayment(u.id, 'reject')} className="rounded bg-rose-600 px-2 py-1 font-bold text-white">رفض الطلب</button>
+                                <button
+                                  onClick={() => handleReviewPayment(u.id, 'confirm')}
+                                  className="rounded bg-emerald-600 px-2 py-1 font-bold text-white"
+                                >
+                                  تأكيد الدفع
+                                </button>
+                                <button
+                                  onClick={() => handleReviewPayment(u.id, 'reject')}
+                                  className="rounded bg-rose-600 px-2 py-1 font-bold text-white"
+                                >
+                                  رفض الطلب
+                                </button>
                               </div>
                             </div>
                           )}
@@ -655,12 +716,12 @@ export default function AdminPage() {
                             {u.plan === 'lifetime'
                               ? 'مدى الحياة (دائم)'
                               : u.plan === '1_year'
-                              ? 'سنة'
-                              : u.plan === '6_months'
-                              ? '6 شهور'
-                              : u.plan === '3_months'
-                              ? '3 شهور'
-                              : 'شهر'}
+                                ? 'سنة'
+                                : u.plan === '6_months'
+                                  ? '6 شهور'
+                                  : u.plan === '3_months'
+                                    ? '3 شهور'
+                                    : 'شهر'}
                           </div>
                           {u.endDate && (
                             <div className="text-[11px] text-slate-400 mt-0.5">
@@ -735,12 +796,12 @@ export default function AdminPage() {
 
               <div>
                 <h3 className="font-bold text-base text-white">تأكيد حذف الحساب نهائياً</h3>
-                <p className="text-xs text-slate-300 mt-1">
-                  هل أنت متأكد من حذف حساب المشترك:
-                </p>
+                <p className="text-xs text-slate-300 mt-1">هل أنت متأكد من حذف حساب المشترك:</p>
                 <div className="mt-2 p-2 rounded-xl bg-slate-900 border border-slate-700">
                   <div className="font-bold text-brand-400 text-sm">{userToDelete.name}</div>
-                  <div className="text-xs text-slate-400 font-mono" dir="ltr">{userToDelete.phone}</div>
+                  <div className="text-xs text-slate-400 font-mono" dir="ltr">
+                    {userToDelete.phone}
+                  </div>
                 </div>
               </div>
 

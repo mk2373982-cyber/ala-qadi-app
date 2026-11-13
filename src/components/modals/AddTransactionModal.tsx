@@ -273,7 +273,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">ملاحظة (اختياري)</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                ملاحظة (اختياري)
+              </label>
               <input
                 type="text"
                 placeholder="تفاصيل إضافية..."

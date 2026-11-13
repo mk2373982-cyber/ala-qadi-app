@@ -3,7 +3,8 @@
 import React from 'react';
 import { Home, ArrowLeftRight, HandCoins, Landmark, PieChart, Settings } from 'lucide-react';
 
-export type TabType = 'dashboard' | 'transactions' | 'debts' | 'gam3eya_gold' | 'budget_reports' | 'settings';
+export type TabType =
+  'dashboard' | 'transactions' | 'debts' | 'gam3eya_gold' | 'budget_reports' | 'settings';
 
 interface NavigationProps {
   currentTab: TabType;
@@ -23,7 +24,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
   return (
     <>
       {/* Desktop Navigation (Sub-header) */}
-      <nav aria-label="التنقل الرئيسي" className="hidden md:block bg-white border-b border-slate-300">
+      <nav
+        aria-label="التنقل الرئيسي"
+        className="hidden md:block bg-white border-b border-slate-300"
+      >
         <div className="max-w-5xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -40,7 +44,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <Icon aria-hidden="true" className={`w-4 h-4 ${isActive ? 'text-brand-700' : 'text-slate-500'}`} />
+                <Icon
+                  aria-hidden="true"
+                  className={`w-4 h-4 ${isActive ? 'text-brand-700' : 'text-slate-500'}`}
+                />
                 <span>{tab.label}</span>
               </button>
             );
@@ -49,7 +56,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
       </nav>
 
       {/* Mobile Navigation directly below the sticky header */}
-      <nav aria-label="التنقل الرئيسي" className="md:hidden sticky top-[68px] z-20 overflow-x-auto bg-white border-b border-slate-300 shadow-sm">
+      <nav
+        aria-label="التنقل الرئيسي"
+        className="md:hidden sticky top-[68px] z-20 overflow-x-auto bg-white border-b border-slate-300 shadow-sm"
+      >
         <div className="flex min-w-full w-max items-center justify-between py-1.5 px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;

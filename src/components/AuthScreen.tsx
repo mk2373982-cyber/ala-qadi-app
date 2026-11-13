@@ -7,7 +7,10 @@ import { Lock, Phone, User, ArrowRight, Sparkles, CheckCircle } from 'lucide-rea
 
 export const AuthScreen: React.FC = () => {
   const { login, register } = useAuth();
-  const [signupOffer, setSignupOffer] = useState<{ available: boolean; endsAt: string | null } | null>(null);
+  const [signupOffer, setSignupOffer] = useState<{
+    available: boolean;
+    endsAt: string | null;
+  } | null>(null);
   const [isRegister, setIsRegister] = useState(true);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -26,10 +29,14 @@ export const AuthScreen: React.FC = () => {
   useEffect(() => {
     let active = true;
     fetch('/api/auth/signup-offer', { cache: 'no-store' })
-      .then(async (response) => response.ok ? response.json() : null)
-      .then((offer) => { if (active && offer) setSignupOffer(offer); })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((offer) => {
+        if (active && offer) setSignupOffer(offer);
+      })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +78,9 @@ export const AuthScreen: React.FC = () => {
             className="mx-auto mb-3 h-16 w-16 rounded-2xl object-cover shadow-xl shadow-brand-500/20"
           />
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">على قدي</h1>
-          <p className="text-sm text-slate-600 mt-1">إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول</p>
+          <p className="text-sm text-slate-600 mt-1">
+            إدارة مالية شخصية تحفظ سجلاتك على جهازك وتعمل دون اتصال بعد تسجيل الدخول
+          </p>
         </div>
 
         {signupOffer?.available && (
@@ -79,14 +88,27 @@ export const AuthScreen: React.FC = () => {
             <div className="flex items-center justify-center gap-2 text-sm font-black text-emerald-900">
               <Sparkles className="h-4 w-4 text-amber-500" /> فترة إطلاق مجانية للجميع
             </div>
-            {signupOffer.endsAt && <p className="mt-1 text-[11px] text-emerald-800">متاحة حتى {new Date(signupOffer.endsAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })}</p>}
-            <p className="mt-1 text-[11px] leading-5 text-slate-600">الاستفادة تنتهي في نفس موعد نهاية العرض لكل الحسابات، ولا تتجدد بإنشاء حساب جديد. اشترك خلال أول ١٠ أيام من تسجيلك لتحصل على نصف سعر الاشتراك السنوي.</p>
+            {signupOffer.endsAt && (
+              <p className="mt-1 text-[11px] text-emerald-800">
+                متاحة حتى{' '}
+                {new Date(signupOffer.endsAt).toLocaleDateString('ar-EG', {
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </p>
+            )}
+            <p className="mt-1 text-[11px] leading-5 text-slate-600">
+              الاستفادة تنتهي في نفس موعد نهاية العرض لكل الحسابات، ولا تتجدد بإنشاء حساب جديد.
+              اشترك خلال أول ١٠ أيام من تسجيلك لتحصل على نصف سعر الاشتراك السنوي.
+            </p>
           </div>
         )}
         {signupOffer && !signupOffer.available && (
           <div className="mb-4 rounded-2xl border border-slate-200 bg-white/90 p-4 text-center shadow-sm">
             <div className="text-sm font-black text-slate-800">انتهت فترة الإطلاق المجانية</div>
-            <p className="mt-1 text-[11px] leading-5 text-slate-600">يمكنك إنشاء حساب وتقديم طلب اشتراك من داخل التطبيق.</p>
+            <p className="mt-1 text-[11px] leading-5 text-slate-600">
+              يمكنك إنشاء حساب وتقديم طلب اشتراك من داخل التطبيق.
+            </p>
           </div>
         )}
 
@@ -133,7 +155,12 @@ export const AuthScreen: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <div>
-                <label htmlFor="register-name" className="block text-xs font-bold text-slate-600 mb-1.5">الاسم بالكامل</label>
+                <label
+                  htmlFor="register-name"
+                  className="block text-xs font-bold text-slate-600 mb-1.5"
+                >
+                  الاسم بالكامل
+                </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                   <input
@@ -152,7 +179,9 @@ export const AuthScreen: React.FC = () => {
             )}
 
             <div>
-              <label htmlFor="auth-phone" className="block text-xs font-bold text-slate-600 mb-1.5">رقم الهاتف أو الواتساب</label>
+              <label htmlFor="auth-phone" className="block text-xs font-bold text-slate-600 mb-1.5">
+                رقم الهاتف أو الواتساب
+              </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                 <input
@@ -162,7 +191,11 @@ export const AuthScreen: React.FC = () => {
                   minLength={isRegister ? 11 : undefined}
                   maxLength={isRegister ? 11 : 32}
                   pattern={isRegister ? '01[0125][0-9]{8}' : undefined}
-                  title={isRegister ? 'اكتب رقم موبايل مصري صحيح مكوّنًا من 11 رقمًا ويبدأ بـ 010 أو 011 أو 012 أو 015' : undefined}
+                  title={
+                    isRegister
+                      ? 'اكتب رقم موبايل مصري صحيح مكوّنًا من 11 رقمًا ويبدأ بـ 010 أو 011 أو 012 أو 015'
+                      : undefined
+                  }
                   inputMode="numeric"
                   autoComplete="tel"
                   placeholder="010XXXXXXXX"
@@ -175,7 +208,12 @@ export const AuthScreen: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="auth-password" className="block text-xs font-bold text-slate-600 mb-1.5">كلمة المرور</label>
+              <label
+                htmlFor="auth-password"
+                className="block text-xs font-bold text-slate-600 mb-1.5"
+              >
+                كلمة المرور
+              </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
                 <input
@@ -191,7 +229,9 @@ export const AuthScreen: React.FC = () => {
                   className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 text-sm bg-slate-50/50"
                 />
               </div>
-              {isRegister && <p className="mt-1 text-[11px] text-slate-500">استخدم 8 أحرف على الأقل.</p>}
+              {isRegister && (
+                <p className="mt-1 text-[11px] text-slate-500">استخدم 8 أحرف على الأقل.</p>
+              )}
             </div>
 
             <button
@@ -199,7 +239,9 @@ export const AuthScreen: React.FC = () => {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2 mt-2"
             >
-              <span>{loading ? 'جاري المعالجة...' : isRegister ? 'إنشاء حساب جديد' : 'دخول للتطبيق'}</span>
+              <span>
+                {loading ? 'جاري المعالجة...' : isRegister ? 'إنشاء حساب جديد' : 'دخول للتطبيق'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -224,7 +266,8 @@ export const AuthScreen: React.FC = () => {
             </div>
           </div>
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-600">
-            يلزم الإنترنت لتسجيل الدخول أول مرة. بعد ذلك، سجلاتك المالية المحفوظة على هذا الجهاز متاحة دون اتصال.
+            يلزم الإنترنت لتسجيل الدخول أول مرة. بعد ذلك، سجلاتك المالية المحفوظة على هذا الجهاز
+            متاحة دون اتصال.
           </p>
         </div>
 

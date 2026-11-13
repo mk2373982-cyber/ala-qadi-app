@@ -7,7 +7,8 @@ import { ConfirmActionProvider } from '@/components/ConfirmActionProvider';
 
 export const metadata: Metadata = {
   title: 'على قدي - إدارة مالية شخصية',
-  description: 'تطبيق إدارة مالية شخصية يحفظ سجلاتك المالية على جهازك ويتيح استخدامها دون اتصال بعد تسجيل الدخول.',
+  description:
+    'تطبيق إدارة مالية شخصية يحفظ سجلاتك المالية على جهازك ويتيح استخدامها دون اتصال بعد تسجيل الدخول.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

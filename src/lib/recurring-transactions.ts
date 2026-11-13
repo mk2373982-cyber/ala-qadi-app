@@ -26,8 +26,10 @@ export async function applyRecurringOccurrence(ruleId: number, action: Recurring
 
     if (action === 'record') {
       const wallet = await db.wallets.get(rule.walletId);
-      if (!wallet?.id) throw new Error('المكان المالي المختار غير موجود. عدّل المعاملة المتكررة واختر مكانًا آخر.');
-      if (!Number.isFinite(rule.amount) || rule.amount <= 0) throw new Error('مبلغ المعاملة المتكررة غير صالح. عدّلها قبل التسجيل.');
+      if (!wallet?.id)
+        throw new Error('المكان المالي المختار غير موجود. عدّل المعاملة المتكررة واختر مكانًا آخر.');
+      if (!Number.isFinite(rule.amount) || rule.amount <= 0)
+        throw new Error('مبلغ المعاملة المتكررة غير صالح. عدّلها قبل التسجيل.');
 
       await db.transactions.add({
         type: rule.type,
@@ -49,6 +51,11 @@ export async function applyRecurringOccurrence(ruleId: number, action: Recurring
       nextDueDate: followingDate,
       ...(completedMonth ? { lastCompletedMonth: completedMonth } : {}),
     });
-    return { action, transactionDate: action === 'record' ? today : rule.nextDueDate, nextDueDate: followingDate, name: rule.name };
+    return {
+      action,
+      transactionDate: action === 'record' ? today : rule.nextDueDate,
+      nextDueDate: followingDate,
+      name: rule.name,
+    };
   });
 }

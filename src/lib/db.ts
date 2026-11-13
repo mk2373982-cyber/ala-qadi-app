@@ -164,16 +164,22 @@ export let db = new AlaQaddiDatabase();
 let databaseSwitchQueue: Promise<void> = Promise.resolve();
 
 function databaseNameForUser(userId: string | null) {
-  return userId
-    ? `AlaQaddiLocalDB_user_${encodeURIComponent(userId)}`
-    : 'AlaQaddiLocalDB_guest';
+  return userId ? `AlaQaddiLocalDB_user_${encodeURIComponent(userId)}` : 'AlaQaddiLocalDB_guest';
 }
 
-async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string, accountCreatedAt?: string, lockHeld = false) {
+async function migrateLegacyDataIfOwned(
+  target: AlaQaddiDatabase,
+  userId: string,
+  accountCreatedAt?: string,
+  lockHeld = false,
+) {
   if (typeof window === 'undefined' || !accountCreatedAt) return;
   if (!lockHeld && typeof navigator !== 'undefined' && navigator.locks?.request) {
-    await navigator.locks.request('ala-qaddi-legacy-database-migration', { mode: 'exclusive' }, () =>
-      migrateLegacyDataIfOwned(target, userId, accountCreatedAt, true));
+    await navigator.locks.request(
+      'ala-qaddi-legacy-database-migration',
+      { mode: 'exclusive' },
+      () => migrateLegacyDataIfOwned(target, userId, accountCreatedAt, true),
+    );
     return;
   }
   let existingOwner: string | null;
@@ -187,13 +193,42 @@ async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string
   const legacy = db.name === LEGACY_DATABASE_NAME ? db : new AlaQaddiDatabase(LEGACY_DATABASE_NAME);
   await legacy.open();
   try {
-    const [transactions, categories, budgets, debts, gam3eyet, savings, wallets, allBackupKeys, savingsGoals, recurringTransactions] = await Promise.all([
-      legacy.transactions.toArray(), legacy.categories.toArray(), legacy.budgets.toArray(), legacy.debts.toArray(),
-      legacy.gam3eyat.toArray(), legacy.savings.toArray(), legacy.wallets.toArray(), legacy.driveBackupKeys.toArray(),
-      legacy.savingsGoals.toArray(), legacy.recurringTransactions.toArray(),
+    const [
+      transactions,
+      categories,
+      budgets,
+      debts,
+      gam3eyet,
+      savings,
+      wallets,
+      allBackupKeys,
+      savingsGoals,
+      recurringTransactions,
+    ] = await Promise.all([
+      legacy.transactions.toArray(),
+      legacy.categories.toArray(),
+      legacy.budgets.toArray(),
+      legacy.debts.toArray(),
+      legacy.gam3eyat.toArray(),
+      legacy.savings.toArray(),
+      legacy.wallets.toArray(),
+      legacy.driveBackupKeys.toArray(),
+      legacy.savingsGoals.toArray(),
+      legacy.recurringTransactions.toArray(),
     ]);
     const driveBackupKeys = allBackupKeys.filter((record) => record.userId === userId);
-    const legacyRows = [transactions, categories, budgets, debts, gam3eyet, savings, wallets, driveBackupKeys, savingsGoals, recurringTransactions];
+    const legacyRows = [
+      transactions,
+      categories,
+      budgets,
+      debts,
+      gam3eyet,
+      savings,
+      wallets,
+      driveBackupKeys,
+      savingsGoals,
+      recurringTransactions,
+    ];
     if (!legacyRows.some((rows) => rows.length > 0)) return;
 
     // Only let an account that predates this device's first financial entry claim
@@ -207,9 +242,25 @@ async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string
       ...savings.map((row) => Date.parse(`${row.date}T00:00:00`)),
     ].filter((timestamp) => Number.isFinite(timestamp) && timestamp > 0);
     const accountTimestamp = Date.parse(accountCreatedAt);
-    if (!timestamps.length || !Number.isFinite(accountTimestamp) || accountTimestamp > Math.min(...timestamps)) return;
+    if (
+      !timestamps.length ||
+      !Number.isFinite(accountTimestamp) ||
+      accountTimestamp > Math.min(...timestamps)
+    )
+      return;
 
-    const targetTables = [target.transactions, target.categories, target.budgets, target.debts, target.gam3eyat, target.savings, target.wallets, target.driveBackupKeys, target.savingsGoals, target.recurringTransactions];
+    const targetTables = [
+      target.transactions,
+      target.categories,
+      target.budgets,
+      target.debts,
+      target.gam3eyat,
+      target.savings,
+      target.wallets,
+      target.driveBackupKeys,
+      target.savingsGoals,
+      target.recurringTransactions,
+    ];
     await target.transaction('rw', targetTables, async () => {
       const currentCounts = await Promise.all(targetTables.map((table) => table.count()));
       if (currentCounts.some((count) => count > 0)) return;
@@ -222,7 +273,8 @@ async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string
       if (wallets.length) await target.wallets.bulkAdd(wallets);
       if (driveBackupKeys.length) await target.driveBackupKeys.bulkAdd(driveBackupKeys);
       if (savingsGoals.length) await target.savingsGoals.bulkAdd(savingsGoals);
-      if (recurringTransactions.length) await target.recurringTransactions.bulkAdd(recurringTransactions);
+      if (recurringTransactions.length)
+        await target.recurringTransactions.bulkAdd(recurringTransactions);
     });
     try {
       window.localStorage.setItem(LEGACY_DATABASE_OWNER_KEY, userId);
@@ -234,7 +286,11 @@ async function migrateLegacyDataIfOwned(target: AlaQaddiDatabase, userId: string
   }
 }
 
-export function activateUserDatabase(userId: string | null, accountCreatedAt?: string, allowLegacyMigration = false) {
+export function activateUserDatabase(
+  userId: string | null,
+  accountCreatedAt?: string,
+  allowLegacyMigration = false,
+) {
   const operation = databaseSwitchQueue.then(async () => {
     const targetName = databaseNameForUser(userId);
     if (db.name !== targetName) {
@@ -256,22 +312,64 @@ export function activateUserDatabase(userId: string | null, accountCreatedAt?: s
 // Default Egyptian / Arabic categories
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
   // Expenses
-  { name: 'مصاريف البيت والطلبات', type: 'expense', icon: 'Home', color: '#10b981', isDefault: true },
+  {
+    name: 'مصاريف البيت والطلبات',
+    type: 'expense',
+    icon: 'Home',
+    color: '#10b981',
+    isDefault: true,
+  },
   { name: 'مواصلات وبنزين', type: 'expense', icon: 'Car', color: '#06b6d4', isDefault: true },
   { name: 'فواتير وكهرباء وغاز', type: 'expense', icon: 'Zap', color: '#f59e0b', isDefault: true },
   { name: 'علاج وصيدلية', type: 'expense', icon: 'Pill', color: '#ef4444', isDefault: true },
-  { name: 'خروجات ومطاعم وترفيه', type: 'expense', icon: 'Coffee', color: '#8b5cf6', isDefault: true },
+  {
+    name: 'خروجات ومطاعم وترفيه',
+    type: 'expense',
+    icon: 'Coffee',
+    color: '#8b5cf6',
+    isDefault: true,
+  },
   { name: 'تسوق وملابس', type: 'expense', icon: 'ShoppingBag', color: '#ec4899', isDefault: true },
-  { name: 'أقساط ومستحقات', type: 'expense', icon: 'CreditCard', color: '#f97316', isDefault: true },
+  {
+    name: 'أقساط ومستحقات',
+    type: 'expense',
+    icon: 'CreditCard',
+    color: '#f97316',
+    isDefault: true,
+  },
   { name: 'جمعيات شهرية', type: 'expense', icon: 'Users', color: '#6366f1', isDefault: true },
-  { name: 'مصاريف أخرى', type: 'expense', icon: 'MoreHorizontal', color: '#64748b', isDefault: true },
-  
+  {
+    name: 'مصاريف أخرى',
+    type: 'expense',
+    icon: 'MoreHorizontal',
+    color: '#64748b',
+    isDefault: true,
+  },
+
   // Incomes
   { name: 'الراتب الأساسي', type: 'income', icon: 'Briefcase', color: '#10b981', isDefault: true },
-  { name: 'شغل حر / إضافي (فريلانس)', type: 'income', icon: 'Laptop', color: '#0ea5e9', isDefault: true },
+  {
+    name: 'شغل حر / إضافي (فريلانس)',
+    type: 'income',
+    icon: 'Laptop',
+    color: '#0ea5e9',
+    isDefault: true,
+  },
   { name: 'قبض جمعية', type: 'income', icon: 'Gift', color: '#8b5cf6', isDefault: true },
-  { name: 'استرداد سلفة أو دين', type: 'income', icon: 'RotateCcw', color: '#14b8a6', isDefault: true },
-  { name: 'أرباح أو استثمار', type: 'income', icon: 'TrendingUp', color: '#f59e0b', isDefault: true },
+  {
+    name: 'استرداد سلفة أو دين',
+    type: 'income',
+    icon: 'RotateCcw',
+    color: '#14b8a6',
+    isDefault: true,
+  },
+  {
+    name: 'أرباح أو استثمار',
+    type: 'income',
+    icon: 'TrendingUp',
+    color: '#f59e0b',
+    isDefault: true,
+  },
   { name: 'دخل آخر', type: 'income', icon: 'PlusCircle', color: '#64748b', isDefault: true },
 ];
 
@@ -292,7 +390,7 @@ export async function seedDefaultWalletsOnce(userId: string) {
   }
 
   await db.transaction('rw', db.wallets, async () => {
-    if (await db.wallets.count() === 0) {
+    if ((await db.wallets.count()) === 0) {
       const createdAt = Date.now();
       await db.wallets.bulkAdd([
         { name: 'كاش', kind: 'cash', balance: 0, createdAt },
