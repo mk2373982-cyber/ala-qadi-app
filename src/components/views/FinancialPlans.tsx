@@ -13,7 +13,6 @@ import {
   CircleCheck,
   Clock3,
   Pencil,
-  PiggyBank,
   Play,
   Plus,
   Repeat2,
@@ -252,7 +251,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
             <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full border-[18px] border-white/[0.07]" />
             <div className="relative flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10"><PiggyBank className="h-5 w-5" /></div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10"><Target className="h-5 w-5" /></div>
                 <div>
                   <h2 className="text-sm font-black">أهداف الادخار</h2>
                   <p className="mt-1 text-[10px] text-emerald-100">خطوة صغيرة تقرّبك من اللي نفسك فيه</p>
@@ -397,7 +396,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh }) => 
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setGoalModalOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="goal-dialog-title" className="w-full max-w-md overflow-hidden rounded-t-[28px] bg-white shadow-2xl sm:rounded-[28px]">
             <header className="flex items-center justify-between border-b border-emerald-100 bg-emerald-950 px-5 py-4 text-white">
-              <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><PiggyBank className="h-4 w-4" /></div><div><h3 id="goal-dialog-title" className="text-sm font-black">{goalEditingId === null ? 'هدف جديد' : 'تعديل هدف الادخار'}</h3><p className="mt-0.5 text-[10px] text-emerald-100">كل خطوة صغيرة بتفرق</p></div></div>
+              <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><Target className="h-4 w-4" /></div><div><h3 id="goal-dialog-title" className="text-sm font-black">{goalEditingId === null ? 'هدف جديد' : 'تعديل هدف الادخار'}</h3><p className="mt-0.5 text-[10px] text-emerald-100">كل خطوة صغيرة بتفرق</p></div></div>
               <button type="button" onClick={() => setGoalModalOpen(false)} aria-label="إغلاق" className="rounded-xl p-2 text-emerald-100 hover:bg-white/10"><X className="h-4 w-4" /></button>
             </header>
             <form onSubmit={saveGoal} className="space-y-3 p-5">
