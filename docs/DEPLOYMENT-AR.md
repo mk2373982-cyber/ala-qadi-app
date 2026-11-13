@@ -5,9 +5,11 @@
 ## تجهيز Supabase
 
 1. أنشئ مشروع Supabase خاصاً.
-2. افتح SQL Editor وشغّل `supabase/schema.sql`. إذا كان مشروع Supabase موجودًا بالفعل، شغّل مرة واحدة `supabase/migrations/20261109_auth_rate_limits.sql` لتفعيل حدّ محاولات الدخول المشترك.
+2. افتح SQL Editor وشغّل `supabase/schema.sql`. إذا كان مشروع Supabase موجودًا بالفعل، شغّل مرة واحدة `supabase/migrations/20261109_auth_rate_limits.sql` و`supabase/migrations/20261113_lock_down_client_table_access.sql`.
 3. انسخ Project URL وService Role Key إلى متغيرات Vercel التالية: `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY`. لا تستخدم `NEXT_PUBLIC_` لهذه القيم.
 4. اضبط `ADMIN_PASSWORD` ككلمة مرور طويلة وفريدة، ثم أعد النشر.
+
+جداول الحسابات والإعدادات وحدّ محاولات الدخول تستخدم RLS من دون سياسات وصول للمتصفح. الوصول إليها يمر عبر واجهات الخادم فقط؛ لا تضف سياسات `anon` أو `authenticated` لهذه الجداول.
 
 ## النسخ الاحتياطي التلقائي إلى Google Drive
 

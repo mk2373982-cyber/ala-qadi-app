@@ -29,7 +29,9 @@ create table if not exists public.app_settings (
 
 alter table public.app_users enable row level security;
 alter table public.app_settings enable row level security;
--- No client policies: access only through server routes using SUPABASE_SERVICE_ROLE_KEY.
+-- No client policies or table grants: access only through server routes using SUPABASE_SERVICE_ROLE_KEY.
+revoke all privileges on table public.app_users, public.app_settings
+  from public, anon, authenticated;
 
 -- Shared atomic auth rate limits. Keys are HMAC digests; raw phone/IP values are never stored.
 create table if not exists public.auth_rate_limits (
@@ -40,7 +42,7 @@ create table if not exists public.auth_rate_limits (
 );
 create index if not exists auth_rate_limits_updated_at_idx on public.auth_rate_limits(updated_at);
 alter table public.auth_rate_limits enable row level security;
-revoke all on table public.auth_rate_limits from public, anon, authenticated;
+revoke all privileges on table public.auth_rate_limits from public, anon, authenticated;
 
 create or replace function public.consume_auth_rate_limits(
   p_key_hashes text[], p_max_attempts integer[], p_window_seconds integer

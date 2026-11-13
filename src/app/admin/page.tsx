@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserAccount, AdminSettings } from '@/lib/server-storage';
+import type { UserAccount, AdminSettings } from '@/lib/server-storage';
 import {
   ShieldCheck,
   Users,
