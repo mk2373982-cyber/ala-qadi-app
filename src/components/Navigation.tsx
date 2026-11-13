@@ -73,12 +73,12 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               onClick={() => onSelectTab(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               aria-pressed={isActive}
-              className={`relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700 ${
+              className={`relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 transition-colors duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700 ${
                 isActive ? 'text-emerald-900' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <span
-                className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors duration-200 ${
+                className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors duration-100 ${
                   isActive ? 'bg-emerald-50 text-emerald-800' : 'text-current'
                 }`}
               >
@@ -90,7 +90,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               {isActive && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-600 transition-all duration-200"
+                  className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-600 transition-all duration-100"
                 />
               )}
             </button>

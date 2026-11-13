@@ -8,7 +8,7 @@ import { askForConfirmation } from '@/lib/confirm-action';
 
 export const DebtsView: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [activeTab, setActiveTab] = useState<'to_me' | 'on_me'>('to_me');
+  const [activeTab, setActiveTab] = useState<'to_me' | 'on_me'>('on_me');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [debtToEdit, setDebtToEdit] = useState<Debt | null>(null);
   const [paymentModalDebt, setPaymentModalDebt] = useState<Debt | null>(null);

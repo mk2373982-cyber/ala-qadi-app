@@ -461,12 +461,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <article className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:p-4">
+          <article className="rounded-2xl border border-orange-200/80 bg-white p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-800">
                 <Clock3 aria-hidden="true" className="h-4 w-4" />
               </span>
-              <h3 className="text-[11px] font-black text-slate-800">الديون المستحقة</h3>
+              <h3 className="text-[11px] font-black text-orange-950">الديون المستحقة</h3>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {([0, 1] as const).map((offset) => {
@@ -481,11 +481,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     onClick={() => setExpandedDebtMonth(isSelected ? null : offset)}
                     aria-expanded={isSelected}
                     aria-controls={isSelected ? 'due-debt-details' : undefined}
-                    className={`min-w-0 rounded-xl px-2 py-2 text-right transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 ${
-                      isSelected ? 'bg-emerald-100 text-emerald-950' : 'bg-slate-50 text-slate-800 hover:bg-emerald-50'
+                    className={`min-w-0 rounded-xl px-2 py-2 text-right transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-700 ${
+                      isSelected ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-950 hover:bg-orange-100'
                     }`}
                   >
-                    <span className="block truncate text-[9px] font-semibold text-slate-600">
+                    <span className={`block truncate text-[9px] font-semibold ${isSelected ? 'text-orange-50' : 'text-orange-900'}`}>
                       {offset === 0 ? 'الحالي' : 'القادم'} ·{' '}
                       {monthDate.toLocaleDateString('ar-EG', { month: 'short' })}
                     </span>
@@ -496,13 +496,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 );
               })}
             </div>
-            <p className="mt-2 text-[9px] font-semibold text-slate-500">
-              عليّا {formatAmount(totalDebtsOnMe)} ج.م · ليّا {formatAmount(totalDebtsToMe)} ج.م
+            <p className="mt-2 text-[9px] font-semibold text-orange-900">
+              عليّا {formatAmount(totalDebtsOnMe)} ج.م · <span className="text-emerald-800">ليّا {formatAmount(totalDebtsToMe)} ج.م</span>
             </p>
             <button
               type="button"
               onClick={() => onNavigate('debts')}
-              className="mt-2 min-h-8 text-[10px] font-bold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+              className="mt-2 min-h-8 text-[10px] font-bold text-orange-800 underline decoration-orange-200 underline-offset-2"
             >
               عرض كل الديون
             </button>

@@ -111,10 +111,10 @@ export default function Home() {
 
     const deltaX = touch.clientX - start.x;
     const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaX) <= 60 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.5) return;
+    if (Math.abs(deltaX) <= 35 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.5) return;
 
     const activeIndex = SWIPE_NAV_TABS.indexOf(currentTab);
-    const nextIndex = activeIndex + (deltaX < 0 ? 1 : -1);
+    const nextIndex = activeIndex + (deltaX > 0 ? 1 : -1);
     if (nextIndex >= 0 && nextIndex < SWIPE_NAV_TABS.length) {
       setCurrentTab(SWIPE_NAV_TABS[nextIndex]);
     }
