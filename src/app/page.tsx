@@ -82,6 +82,7 @@ export default function Home() {
         {currentTab === 'dashboard' && (
           <DashboardView
             key={`dash_${refreshKey}`}
+            userId={user.id}
             onOpenAddModal={() => setIsAddModalOpen(true)}
             onNavigate={setCurrentTab}
           />

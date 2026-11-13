@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, Transaction, Debt, Gam3eya, SavingsAsset, WalletAccount } from '@/lib/db';
+import { db, Transaction, Debt, Gam3eya, SavingsAsset, WalletAccount, seedDefaultWalletsOnce } from '@/lib/db';
 import {
   Wallet,
   BellRing,
@@ -25,6 +25,7 @@ import { TabType } from '../Navigation';
 import { askForConfirmation } from '@/lib/confirm-action';
 
 interface DashboardViewProps {
+  userId: string;
   onOpenAddModal: () => void;
   onNavigate: (tab: TabType) => void;
 }
@@ -37,6 +38,7 @@ function daysUntilDue(dateValue: string) {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
+  userId,
   onOpenAddModal,
   onNavigate,
 }) => {
@@ -75,6 +77,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   ).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
 
   const loadData = async () => {
+    await seedDefaultWalletsOnce(userId);
     // Current month transactions
     const all = await db.transactions.toArray();
     const monthTx = all.filter((t) => t.date.startsWith(currentMonthStr));
@@ -124,7 +127,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   useEffect(() => {
     loadData();
-  }, [currentMonthStr]);
+  }, [currentMonthStr, userId]);
 
   useEffect(() => {
     const refreshMonth = () => {

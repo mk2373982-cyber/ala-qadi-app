@@ -148,3 +148,30 @@ export async function seedDefaultCategoriesIfEmpty() {
     await db.categories.bulkAdd(DEFAULT_CATEGORIES);
   }
 }
+
+export async function seedDefaultWalletsOnce(userId: string) {
+  if (typeof window === 'undefined' || !userId) return;
+  const marker = `ala_qaddi_default_wallets_seeded_${userId}`;
+  try {
+    if (localStorage.getItem(marker) === 'true') return;
+  } catch {
+    // Continue with the wallet count check when browser storage is unavailable.
+  }
+
+  await db.transaction('rw', db.wallets, async () => {
+    if (await db.wallets.count() === 0) {
+      const createdAt = Date.now();
+      await db.wallets.bulkAdd([
+        { name: 'كاش', kind: 'cash', balance: 0, createdAt },
+        { name: 'محفظة', kind: 'mobile', balance: 0, createdAt },
+        { name: 'فيزا', kind: 'card', balance: 0, createdAt },
+      ]);
+    }
+  });
+
+  try {
+    localStorage.setItem(marker, 'true');
+  } catch {
+    // Existing wallet rows still prevent duplicate defaults on the next load.
+  }
+}
