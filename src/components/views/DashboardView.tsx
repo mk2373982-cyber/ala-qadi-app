@@ -148,21 +148,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, []);
 
   // Totals
-  const currentMonthIncome = currentMonthTransactions
-    .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
   const currentMonthExpense = currentMonthTransactions
     .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const netBalance = currentMonthIncome - currentMonthExpense;
-
   // Budget calculations
-  const budgetPercentage =
-    monthlyBudgetLimit > 0
-      ? Math.min(Math.round((currentMonthExpense / monthlyBudgetLimit) * 100), 100)
-      : 0;
   const remainingBudget = monthlyBudgetLimit > 0 ? monthlyBudgetLimit - currentMonthExpense : 0;
   const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysLeftInMonth = Math.max(1, daysInCurrentMonth - now.getDate() + 1);
@@ -257,39 +247,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-5 pb-16">
-      {dueDebtReminders.length > 0 && (
-        <section role="status" aria-live="polite" className="overflow-hidden rounded-3xl border border-orange-300 bg-gradient-to-br from-orange-50 via-white to-rose-50 shadow-sm">
-          <div className="flex items-start gap-3 p-4 sm:p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-              {dueDebtReminders.some((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 0)
-                ? <AlertTriangle className="h-5 w-5" />
-                : <BellRing className="h-5 w-5" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-black text-orange-950">تنبيه: مواعيد سداد قريبة</h2>
-              <p className="mt-1 text-[11px] leading-5 text-orange-900">ديون عليك مستحقة خلال ٣ أيام أو متأخرة. راجع المبلغ وموعد السداد.</p>
-            </div>
-            <button type="button" onClick={() => onNavigate('debts')} className="shrink-0 rounded-xl bg-orange-700 px-3 py-2 text-[10px] font-black text-white shadow-sm">عرض الديون</button>
-          </div>
-          <div className="divide-y divide-orange-100 border-t border-orange-100 bg-white/70 px-4 sm:px-5">
-            {dueDebtReminders.slice(0, 3).map((debt) => {
-              const days = daysUntilDue(debt.dueDate!);
-              const dueLabel = days < 0 ? `متأخر ${Math.abs(days)} يوم` : days === 0 ? 'مستحق اليوم' : `بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}`;
-              return (
-                <div key={debt.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</p>
-                    <p className={`mt-0.5 text-[10px] font-bold ${days <= 0 ? 'text-rose-700' : 'text-orange-800'}`}>{dueLabel} · {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG')}</p>
-                  </div>
-                  <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">{Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م</p>
-                </div>
-              );
-            })}
-            {dueDebtReminders.length > 3 && <p className="py-2 text-[10px] font-bold text-slate-500">و {dueDebtReminders.length - 3} مواعيد أخرى قريبة</p>}
-          </div>
-        </section>
-      )}
-
       {/* Unified money overview */}
       <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-[#f0f8f3] via-white to-[#e7f4ed] shadow-[0_14px_40px_-28px_rgba(5,94,62,0.42)]">
         <div className="p-4 sm:p-6">
@@ -347,50 +304,117 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 border-y border-emerald-200 py-3">
-            <div className="rounded-xl bg-white/70 p-2.5">
-              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-800"><ArrowDownLeft className="h-3.5 w-3.5" /> دخل الشهر</div>
-              <div className="mt-1 text-sm font-black text-slate-800">{currentMonthIncome.toLocaleString('ar-EG')} ج.م</div>
-            </div>
-            <div className="rounded-xl bg-white/70 p-2.5">
-              <div className="flex items-center gap-1 text-[10px] font-bold text-rose-700"><ArrowUpRight className="h-3.5 w-3.5" /> مصروف الشهر</div>
-              <div className="mt-1 text-sm font-black text-slate-800">{currentMonthExpense.toLocaleString('ar-EG')} ج.م</div>
-            </div>
-          </div>
 
-          <div className="pt-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-slate-800">
-                <TrendingDown className="h-4 w-4 text-emerald-700" />
-                <span className="text-xs font-black">ميزانية الشهر</span>
-              </div>
-              {!isEditingBudget ? (
-                <button onClick={() => setIsEditingBudget(true)} className="text-[11px] font-bold text-emerald-800 hover:underline">
-                  {monthlyBudgetLimit > 0 ? 'تعديل الميزانية' : 'تحديد ميزانية'}
-                </button>
-              ) : (
-                <div className="flex items-center gap-1">
-                  <input type="number" min="0" placeholder="المبلغ" value={tempBudgetInput} onChange={(event) => setTempBudgetInput(event.target.value)} className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs" />
-                  <button onClick={handleSaveBudget} className="rounded-lg bg-emerald-700 px-2 py-1 text-xs font-bold text-white">حفظ</button>
-                  <button onClick={() => setIsEditingBudget(false)} className="rounded-lg bg-white px-2 py-1 text-xs text-slate-600">إلغاء</button>
-                </div>
-              )}
-            </div>
-            {monthlyBudgetLimit > 0 ? (
-              <>
-                <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] text-slate-600">
-                  <span>المصروف {currentMonthExpense.toLocaleString('ar-EG')} من {monthlyBudgetLimit.toLocaleString('ar-EG')} ج.م</span>
-                  <span className={`shrink-0 font-bold ${remainingBudget < 0 ? 'text-rose-700' : 'text-emerald-800'}`}>
-                    {remainingBudget >= 0 ? `متبقي ${remainingBudget.toLocaleString('ar-EG')}` : `تجاوزت ${Math.abs(remainingBudget).toLocaleString('ar-EG')}`}
-                  </span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-white"><div className={`h-full rounded-full ${budgetPercentage >= 95 ? 'bg-rose-500' : budgetPercentage >= 75 ? 'bg-amber-500' : 'bg-emerald-600'}`} style={{ width: `${budgetPercentage}%` }} /></div>
-              </>
-            ) : <div className="text-[10px] text-slate-500">حدد سقف إنفاقك الشهري لمتابعة المصروفات هنا.</div>}
-          </div>
         </div>
         <button type="button" onClick={onOpenAddModal} className="flex w-full items-center justify-center gap-2 bg-emerald-700 px-4 py-3.5 text-sm font-black text-white transition hover:bg-emerald-800">
           <Plus className="h-4 w-4" /> تسجيل حركة
+        </button>
+      </section>
+
+      {dueDebtReminders.length > 0 && (
+        <section role="status" aria-live="polite" className="overflow-hidden rounded-3xl border border-orange-300 bg-gradient-to-br from-orange-50 via-white to-rose-50 shadow-sm">
+          <div className="flex items-start gap-3 p-4 sm:p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+              {dueDebtReminders.some((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 0)
+                ? <AlertTriangle className="h-5 w-5" />
+                : <BellRing className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-black text-orange-950">تنبيه: مواعيد سداد قريبة</h2>
+              <p className="mt-1 text-[11px] leading-5 text-orange-900">ديون عليك مستحقة خلال ٣ أيام أو متأخرة. راجع المبلغ وموعد السداد.</p>
+            </div>
+            <button type="button" onClick={() => onNavigate('debts')} className="shrink-0 rounded-xl bg-orange-700 px-3 py-2 text-[10px] font-black text-white shadow-sm">عرض الديون</button>
+          </div>
+          <div className="divide-y divide-orange-100 border-t border-orange-100 bg-white/70 px-4 sm:px-5">
+            {dueDebtReminders.slice(0, 3).map((debt) => {
+              const days = daysUntilDue(debt.dueDate!);
+              const dueLabel = days < 0 ? `متأخر ${Math.abs(days)} يوم` : days === 0 ? 'مستحق اليوم' : `بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}`;
+              return (
+                <div key={debt.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</p>
+                    <p className={`mt-0.5 text-[10px] font-bold ${days <= 0 ? 'text-rose-700' : 'text-orange-800'}`}>{dueLabel} · {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG')}</p>
+                  </div>
+                  <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">{Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م</p>
+                </div>
+              );
+            })}
+            {dueDebtReminders.length > 3 && <p className="py-2 text-[10px] font-bold text-slate-500">و {dueDebtReminders.length - 3} مواعيد أخرى قريبة</p>}
+          </div>
+        </section>
+      )}
+
+      {/* Debts due this month or next month */}
+      <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
+        <div className="flex items-center gap-3 border-b border-orange-100 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+              <Clock3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ</h3>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                {selectedDebtMonthLabel} · حسب تاريخ الاستحقاق
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 px-5 pt-4">
+          {([0, 1] as const).map((offset) => {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
+            const monthTotal = getDueTotal(monthDebts);
+            const isSelected = debtMonthOffset === offset;
+            return (
+              <button
+                key={offset}
+                type="button"
+                onClick={() => setDebtMonthOffset(offset)}
+                aria-pressed={isSelected}
+                className={`rounded-2xl border p-3 text-right transition active:scale-[0.98] ${isSelected ? 'border-orange-500 bg-orange-600 text-white shadow-md shadow-orange-600/15' : 'border-orange-100 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50/60'}`}
+              >
+                <span className={`block text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
+                  {offset === 0 ? 'هذا الشهر' : 'الشهر القادم'} · {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
+                </span>
+                <span className="mt-1 block text-sm font-black" dir="ltr">{monthTotal.toLocaleString('ar-EG')} ج.م</span>
+                <span className={`mt-1 block text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}>
+                  {monthDebts.length.toLocaleString('ar-EG')} {monthDebts.length === 1 ? 'دين مستحق' : 'ديون مستحقة'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {selectedMonthDebts.length ? (
+          <div className="divide-y divide-orange-100/80 px-5">
+            {selectedMonthDebts.map((debt) => (
+              <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</div>
+                  <div className="mt-1 text-[10px] text-slate-500">
+                    موعد السداد{' '}
+                    {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+                <div className="shrink-0 text-left">
+                  <div className="text-xs font-black text-slate-800" dir="ltr">
+                    {Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م
+                  </div>
+                  {debt.paidAmount > 0 && <div className="mt-1 text-[10px] text-slate-400">بعد السداد الجزئي</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 py-5 text-center text-xs text-slate-500">
+            لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onNavigate('debts')}
+          className="flex w-full items-center justify-center gap-1 border-t border-orange-100 px-4 py-3 text-xs font-bold text-brand-700 transition hover:bg-brand-50/60"
+        >
+          عرض كل الديون <ChevronLeft className="h-4 w-4" />
         </button>
       </section>
 
@@ -468,88 +492,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ) : (
               <>
                 <p className="mt-1 text-xs leading-5 text-slate-600">حدد ميزانيتك الشهرية، وهقولك متوسط الصرف اليومي المناسب ومتى تكون قريبًا من تجاوزها.</p>
-                <button type="button" onClick={() => setIsEditingBudget(true)} className="mt-2 rounded-xl bg-sky-800 px-3 py-2 text-[11px] font-black text-white">حدد ميزانية الشهر</button>
+                {!isEditingBudget && <button type="button" onClick={() => { setTempBudgetInput(''); setIsEditingBudget(true); }} className="mt-2 rounded-xl bg-sky-800 px-3 py-2 text-[11px] font-black text-white">حدد ميزانية الشهر</button>}
               </>
             )}
           </div>
         </div>
+        {isEditingBudget ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-sky-200 bg-white/80 p-3">
+            <label htmlFor="dashboard-monthly-budget" className="w-full text-[10px] font-bold text-slate-700">ميزانيتك للشهر بالجنيه</label>
+            <input id="dashboard-monthly-budget" type="number" min="0" value={tempBudgetInput} onChange={(event) => setTempBudgetInput(event.target.value)} placeholder="اكتب المبلغ" className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-sky-600" />
+            <button type="button" onClick={() => void handleSaveBudget()} className="rounded-xl bg-sky-800 px-4 py-2 text-xs font-black text-white">حفظ</button>
+            <button type="button" onClick={() => setIsEditingBudget(false)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">إلغاء</button>
+          </div>
+        ) : monthlyBudgetLimit > 0 ? (
+          <button type="button" onClick={() => { setTempBudgetInput(String(monthlyBudgetLimit)); setIsEditingBudget(true); }} className="mt-3 text-[11px] font-bold text-sky-900 underline decoration-sky-300 underline-offset-4">تعديل ميزانية الشهر</button>
+        ) : null}
       </section>
 
       <FinancialPlans onRefresh={loadData} />
-
-      {/* Debts due this month or next month */}
-      <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-sm">
-        <div className="flex items-center gap-3 border-b border-orange-100 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-              <Clock3 className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-slate-800">الديون المستحقة عليّ</h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">
-                {selectedDebtMonthLabel} · حسب تاريخ الاستحقاق
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 px-5 pt-4">
-          {([0, 1] as const).map((offset) => {
-            const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-            const monthDebts = offset === 0 ? currentMonthDebts : nextMonthDebts;
-            const monthTotal = getDueTotal(monthDebts);
-            const isSelected = debtMonthOffset === offset;
-            return (
-              <button
-                key={offset}
-                type="button"
-                onClick={() => setDebtMonthOffset(offset)}
-                aria-pressed={isSelected}
-                className={`rounded-2xl border p-3 text-right transition active:scale-[0.98] ${isSelected ? 'border-orange-500 bg-orange-600 text-white shadow-md shadow-orange-600/15' : 'border-orange-100 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50/60'}`}
-              >
-                <span className={`block text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
-                  {offset === 0 ? 'هذا الشهر' : 'الشهر القادم'} · {monthDate.toLocaleDateString('ar-EG', { month: 'long' })}
-                </span>
-                <span className="mt-1 block text-sm font-black" dir="ltr">{monthTotal.toLocaleString('ar-EG')} ج.م</span>
-                <span className={`mt-1 block text-[10px] ${isSelected ? 'text-orange-100' : 'text-slate-400'}`}>
-                  {monthDebts.length.toLocaleString('ar-EG')} {monthDebts.length === 1 ? 'دين مستحق' : 'ديون مستحقة'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {selectedMonthDebts.length ? (
-          <div className="divide-y divide-orange-100/80 px-5">
-            {selectedMonthDebts.map((debt) => (
-              <div key={debt.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-extrabold text-slate-800">{debt.personName}</div>
-                  <div className="mt-1 text-[10px] text-slate-500">
-                    موعد السداد{' '}
-                    {new Date(`${debt.dueDate}T00:00:00`).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
-                  </div>
-                </div>
-                <div className="shrink-0 text-left">
-                  <div className="text-xs font-black text-slate-800" dir="ltr">
-                    {Math.max(0, debt.totalAmount - debt.paidAmount).toLocaleString('ar-EG')} ج.م
-                  </div>
-                  {debt.paidAmount > 0 && <div className="mt-1 text-[10px] text-slate-400">بعد السداد الجزئي</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="px-5 py-5 text-center text-xs text-slate-500">
-            لا توجد ديون عليك غير مكتملة بتاريخ استحقاق في {selectedDebtMonthLabel}.
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => onNavigate('debts')}
-          className="flex w-full items-center justify-center gap-1 border-t border-orange-100 px-4 py-3 text-xs font-bold text-brand-700 transition hover:bg-brand-50/60"
-        >
-          عرض كل الديون <ChevronLeft className="h-4 w-4" />
-        </button>
-      </section>
 
       {/* 3 Quick Cards: Debts, Gam3eyat, Gold */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
