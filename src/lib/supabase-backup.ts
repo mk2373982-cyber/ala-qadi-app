@@ -25,7 +25,119 @@ export type BackupPayload = {
 export type CloudBackup = {
   backup: BackupPayload;
   updatedAt: string;
+  remainingAutoBackups: number;
 };
+
+export type CloudBackupStatus = {
+  backup: BackupPayload | null;
+  updatedAt: string | null;
+  remainingAutoBackups: number;
+};
+
+export type SaveCloudBackupResult = {
+  updatedAt: string | null;
+  remainingAutoBackups: number;
+  skipped: boolean;
+};
+
+const LAST_CLOUD_BACKUP_KEY = 'ala_qaddi_cloud_backup_last_';
+const REMAINING_AUTO_BACKUPS_KEY = 'ala_qaddi_cloud_backup_remaining_';
+const AUTO_BACKUP_LOCK_KEY = 'ala_qaddi_cloud_backup_auto_lock_';
+const AUTO_BACKUP_ENABLED_KEY = 'ala_qaddi_cloud_backup_auto_enabled_';
+const AUTO_BACKUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+const AUTO_BACKUP_LOCK_MS = 5 * 60 * 1000;
+export const CLOUD_BACKUP_STATUS_EVENT = 'ala-qaddi-cloud-backup-status';
+export const CLOUD_AUTO_BACKUP_PREFERENCE_EVENT = 'ala-qaddi-cloud-backup-preference';
+const automaticBackupRuns = new Map<string, Promise<boolean>>();
+
+function userStorageKey(prefix: string, userId: string) {
+  return `${prefix}${encodeURIComponent(userId)}`;
+}
+
+export function getCloudAutoBackupEnabled(userId: string) {
+  try {
+    return window.localStorage.getItem(userStorageKey(AUTO_BACKUP_ENABLED_KEY, userId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setCloudAutoBackupEnabled(userId: string, enabled: boolean) {
+  try {
+    window.localStorage.setItem(
+      userStorageKey(AUTO_BACKUP_ENABLED_KEY, userId),
+      enabled ? '1' : '0',
+    );
+    window.dispatchEvent(
+      new CustomEvent(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, {
+        detail: { userId, enabled },
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readLocalBackupDate(userId: string) {
+  try {
+    const value = window.localStorage.getItem(userStorageKey(LAST_CLOUD_BACKUP_KEY, userId));
+    const timestamp = value ? Date.parse(value) : Number.NaN;
+    return Number.isFinite(timestamp) && timestamp <= Date.now() + 5 * 60 * 1000
+      ? timestamp
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeLocalBackupDate(userId: string, updatedAt: string) {
+  try {
+    window.localStorage.setItem(userStorageKey(LAST_CLOUD_BACKUP_KEY, userId), updatedAt);
+  } catch {
+    // The cloud backup should still succeed when local browser storage is unavailable.
+  }
+}
+
+function storeRemainingAutoBackups(userId: string, remaining: number) {
+  try {
+    window.localStorage.setItem(
+      userStorageKey(REMAINING_AUTO_BACKUPS_KEY, userId),
+      String(Math.max(0, Math.min(4, Math.trunc(remaining)))),
+    );
+  } catch {
+    // The Settings readout can be refreshed from the server next time it is online.
+  }
+}
+
+function announceCloudBackupStatus(
+  userId: string,
+  updatedAt: string | null,
+  remainingAutoBackups: number,
+) {
+  try {
+    window.dispatchEvent(
+      new CustomEvent(CLOUD_BACKUP_STATUS_EVENT, {
+        detail: { userId, updatedAt, remainingAutoBackups },
+      }),
+    );
+  } catch {
+    // Backup persistence does not depend on the optional in-page status event.
+  }
+}
+
+export function getCachedRemainingAutoBackups(userId: string) {
+  try {
+    const cached = window.localStorage.getItem(
+      userStorageKey(REMAINING_AUTO_BACKUPS_KEY, userId),
+    );
+    if (cached === null || !/^\d+$/.test(cached)) return null;
+    const remaining = Number(cached);
+    return Number.isInteger(remaining) && remaining <= 4 ? remaining : null;
+  } catch {
+    return null;
+  }
+}
 
 export const BACKUP_TABLE_LABELS: Record<BackupTableName, string> = {
   transactions: 'الحركات',
@@ -131,7 +243,7 @@ export function countBackupRecords(backup: BackupPayload) {
   ) as Record<BackupTableName, number>;
 }
 
-export async function fetchCloudBackup(): Promise<CloudBackup | null> {
+export async function fetchCloudBackup(userId?: string): Promise<CloudBackupStatus> {
   await migrateExistingSessionCookie();
   const response = await fetch('/api/backup', {
     method: 'GET',
@@ -141,35 +253,180 @@ export async function fetchCloudBackup(): Promise<CloudBackup | null> {
   const result = (await response.json().catch(() => null)) as {
     backup?: unknown;
     updatedAt?: unknown;
+    remainingAutoBackups?: unknown;
     error?: string;
   } | null;
   if (!response.ok) {
     throw new Error(result?.error || 'تعذر تحميل النسخة الاحتياطية.');
   }
-  if (result === null) return null;
-  if (typeof result.updatedAt !== 'string' || !Number.isFinite(Date.parse(result.updatedAt))) {
+  if (result === null) {
+    return { backup: null, updatedAt: null, remainingAutoBackups: 4 };
+  }
+
+  const updatedAt =
+    typeof result.updatedAt === 'string' && Number.isFinite(Date.parse(result.updatedAt))
+      ? result.updatedAt
+      : null;
+  const remainingAutoBackups =
+    typeof result.remainingAutoBackups === 'number' &&
+    Number.isInteger(result.remainingAutoBackups) &&
+    result.remainingAutoBackups >= 0 &&
+    result.remainingAutoBackups <= 4
+      ? result.remainingAutoBackups
+      : 4;
+  if (result.backup !== null && result.backup !== undefined && !updatedAt) {
     throw new Error('بيانات النسخة الاحتياطية غير مكتملة.');
   }
-  return { backup: validateCloudBackup(result.backup), updatedAt: result.updatedAt };
+  if (result.backup == null && result.updatedAt != null) {
+    throw new Error('بيانات النسخة الاحتياطية غير مكتملة.');
+  }
+
+  const status = {
+    backup: result.backup == null ? null : validateCloudBackup(result.backup),
+    updatedAt,
+    remainingAutoBackups,
+  };
+  if (userId) {
+    storeRemainingAutoBackups(userId, remainingAutoBackups);
+    if (updatedAt) storeLocalBackupDate(userId, updatedAt);
+  }
+  return status;
 }
 
-export async function saveCloudBackup(backup: BackupPayload): Promise<string> {
+export async function saveCloudBackup(
+  backup: BackupPayload,
+  userId: string,
+  mode: 'manual' | 'auto' = 'manual',
+): Promise<SaveCloudBackupResult> {
   await migrateExistingSessionCookie();
   const response = await fetch('/api/backup', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(backup),
+    body: JSON.stringify({ ...backup, mode }),
   });
   const result = (await response.json().catch(() => null)) as {
     updatedAt?: unknown;
+    remainingAutoBackups?: unknown;
+    skipped?: unknown;
     error?: string;
   } | null;
+  if (response.status === 429 && result?.skipped === true) {
+    storeRemainingAutoBackups(userId, 0);
+    announceCloudBackupStatus(userId, null, 0);
+    return { updatedAt: null, remainingAutoBackups: 0, skipped: true };
+  }
   if (!response.ok) throw new Error(result?.error || 'تعذر حفظ النسخة الاحتياطية.');
-  if (!result || typeof result.updatedAt !== 'string') {
+  if (
+    !result ||
+    typeof result.updatedAt !== 'string' ||
+    !Number.isFinite(Date.parse(result.updatedAt))
+  ) {
     throw new Error('لم يصل تأكيد حفظ النسخة الاحتياطية.');
   }
-  return result.updatedAt;
+  const remainingAutoBackups =
+    typeof result.remainingAutoBackups === 'number' &&
+    Number.isInteger(result.remainingAutoBackups) &&
+    result.remainingAutoBackups >= 0 &&
+    result.remainingAutoBackups <= 4
+      ? result.remainingAutoBackups
+      : 4;
+  storeLocalBackupDate(userId, result.updatedAt);
+  storeRemainingAutoBackups(userId, remainingAutoBackups);
+  announceCloudBackupStatus(userId, result.updatedAt, remainingAutoBackups);
+  return { updatedAt: result.updatedAt, remainingAutoBackups, skipped: false };
+}
+
+async function performWeeklyCloudBackup(userId: string): Promise<boolean> {
+  if (
+    typeof window === 'undefined' ||
+    !navigator.onLine ||
+    !getCloudAutoBackupEnabled(userId)
+  ) {
+    return false;
+  }
+
+  const now = Date.now();
+  const lockKey = userStorageKey(AUTO_BACKUP_LOCK_KEY, userId);
+  const lockValue = String(now);
+  let lockStored = false;
+  try {
+    const currentLock = Number(window.localStorage.getItem(lockKey));
+    if (Number.isFinite(currentLock) && Math.abs(now - currentLock) < AUTO_BACKUP_LOCK_MS) {
+      return false;
+    }
+    window.localStorage.setItem(lockKey, lockValue);
+    lockStored = true;
+  } catch {
+    // The in-memory promise below still prevents duplicate requests in this tab.
+  }
+
+  try {
+    if (!(await hasMeaningfulLocalData()) || !navigator.onLine) return false;
+
+    const status = await fetchCloudBackup(userId);
+    if (!navigator.onLine || status.remainingAutoBackups <= 0) return false;
+
+    const localLastBackupAt = readLocalBackupDate(userId);
+    const remoteLastBackupAt = status.updatedAt ? Date.parse(status.updatedAt) : null;
+    const lastBackupAt =
+      remoteLastBackupAt !== null && Number.isFinite(remoteLastBackupAt)
+        ? Math.max(localLastBackupAt ?? 0, remoteLastBackupAt)
+        : localLastBackupAt;
+
+    if (lastBackupAt !== null && now - lastBackupAt < AUTO_BACKUP_INTERVAL_MS) return false;
+
+    const backup = await createLocalBackup();
+    if (!navigator.onLine || !getCloudAutoBackupEnabled(userId)) return false;
+    const result = await saveCloudBackup(backup, userId, 'auto');
+    return !result.skipped;
+  } catch {
+    // Auto-backup stays silent on network, session, or storage errors.
+    return false;
+  } finally {
+    if (lockStored) {
+      try {
+        if (window.localStorage.getItem(lockKey) === lockValue) {
+          window.localStorage.removeItem(lockKey);
+        }
+      } catch {
+        // A leftover lock expires automatically after five minutes.
+      }
+    }
+  }
+}
+
+export function runWeeklyCloudBackup(userId: string): Promise<boolean> {
+  const existing = automaticBackupRuns.get(userId);
+  if (existing) return existing;
+
+  const run: Promise<boolean> =
+    typeof navigator !== 'undefined' && typeof navigator.locks?.request === 'function'
+      ? new Promise<boolean>((resolve) => {
+          void navigator.locks
+            .request<void>(
+              `ala-qaddi-weekly-cloud-backup:${userId}`,
+              { mode: 'exclusive', ifAvailable: true },
+              async (lock) => {
+                if (!lock) {
+                  resolve(false);
+                  return;
+                }
+                try {
+                  resolve(await performWeeklyCloudBackup(userId));
+                } catch {
+                  resolve(false);
+                }
+              },
+            )
+            .catch(() => resolve(false));
+        })
+      : performWeeklyCloudBackup(userId);
+  automaticBackupRuns.set(userId, run);
+  void run.finally(() => {
+    if (automaticBackupRuns.get(userId) === run) automaticBackupRuns.delete(userId);
+  });
+  return run;
 }
 
 async function migrateExistingSessionCookie() {

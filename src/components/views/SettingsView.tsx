@@ -323,6 +323,7 @@ export const SettingsView: React.FC<{
           key={user.id}
           userId={user.id}
           isOnline={isOnline}
+          isTrial={Boolean(user.isTrial)}
           onDataRestored={onDataRestored}
         />
       )}

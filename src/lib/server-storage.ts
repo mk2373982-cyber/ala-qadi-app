@@ -294,25 +294,50 @@ export async function deleteUser(userId: string) {
 }
 
 export async function getUserBackup(userId: string) {
-  const rows = await db<{ backup_data: unknown; updated_at: string }[]>(
+  const rows = await db<
+    {
+      backup_data: unknown;
+      updated_at: string;
+      auto_backup_month: string | null;
+      auto_backup_count: number;
+    }[]
+  >(
     'user_backups',
-    `?user_id=eq.${encodeURIComponent(userId)}&select=backup_data,updated_at&limit=1`,
+    `?user_id=eq.${encodeURIComponent(userId)}&select=backup_data,updated_at,auto_backup_month,auto_backup_count&limit=1`,
   );
-  return rows[0] ? { backupData: rows[0].backup_data, updatedAt: rows[0].updated_at } : null;
+  return rows[0]
+    ? {
+        backupData: rows[0].backup_data,
+        updatedAt: rows[0].updated_at,
+        autoBackupMonth: rows[0].auto_backup_month,
+        autoBackupCount: rows[0].auto_backup_count,
+      }
+    : null;
 }
 
-export async function saveUserBackup(userId: string, backupData: unknown) {
-  const rows = await db<{ updated_at: string }[]>('user_backups', '?on_conflict=user_id', {
+export async function saveUserBackup(
+  userId: string,
+  backupData: unknown,
+  mode: 'manual' | 'auto',
+  currentMonth: string,
+) {
+  const rows = await db<
+    { updated_at: string | null; remaining_auto_backups: number; skipped: boolean }[]
+  >('rpc/save_user_backup', '', {
     method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify({
-      user_id: userId,
-      backup_data: backupData,
-      updated_at: new Date().toISOString(),
+      p_user_id: userId,
+      p_backup_data: backupData,
+      p_mode: mode,
+      p_current_month: currentMonth,
     }),
   });
-  if (!rows[0]?.updated_at) throw new Error('تعذر حفظ النسخة الاحتياطية.');
-  return rows[0].updated_at;
+  if (!rows[0]) throw new Error('تعذر حفظ النسخة الاحتياطية.');
+  return {
+    updatedAt: rows[0].updated_at,
+    remainingAutoBackups: rows[0].remaining_auto_backups,
+    skipped: rows[0].skipped,
+  };
 }
 
 const defaultSettings: AdminSettings = {

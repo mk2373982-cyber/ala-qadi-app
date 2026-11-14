@@ -4,12 +4,17 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   BACKUP_TABLE_LABELS,
   BACKUP_TABLES,
+  CLOUD_AUTO_BACKUP_PREFERENCE_EVENT,
   countBackupRecords,
   createLocalBackup,
+  CLOUD_BACKUP_STATUS_EVENT,
   fetchCloudBackup,
+  getCloudAutoBackupEnabled,
+  getCachedRemainingAutoBackups,
   hasMeaningfulLocalData,
   restoreCloudBackup,
   saveCloudBackup,
+  setCloudAutoBackupEnabled,
   type CloudBackup,
 } from '@/lib/supabase-backup';
 import { CloudDownload, CloudUpload, DatabaseBackup, RefreshCw } from 'lucide-react';
@@ -17,6 +22,7 @@ import { CloudDownload, CloudUpload, DatabaseBackup, RefreshCw } from 'lucide-re
 type BackupProps = {
   userId: string;
   isOnline: boolean;
+  isTrial?: boolean;
   onDataRestored?: () => void;
 };
 
@@ -110,19 +116,59 @@ function RestoreConfirmation({
   );
 }
 
-export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: BackupProps) {
+export function SupabaseBackupPanel({
+  userId,
+  isOnline,
+  isTrial = false,
+  onDataRestored,
+}: BackupProps) {
   const [busy, setBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [remainingAutoBackups, setRemainingAutoBackups] = useState<number | null>(null);
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   const [preparedRestore, setPreparedRestore] = useState<CloudBackup | null>(null);
 
   useEffect(() => {
+    setAutoBackupEnabled(!isTrial && getCloudAutoBackupEnabled(userId));
+    const handlePreferenceChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId?: string; enabled?: boolean }>).detail;
+      if (!isTrial && detail?.userId === userId && typeof detail.enabled === 'boolean') {
+        setAutoBackupEnabled(detail.enabled);
+      }
+    };
+    window.addEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
+    return () => {
+      window.removeEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
+    };
+  }, [isTrial, userId]);
+
+  useEffect(() => {
     let cancelled = false;
+    let serverReadSuperseded = false;
+    setRemainingAutoBackups(getCachedRemainingAutoBackups(userId));
     if (!isOnline) return;
 
-    void fetchCloudBackup()
-      .then((backup) => {
-        if (!cancelled && backup) setLastSaved(backup.updatedAt);
+    const updateFromBackupEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        userId?: string;
+        updatedAt?: string | null;
+        remainingAutoBackups?: number;
+      }>).detail;
+      if (detail?.userId !== userId) return;
+      serverReadSuperseded = true;
+      if (typeof detail.remainingAutoBackups === 'number') {
+        setRemainingAutoBackups(detail.remainingAutoBackups);
+      }
+      if (detail.updatedAt) setLastSaved(detail.updatedAt);
+    };
+    window.addEventListener(CLOUD_BACKUP_STATUS_EVENT, updateFromBackupEvent);
+
+    void fetchCloudBackup(userId)
+      .then((status) => {
+        if (cancelled || serverReadSuperseded) return;
+        setRemainingAutoBackups(status.remainingAutoBackups);
+        setLastSaved(status.updatedAt);
       })
       .catch(() => {
         // A not-yet-signed-in trial account has no server session for cloud backup.
@@ -130,6 +176,7 @@ export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: Backup
 
     return () => {
       cancelled = true;
+      window.removeEventListener(CLOUD_BACKUP_STATUS_EVENT, updateFromBackupEvent);
     };
   }, [isOnline, userId]);
 
@@ -142,8 +189,13 @@ export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: Backup
     setStatusMessage('');
     try {
       const backup = await createLocalBackup();
-      const updatedAt = await saveCloudBackup(backup);
-      setLastSaved(updatedAt);
+      const result = await saveCloudBackup(backup, userId, 'manual');
+      setRemainingAutoBackups(result.remainingAutoBackups);
+      if (result.skipped || !result.updatedAt) {
+        setStatusMessage('تعذر حفظ النسخة الاحتياطية. حاول مرة أخرى.');
+        return;
+      }
+      setLastSaved(result.updatedAt);
       setStatusMessage('تم حفظ النسخة على حسابك بنجاح.');
     } catch (error) {
       setStatusMessage(
@@ -154,6 +206,18 @@ export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: Backup
     }
   };
 
+  const handleAutoBackupPreferenceChange = (enabled: boolean) => {
+    if (isTrial) return;
+    if (!setCloudAutoBackupEnabled(userId, enabled)) {
+      setStatusMessage('تعذر حفظ اختيار النسخ التلقائي على هذا الجهاز.');
+      return;
+    }
+    setAutoBackupEnabled(enabled);
+    setStatusMessage(
+      enabled ? 'اتفعّل النسخ التلقائي الأسبوعي.' : 'اتوقف النسخ التلقائي حسب اختيارك.',
+    );
+  };
+
   const handlePrepareRestore = async () => {
     if (!isOnline) {
       setStatusMessage('استرداد النسخة من حسابك يحتاج اتصالًا بالإنترنت.');
@@ -162,13 +226,18 @@ export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: Backup
     setBusy(true);
     setStatusMessage('');
     try {
-      const backup = await fetchCloudBackup();
-      if (!backup) {
+      const status = await fetchCloudBackup(userId);
+      setRemainingAutoBackups(status.remainingAutoBackups);
+      if (!status.backup || !status.updatedAt) {
         setStatusMessage('لا توجد نسخة احتياطية محفوظة على هذا الحساب بعد');
         return;
       }
-      setLastSaved(backup.updatedAt);
-      setPreparedRestore(backup);
+      setLastSaved(status.updatedAt);
+      setPreparedRestore({
+        backup: status.backup,
+        updatedAt: status.updatedAt,
+        remainingAutoBackups: status.remainingAutoBackups,
+      });
     } catch (error) {
       setStatusMessage(
         error instanceof Error ? error.message : 'تعذر تحميل النسخة الاحتياطية. حاول مرة أخرى.',
@@ -240,6 +309,43 @@ export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: Backup
             ? 'آخر نسخة: ' + formatBackupDate(lastSaved)
             : 'النسخة السحابية متاحة بعد تسجيل الدخول مع الاتصال بالإنترنت.'}
         </p>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              disabled={isTrial}
+              checked={autoBackupEnabled}
+              onChange={(event) => handleAutoBackupPreferenceChange(event.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <span className="min-w-0">
+              <span className="block text-xs font-bold text-slate-800">
+                {isTrial ? 'النسخ التلقائي للحسابات المسجلة فقط' : 'تفعيل النسخ التلقائي الأسبوعي'}
+              </span>
+              <span className="mt-1 block text-[11px] leading-5 text-slate-500">
+                {isTrial
+                  ? 'سجّل حسابك لحفظ النسخة الاحتياطية على حسابك.'
+                  : 'بيحفظ نسخة عند فتح التطبيق مع الإنترنت، مرة كل 7 أيام وبحد أقصى 4 مرات في الشهر.'}
+              </span>
+            </span>
+          </label>
+          <p className="mt-3 text-[11px] font-semibold text-emerald-800" aria-live="polite">
+            {isTrial
+              ? 'النسخ التلقائي غير متاح في تجربة الضيف.'
+              : autoBackupEnabled
+              ? 'النسخ التلقائي: أسبوعي (متبقي ' +
+                (remainingAutoBackups === null
+                  ? 'غير معروف'
+                  : remainingAutoBackups.toLocaleString('ar-EG')) +
+                ' من 4 مرات هذا الشهر)'
+              : 'النسخ التلقائي: متوقف (حسب اختيارك)'}
+          </p>
+          {!isTrial && !autoBackupEnabled && remainingAutoBackups !== null && (
+            <p className="mt-1 text-[10px] text-slate-500">
+              المتاح لو فعلته: {remainingAutoBackups.toLocaleString('ar-EG')} من 4 مرات هذا الشهر.
+            </p>
+          )}
+        </div>
         {statusMessage && (
           <p
             role="status"
@@ -279,8 +385,14 @@ export function CloudRestorePrompt({ userId, isOnline, onDataRestored }: BackupP
       } catch {}
 
       try {
-        const result = await fetchCloudBackup();
-        if (!cancelled && result) setBackup(result);
+        const result = await fetchCloudBackup(userId);
+        if (!cancelled && result.backup && result.updatedAt) {
+          setBackup({
+            backup: result.backup,
+            updatedAt: result.updatedAt,
+            remainingAutoBackups: result.remainingAutoBackups,
+          });
+        }
       } catch {
         // A local-only trial account may not have a signed server session.
       }

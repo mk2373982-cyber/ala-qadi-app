@@ -125,15 +125,43 @@ function unauthenticatedResponse() {
   );
 }
 
+function getCurrentCairoMonth() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  if (!year || !month) throw new Error('تعذر تحديد الشهر الحالي.');
+  return `${year}-${month}`;
+}
+
+function getRemainingAutoBackups(
+  backup: Awaited<ReturnType<typeof getUserBackup>>,
+  currentMonth: string,
+) {
+  if (!backup || backup.autoBackupMonth !== currentMonth) return 4;
+  const count = Number.isInteger(backup.autoBackupCount)
+    ? Math.min(4, Math.max(0, backup.autoBackupCount))
+    : 0;
+  return 4 - count;
+}
+
 export async function GET(request: Request) {
   try {
     const userId = getUserIdFromSession(request);
     if (!userId) return unauthenticatedResponse();
     if (!(await findUserById(userId))) return unauthenticatedResponse();
 
+    const currentMonth = getCurrentCairoMonth();
     const backup = await getUserBackup(userId);
     return NextResponse.json(
-      backup ? { backup: backup.backupData, updatedAt: backup.updatedAt } : null,
+      {
+        backup: backup?.backupData ?? null,
+        updatedAt: backup?.updatedAt ?? null,
+        remainingAutoBackups: getRemainingAutoBackups(backup, currentMonth),
+      },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch {
@@ -157,9 +185,35 @@ export async function POST(request: Request) {
       );
     }
 
-    const payload = validateBackup(await readLimitedJson(request));
-    const updatedAt = await saveUserBackup(userId, payload);
-    return NextResponse.json({ updatedAt }, { headers: { 'Cache-Control': 'no-store' } });
+    const requestBody = await readLimitedJson(request);
+    if (!isRecord(requestBody)) {
+      throw new BackupRequestError('بيانات النسخة غير صالحة.', 400);
+    }
+    const mode = requestBody.mode === undefined ? 'manual' : requestBody.mode;
+    if (mode !== 'manual' && mode !== 'auto') {
+      throw new BackupRequestError('نوع النسخة غير صالح.', 400);
+    }
+    const nestedBackup = requestBody.backup;
+    const flatBackup = { ...requestBody };
+    delete flatBackup.mode;
+    delete flatBackup.backup;
+    const payload = validateBackup(nestedBackup ?? flatBackup);
+    const result = await saveUserBackup(userId, payload, mode, getCurrentCairoMonth());
+    if (result.skipped) {
+      return NextResponse.json(
+        {
+          skipped: true,
+          remainingAutoBackups: 0,
+          message: 'تم استخدام الحد الشهري للنسخ التلقائي (4 مرات)',
+        },
+        { status: 429, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    if (!result.updatedAt) throw new Error('تعذر تأكيد حفظ النسخة الاحتياطية.');
+    return NextResponse.json(
+      { updatedAt: result.updatedAt, remainingAutoBackups: result.remainingAutoBackups },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
   } catch (error) {
     if (error instanceof BackupRequestError) {
       return NextResponse.json(

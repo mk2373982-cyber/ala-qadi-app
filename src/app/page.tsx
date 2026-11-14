@@ -16,7 +16,12 @@ import { AddTransactionModal } from '@/components/modals/AddTransactionModal';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { AddDebtModal } from '@/components/modals/AddDebtModal';
 import { CloudRestorePrompt } from '@/components/SupabaseBackupPanel';
-import { Plus } from 'lucide-react';
+import {
+  CLOUD_AUTO_BACKUP_PREFERENCE_EVENT,
+  getCloudAutoBackupEnabled,
+  runWeeklyCloudBackup,
+} from '@/lib/supabase-backup';
+import { CheckCircle2, Plus } from 'lucide-react';
 
 const SWIPE_NAV_TABS: TabType[] = [
   'dashboard',
@@ -36,11 +41,60 @@ export default function Home() {
   const [isDebtQuickAddOpen, setIsDebtQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<'expense' | 'income'>('expense');
   const [saveMessage, setSaveMessage] = useState('');
+  const [autoBackupToast, setAutoBackupToast] = useState(false);
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
   const offerDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
   if (offerDeadline) offerDeadline.setDate(offerDeadline.getDate() + 10);
   const isAnnualOfferOpen = Boolean(offerDeadline && Date.now() <= offerDeadline.getTime());
+
+  useEffect(() => {
+    if (!user || user.isTrial) {
+      setAutoBackupEnabled(false);
+      return;
+    }
+
+    setAutoBackupEnabled(getCloudAutoBackupEnabled(user.id));
+    const handlePreferenceChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId?: string; enabled?: boolean }>).detail;
+      if (detail?.userId === user.id && typeof detail.enabled === 'boolean') {
+        setAutoBackupEnabled(detail.enabled);
+      }
+    };
+    window.addEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
+    return () => {
+      window.removeEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
+    };
+  }, [user?.id, user?.isTrial]);
+
+  useEffect(() => {
+    if (
+      !user ||
+      user.isTrial ||
+      !isLicenseActive ||
+      !autoBackupEnabled ||
+      !isOnline ||
+      !navigator.onLine
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    void runWeeklyCloudBackup(user.id)
+      .then((saved) => {
+        if (!saved || cancelled) return;
+        setAutoBackupToast(true);
+        window.setTimeout(() => setAutoBackupToast(false), 2600);
+      })
+      .catch(() => {
+        // Automatic backups stay in the background and do not interrupt app use.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoBackupEnabled, isLicenseActive, isOnline, user?.id, user?.isTrial]);
 
   useEffect(() => {
     if (!user || (user.isTrial && user.trialExpiresAt)) return;
@@ -346,6 +400,16 @@ export default function Home() {
           className="fixed bottom-[calc(9rem_+_env(safe-area-inset-bottom))] left-3 right-3 z-[80] mx-auto max-w-md rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-bold text-white shadow-xl md:bottom-5"
         >
           {saveMessage}
+        </div>
+      )}
+      {autoBackupToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-[calc(6.5rem_+_env(safe-area-inset-bottom))] left-3 z-[80] inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-full border border-emerald-200 bg-white/95 px-3.5 py-2 text-xs font-semibold text-emerald-900 shadow-md backdrop-blur-sm md:bottom-16"
+        >
+          <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-emerald-600" />
+          تم حفظ نسخة احتياطية تلقائية على حسابك
         </div>
       )}
       {showOnboarding && <OnboardingGuide onClose={closeOnboarding} />}
