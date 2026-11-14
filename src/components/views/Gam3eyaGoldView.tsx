@@ -6,6 +6,7 @@ import { Users, Landmark, Plus, Trash2, CheckCircle2, Clock, Sparkles } from 'lu
 import { AddGam3eyaModal } from '../modals/AddGam3eyaModal';
 import { AddSavingsModal } from '../modals/AddSavingsModal';
 import { askForConfirmation } from '@/lib/confirm-action';
+import { getLocalDateString } from '@/lib/recurring-transactions';
 
 export const Gam3eyaGoldView: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'gam3eya' | 'gold'>('gam3eya');
@@ -77,6 +78,8 @@ export const Gam3eyaGoldView: React.FC = () => {
     await db.transaction('rw', [db.gam3eyat, db.transactions, db.wallets], async () => {
       await db.gam3eyat.update(g.id!, {
         paidMonths: nextPaid,
+        lastInstallmentPaidMonth: getLocalDateString().slice(0, 7),
+        lastInstallmentSkippedMonth: undefined,
         status: isCompleted ? 'completed' : 'active',
       });
       await db.transactions.add({
@@ -84,7 +87,7 @@ export const Gam3eyaGoldView: React.FC = () => {
         amount: g.monthlyAmount,
         category: 'جمعيات شهرية',
         note: `قسط شهر (${nextPaid} من ${g.totalMonths}) - ${g.name}`,
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDateString(),
         createdAt: Date.now(),
         walletId: wallet.id,
       });
@@ -106,7 +109,7 @@ export const Gam3eyaGoldView: React.FC = () => {
         amount: totalPayout,
         category: 'قبض جمعية',
         note: `قبض دور جمعية: ${g.name}`,
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDateString(),
         createdAt: Date.now(),
         walletId: wallet.id,
       });

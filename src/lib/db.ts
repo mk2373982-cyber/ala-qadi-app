@@ -43,6 +43,7 @@ export interface Debt {
   phone?: string;
   note?: string;
   dueDate?: string;
+  skippedDueDate?: string;
   isCompleted: boolean;
   createdAt: number;
 }
@@ -63,6 +64,9 @@ export interface Gam3eya {
   totalMonths: number;
   myTurnMonth: number; // الشهر الذي ستقبض فيه
   paidMonths: number;
+  lastInstallmentPaidMonth?: string;
+  lastInstallmentSkippedMonth?: string;
+  lastPayoutSkippedMonth?: string;
   startDate: string; // YYYY-MM
   isCollected: boolean; // هل قبضت جمعيتك أم لسه
   status: 'active' | 'completed';

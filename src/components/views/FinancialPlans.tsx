@@ -32,6 +32,7 @@ type PlanType = 'income' | 'expense';
 
 interface FinancialPlansProps {
   onRefresh: () => Promise<void>;
+  refreshToken?: number;
   onSummaryChange?: (summary: {
     goalCount: number;
     goalsSaved: number;
@@ -65,7 +66,11 @@ const defaultRuleForm = {
   nextDueDate: getLocalDateString(),
 };
 
-export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh, onSummaryChange }) => {
+export const FinancialPlans: React.FC<FinancialPlansProps> = ({
+  onRefresh,
+  onSummaryChange,
+  refreshToken = 0,
+}) => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [rules, setRules] = useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
@@ -96,7 +101,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({ onRefresh, onSum
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [refresh, refreshToken]);
 
   const totalSavedTowardGoals = goals.reduce((sum, goal) => sum + goal.savedAmount, 0);
   const today = getLocalDateString();

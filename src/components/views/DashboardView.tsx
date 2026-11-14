@@ -13,7 +13,6 @@ import {
 } from '@/lib/db';
 import {
   Wallet,
-  BellRing,
   AlertTriangle,
   TrendingDown,
   TrendingUp,
@@ -33,6 +32,7 @@ import {
 import { TabType } from '../Navigation';
 import { askForConfirmation } from '@/lib/confirm-action';
 import { FinancialPlans } from '@/components/views/FinancialPlans';
+import { UpcomingDueAlerts } from '@/components/UpcomingDueAlerts';
 import { formatAmount, formatCurrency, formatDate } from '@/lib/formatters';
 
 interface PlansSummary {
@@ -58,13 +58,6 @@ interface DashboardViewProps {
   onNavigate: (tab: TabType) => void;
 }
 
-function daysUntilDue(dateValue: string) {
-  const [year, month, day] = dateValue.split('-').map(Number);
-  const today = new Date();
-  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((Date.UTC(year, month - 1, day) - todayUtc) / 86_400_000);
-}
-
 export const DashboardView: React.FC<DashboardViewProps> = ({
   userId,
   userName,
@@ -81,7 +74,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
   const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
   const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
-  const [dueDebtReminders, setDueDebtReminders] = useState<Debt[]>([]);
   const [expandedDebtMonth, setExpandedDebtMonth] = useState<0 | 1 | null>(null);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
   const [totalSavingsValue, setTotalSavingsValue] = useState(0);
@@ -96,6 +88,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [monthlyBudgetLimit, setMonthlyBudgetLimit] = useState<number>(0);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [tempBudgetInput, setTempBudgetInput] = useState('');
+  const [plansRefreshToken, setPlansRefreshToken] = useState(0);
 
   const now = new Date();
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -121,11 +114,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     // Debts
     const debts = await db.debts.filter((d) => !d.isCompleted).toArray();
-    setDueDebtReminders(
-      debts.filter(
-        (debt) => debt.type === 'on_me' && debt.dueDate && daysUntilDue(debt.dueDate) <= 3,
-      ),
-    );
     setDebtsDueThisMonth(
       debts
         .filter(
@@ -178,18 +166,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [currentMonthStr, userId]);
 
   useEffect(() => {
-    const refreshMonth = () => {
-      setCurrentMonthStr(getLocalMonthKey());
-      void db.debts
-        .filter((debt) => !debt.isCompleted && debt.type === 'on_me')
-        .toArray()
-        .then((debts) =>
-          setDueDebtReminders(
-            debts.filter((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 3),
-          ),
-        )
-        .catch((error) => console.warn('Could not refresh upcoming debt reminders.', error));
-    };
+    const refreshMonth = () => setCurrentMonthStr(getLocalMonthKey());
     const interval = window.setInterval(refreshMonth, 60_000);
     window.addEventListener('focus', refreshMonth);
     document.addEventListener('visibilitychange', refreshMonth);
@@ -199,6 +176,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       document.removeEventListener('visibilitychange', refreshMonth);
     };
   }, []);
+
+  const refreshDashboardFromDueAlert = async () => {
+    await loadData();
+    setPlansRefreshToken((currentToken) => currentToken + 1);
+  };
 
   // Totals
   const currentMonthExpense = currentMonthTransactions
@@ -246,11 +228,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           transaction.category === 'جمعيات شهرية' &&
           transaction.note?.endsWith(` - ${group.name}`),
       );
-      return !installmentWasPaidThisMonth;
+      return (
+        !installmentWasPaidThisMonth &&
+        group.lastInstallmentPaidMonth !== currentMonthStr &&
+        group.lastInstallmentSkippedMonth !== currentMonthStr
+      );
     })
     .reduce((sum, group) => sum + group.monthlyAmount, 0);
   const monthlyObligations =
-    getDueTotal(currentMonthDebts) +
+    getDueTotal(currentMonthDebts.filter((debt) => debt.skippedDueDate !== debt.dueDate)) +
     plansSummary.recurringDueThisMonth +
     gam3eyaInstallmentsDueThisMonth;
   const safeBalanceAfterObligations = totalWalletBalance - monthlyObligations;
@@ -361,6 +347,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
         <p className="pb-0.5 text-[10px] text-slate-500">خلّي قراراتك على قدّك</p>
       </header>
+
+      <UpcomingDueAlerts wallets={wallets} onRefresh={refreshDashboardFromDueAlert} />
 
       {/* Unified money overview */}
       <section className="space-y-3">
@@ -676,70 +664,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </section>
 
-      {dueDebtReminders.length > 0 && (
-        <section
-          role="status"
-          aria-live="polite"
-          className="overflow-hidden rounded-3xl border border-orange-300 bg-gradient-to-br from-orange-50 via-white to-rose-50 shadow-sm"
-        >
-          <div className="flex items-start gap-3 p-4 sm:p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-              {dueDebtReminders.some((debt) => debt.dueDate && daysUntilDue(debt.dueDate) <= 0) ? (
-                <AlertTriangle className="h-5 w-5" />
-              ) : (
-                <BellRing className="h-5 w-5" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-black text-orange-950">تنبيه: مواعيد سداد قريبة</h2>
-              <p className="mt-1 text-[11px] leading-5 text-orange-900">
-                ديون عليك مستحقة خلال ٣ أيام أو متأخرة. راجع المبلغ وموعد السداد.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('debts')}
-              className="shrink-0 rounded-xl bg-orange-700 px-3 py-2 text-[10px] font-black text-white shadow-sm"
-            >
-              عرض الديون
-            </button>
-          </div>
-          <div className="divide-y divide-orange-100 border-t border-orange-100 bg-white/70 px-4 sm:px-5">
-            {dueDebtReminders.slice(0, 3).map((debt) => {
-              const days = daysUntilDue(debt.dueDate!);
-              const dueLabel =
-                days < 0
-                  ? `متأخر ${Math.abs(days)} يوم`
-                  : days === 0
-                    ? 'مستحق اليوم'
-                    : `بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}`;
-              return (
-                <div key={debt.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-slate-800">
-                      {debt.personName}
-                    </p>
-                    <p
-                      className={`mt-0.5 text-[10px] font-bold ${days <= 0 ? 'text-rose-700' : 'text-orange-800'}`}
-                    >
-                      {dueLabel} · {formatDate(debt.dueDate!)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">
-                    {formatCurrency(getDebtRemainingAmount(debt))}
-                  </p>
-                </div>
-              );
-            })}
-            {dueDebtReminders.length > 3 && (
-              <p className="py-2 text-[10px] font-bold text-slate-500">
-                و {dueDebtReminders.length - 3} مواعيد أخرى قريبة
-              </p>
-            )}
-          </div>
-        </section>
-      )}
-
       {expandedDebtMonth !== null && (
         <section
           id="due-debt-details"
@@ -1040,7 +964,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         ) : null}
       </section>
 
-      <FinancialPlans onRefresh={loadData} onSummaryChange={setPlansSummary} />
+      <FinancialPlans
+        onRefresh={loadData}
+        onSummaryChange={setPlansSummary}
+        refreshToken={plansRefreshToken}
+      />
 
       {/* Recent Transactions List */}
       <section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
