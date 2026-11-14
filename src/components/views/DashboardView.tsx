@@ -6,6 +6,8 @@ import {
   Transaction,
   Debt,
   Gam3eya,
+  getDebtPaidAmount,
+  getDebtRemainingAmount,
   WalletAccount,
   seedDefaultWalletsOnce,
 } from '@/lib/db';
@@ -135,10 +137,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     );
     const toMe = debts
       .filter((d) => d.type === 'to_me')
-      .reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
+      .reduce((sum, d) => sum + getDebtRemainingAmount(d), 0);
     const onMe = debts
       .filter((d) => d.type === 'on_me')
-      .reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
+      .reduce((sum, d) => sum + getDebtRemainingAmount(d), 0);
     setTotalDebtsToMe(toMe);
     setTotalDebtsOnMe(onMe);
 
@@ -227,7 +229,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
   const nextMonthDebts = debtsDueThisMonth.filter((debt) => debt.dueDate?.startsWith(nextMonthStr));
   const getDueTotal = (debts: Debt[]) =>
-    debts.reduce((sum, debt) => sum + Math.max(0, debt.totalAmount - debt.paidAmount), 0);
+    debts.reduce((sum, debt) => sum + getDebtRemainingAmount(debt), 0);
   const gam3eyaInstallmentsDueThisMonth = activeGam3eyat
     .filter((group) => {
       if (
@@ -724,7 +726,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </p>
                   </div>
                   <p className="shrink-0 text-xs font-black text-slate-900" dir="ltr">
-                    {formatCurrency(Math.max(0, debt.totalAmount - debt.paidAmount))}
+                    {formatCurrency(getDebtRemainingAmount(debt))}
                   </p>
                 </div>
               );
@@ -771,9 +773,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
                   <div className="shrink-0 text-left">
                     <div className="text-xs font-black tabular-nums text-slate-800" dir="ltr">
-                      {formatCurrency(Math.max(0, debt.totalAmount - debt.paidAmount))}
+                      {formatCurrency(getDebtRemainingAmount(debt))}
                     </div>
-                    {debt.paidAmount > 0 && (
+                    {getDebtPaidAmount(debt) > 0 && (
                       <div className="mt-1 text-[10px] text-slate-500">بعد السداد الجزئي</div>
                     )}
                   </div>

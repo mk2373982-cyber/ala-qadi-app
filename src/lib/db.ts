@@ -39,11 +39,21 @@ export interface Debt {
   type: 'to_me' | 'on_me'; // to_me = فلوس ليّا برة, on_me = ديون عليّا
   personName: string;
   totalAmount: number;
-  paidAmount: number;
+  paidAmount?: number;
+  phone?: string;
   note?: string;
   dueDate?: string;
   isCompleted: boolean;
   createdAt: number;
+}
+
+export function getDebtPaidAmount(debt: Pick<Debt, 'paidAmount'>) {
+  const paidAmount = Number(debt.paidAmount ?? 0);
+  return Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0;
+}
+
+export function getDebtRemainingAmount(debt: Pick<Debt, 'totalAmount' | 'paidAmount'>) {
+  return Math.max(0, debt.totalAmount - getDebtPaidAmount(debt));
 }
 
 export interface Gam3eya {

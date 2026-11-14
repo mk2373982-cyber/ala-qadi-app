@@ -23,6 +23,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
   const [personName, setPersonName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [paidAmount, setPaidAmount] = useState('0');
+  const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
 
@@ -31,7 +32,8 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
     setType(initialDebt?.type ?? initialType);
     setPersonName(initialDebt?.personName ?? '');
     setTotalAmount(initialDebt?.totalAmount.toString() ?? '');
-    setPaidAmount(initialDebt?.paidAmount.toString() ?? '0');
+    setPaidAmount(String(initialDebt?.paidAmount ?? 0));
+    setPhone(initialDebt?.phone ?? '');
     setDueDate(initialDebt?.dueDate ?? '');
     setNote(initialDebt?.note ?? '');
   }, [isOpen, initialDebt, initialType]);
@@ -63,6 +65,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
       personName: personName.trim(),
       totalAmount: total,
       paidAmount: paid,
+      phone: type === 'to_me' ? phone.trim() || undefined : undefined,
       dueDate: dueDate || undefined,
       note: note.trim() || undefined,
       isCompleted: paid >= total,
@@ -77,6 +80,7 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
     setPersonName('');
     setTotalAmount('');
     setPaidAmount('0');
+    setPhone('');
     setDueDate('');
     setNote('');
     onSaved();
@@ -141,6 +145,23 @@ export const AddDebtModal: React.FC<AddDebtModalProps> = ({
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-500 bg-slate-50/50"
             />
           </div>
+
+          {type === 'to_me' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                رقم واتساب للتذكير (اختياري)
+              </label>
+              <input
+                type="tel"
+                inputMode="tel"
+                dir="ltr"
+                placeholder="01xxxxxxxxx"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-500 bg-slate-50/50"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>

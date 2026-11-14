@@ -1,10 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { db, Debt, WalletAccount } from '@/lib/db';
-import { HandCoins, Plus, CheckCircle2, Clock, Trash2, ArrowRight, Pencil } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { db, Debt, getDebtPaidAmount, getDebtRemainingAmount, WalletAccount } from '@/lib/db';
+import {
+  Check,
+  CheckCircle2,
+  Clock,
+  HandCoins,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { AddDebtModal } from '../modals/AddDebtModal';
 import { askForConfirmation } from '@/lib/confirm-action';
+
+function normalizeWhatsAppPhone(phone?: string) {
+  let digits = phone?.replace(/\D/g, '') ?? '';
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (/^01[0125]\d{8}$/.test(digits)) return `20${digits.slice(1)}`;
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  return digits.length >= 8 ? digits : '';
+}
+
+function formatDueDate(date: string) {
+  const parsed = new Date(`${date}T12:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? date
+    : new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(parsed);
+}
 
 export const DebtsView: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -15,30 +40,49 @@ export const DebtsView: React.FC = () => {
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
   const [wallets, setWallets] = useState<WalletAccount[]>([]);
   const [paymentWalletId, setPaymentWalletId] = useState('');
+  const [recordPaymentTransaction, setRecordPaymentTransaction] = useState(true);
+  const [paymentError, setPaymentError] = useState('');
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const loadDebts = async () => {
-    const list = await db.debts.toArray();
-    setDebts(list);
-    const walletList = await db.wallets.toArray();
+    const [debtList, walletList] = await Promise.all([db.debts.toArray(), db.wallets.toArray()]);
+    setDebts(debtList);
     setWallets(walletList);
-    if (walletList.length && !walletList.some((wallet) => String(wallet.id) === paymentWalletId)) {
-      setPaymentWalletId(String(walletList[0].id));
-    }
+    setPaymentWalletId((currentId) =>
+      walletList.some((wallet) => String(wallet.id) === currentId)
+        ? currentId
+        : walletList[0]?.id === undefined
+          ? ''
+          : String(walletList[0].id),
+    );
   };
 
   useEffect(() => {
-    loadDebts();
+    void loadDebts();
   }, []);
 
-  const filteredDebts = debts.filter((d) => d.type === activeTab);
-
+  const filteredDebts = debts.filter((debt) => debt.type === activeTab);
   const totalToMeRemaining = debts
-    .filter((d) => d.type === 'to_me' && !d.isCompleted)
-    .reduce((s, d) => s + (d.totalAmount - d.paidAmount), 0);
-
+    .filter((debt) => debt.type === 'to_me')
+    .reduce((sum, debt) => sum + getDebtRemainingAmount(debt), 0);
   const totalOnMeRemaining = debts
-    .filter((d) => d.type === 'on_me' && !d.isCompleted)
-    .reduce((s, d) => s + (d.totalAmount - d.paidAmount), 0);
+    .filter((debt) => debt.type === 'on_me')
+    .reduce((sum, debt) => sum + getDebtRemainingAmount(debt), 0);
+
+  const openPaymentModal = (debt: Debt, settleFully = false) => {
+    setPaymentModalDebt(debt);
+    setPaymentAmountInput(settleFully ? String(getDebtRemainingAmount(debt)) : '');
+    setRecordPaymentTransaction(wallets.length > 0);
+    setPaymentError('');
+  };
+
+  const closePaymentModal = () => {
+    if (isSavingPayment) return;
+    setPaymentModalDebt(null);
+    setPaymentAmountInput('');
+    setPaymentError('');
+  };
 
   const handleDelete = async (id?: number) => {
     if (id === undefined) return;
@@ -51,257 +95,358 @@ export const DebtsView: React.FC = () => {
     });
     if (!confirmed) return;
     await db.debts.delete(id);
-    loadDebts();
+    await loadDebts();
   };
 
-  const handleRegisterPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!paymentModalDebt || !paymentModalDebt.id) return;
+  const handleRegisterPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!paymentModalDebt?.id) return;
 
-    const payment = parseFloat(paymentAmountInput);
-    const remaining = Math.max(0, paymentModalDebt.totalAmount - paymentModalDebt.paidAmount);
-    if (isNaN(payment) || payment <= 0 || payment > remaining) {
-      alert('يرجى كتابة مبلغ صحيح');
+    const payment = Number(paymentAmountInput);
+    const remaining = getDebtRemainingAmount(paymentModalDebt);
+    if (!Number.isFinite(payment) || payment <= 0 || payment > remaining) {
+      setPaymentError(
+        `اكتب مبلغ أكبر من صفر ومايزيدش عن ${remaining.toLocaleString('ar-EG')} ج.م.`,
+      );
+      return;
+    }
+    if (recordPaymentTransaction && !paymentWalletId) {
+      setPaymentError(
+        'اختار مكان الفلوس اللي هتسجل عليه الدفعة، أو اقفل الاختيار لتحديث الدين بس.',
+      );
       return;
     }
 
-    const selectedWallet = wallets.find((wallet) => String(wallet.id) === paymentWalletId);
-    if (!selectedWallet?.id) {
-      alert('أضف مكانًا للأموال من الصفحة الرئيسية أولًا');
-      return;
-    }
+    setIsSavingPayment(true);
+    setPaymentError('');
+    try {
+      const result = await db.transaction(
+        'rw',
+        [db.debts, db.transactions, db.wallets],
+        async () => {
+          const latestDebt = await db.debts.get(paymentModalDebt.id!);
+          if (!latestDebt) return { ok: false as const, message: 'سجل الدين مش موجود.' };
 
-    const newPaid = paymentModalDebt.paidAmount + payment;
-    const isCompleted = newPaid >= paymentModalDebt.totalAmount;
+          const latestRemaining = getDebtRemainingAmount(latestDebt);
+          if (payment > latestRemaining) {
+            return {
+              ok: false as const,
+              message: 'المبلغ المتبقي اتغير. راجع قيمة الدين وحاول تاني.',
+            };
+          }
 
-    await db.transaction('rw', [db.debts, db.transactions, db.wallets], async () => {
-      await db.debts.update(paymentModalDebt.id!, { paidAmount: newPaid, isCompleted });
-      if (paymentModalDebt.type === 'to_me') {
-        await db.transactions.add({
-          type: 'income',
-          amount: payment,
-          category: 'استرداد سلفة أو دين',
-          note: `سداد من ${paymentModalDebt.personName}`,
-          date: new Date().toISOString().slice(0, 10),
-          createdAt: Date.now(),
-          walletId: selectedWallet.id,
-        });
-      } else {
-        await db.transactions.add({
-          type: 'expense',
-          amount: payment,
-          category: 'أقساط ومستحقات',
-          note: `سداد دين لـ ${paymentModalDebt.personName}`,
-          date: new Date().toISOString().slice(0, 10),
-          createdAt: Date.now(),
-          walletId: selectedWallet.id,
-        });
+          const selectedWallet = recordPaymentTransaction
+            ? await db.wallets.get(Number(paymentWalletId))
+            : undefined;
+          if (recordPaymentTransaction && !selectedWallet?.id) {
+            return {
+              ok: false as const,
+              message: 'مكان الفلوس المختار مش موجود. اختار مكان تاني أو سجّل الدفعة على الدين بس.',
+            };
+          }
+
+          const newPaidAmount = getDebtPaidAmount(latestDebt) + payment;
+          const newRemainingAmount = Math.max(0, latestDebt.totalAmount - newPaidAmount);
+          await db.debts.update(paymentModalDebt.id!, {
+            paidAmount: newPaidAmount,
+            isCompleted: newRemainingAmount === 0,
+          });
+
+          if (selectedWallet?.id) {
+            const isIncome = latestDebt.type === 'to_me';
+            await db.transactions.add({
+              type: isIncome ? 'income' : 'expense',
+              amount: payment,
+              category: isIncome ? 'استرداد سلفة أو دين' : 'أقساط ومستحقات',
+              note: isIncome
+                ? `سداد من ${latestDebt.personName}`
+                : `سداد دين لـ ${latestDebt.personName}`,
+              date: new Date().toISOString().slice(0, 10),
+              createdAt: Date.now(),
+              walletId: selectedWallet.id,
+            });
+            await db.wallets.update(selectedWallet.id, {
+              balance: selectedWallet.balance + (isIncome ? payment : -payment),
+            });
+          }
+
+          return { ok: true as const };
+        },
+      );
+
+      if (!result.ok) {
+        setPaymentError(result.message);
+        return;
       }
-      await db.wallets.update(selectedWallet.id!, {
-        balance: selectedWallet.balance + (paymentModalDebt.type === 'to_me' ? payment : -payment),
-      });
-    });
 
-    setPaymentModalDebt(null);
-    setPaymentAmountInput('');
-    loadDebts();
+      setStatusMessage(
+        recordPaymentTransaction
+          ? 'اتسجلت الدفعة واتحدّث رصيد المكان المالي.'
+          : 'اتسجلت الدفعة على الدين من غير حركة مالية.',
+      );
+      setPaymentModalDebt(null);
+      setPaymentAmountInput('');
+      await loadDebts();
+    } catch {
+      setPaymentError(
+        'حصلت مشكلة في حفظ الدفعة. بيانات الدين ورصيد المكان لسه زي ما كانوا. حاول تاني.',
+      );
+    } finally {
+      setIsSavingPayment(false);
+    }
   };
 
   return (
     <div className="space-y-4 pb-16">
-      {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-800">قسم "ليّا وعليّا"</h2>
-          <p className="text-xs text-slate-500">تتبع السلف والديون والأقساط حتى لا تنسى أي مليم</p>
+          <h2 className="text-lg font-black text-slate-800">قسم «ليّا وعليّا»</h2>
+          <p className="text-xs text-slate-500">
+            تابع السلف والديون والأقساط واعرف المتبقي عليك وليك
+          </p>
         </div>
-
         <button
+          type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition-all"
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           <span>إضافة التزام / دين جديد</span>
         </button>
       </div>
 
-      {/* Summary KPI Strip */}
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
           onClick={() => setActiveTab('to_me')}
           aria-pressed={activeTab === 'to_me'}
-          className={`w-full p-4 rounded-3xl border text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition-all ${
+          className={`w-full rounded-3xl border p-4 text-right transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
             activeTab === 'to_me'
-              ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm'
-              : 'bg-white border-slate-200 hover:border-slate-300'
+              ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-500/20 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
         >
-          <div className="text-xs text-emerald-700 font-bold mb-1">فلوس ليّا عند الناس</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-800">
+          <div className="mb-1 text-xs font-bold text-emerald-700">فلوس ليّا عند الناس</div>
+          <div className="text-xl font-black tabular-nums text-emerald-800 sm:text-2xl">
             {totalToMeRemaining.toLocaleString('ar-EG')} ج.م
           </div>
-          <div className="text-[11px] text-emerald-600 mt-1">سلف مستحق لك</div>
+          <div className="mt-1 text-[11px] text-emerald-600">المبلغ اللي لسه هيترد</div>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('on_me')}
           aria-pressed={activeTab === 'on_me'}
-          className={`w-full p-4 rounded-3xl border text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 transition-all ${
+          className={`w-full rounded-3xl border p-4 text-right transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 ${
             activeTab === 'on_me'
-              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-sm'
-              : 'bg-white border-slate-200 hover:border-slate-300'
+              ? 'border-rose-300 bg-rose-50 ring-2 ring-rose-500/20 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
         >
-          <div className="text-xs text-rose-700 font-bold mb-1">ديون ومستحقات عليّا</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-rose-800">
+          <div className="mb-1 text-xs font-bold text-rose-700">ديون ومستحقات عليّا</div>
+          <div className="text-xl font-black tabular-nums text-rose-800 sm:text-2xl">
             {totalOnMeRemaining.toLocaleString('ar-EG')} ج.م
           </div>
-          <div className="text-[11px] text-rose-600 mt-1">واجبة السداد</div>
+          <div className="mt-1 text-[11px] text-rose-600">المبلغ اللي لسه مطلوب سداده</div>
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-slate-100 p-1 rounded-2xl">
+      <div className="flex rounded-2xl bg-slate-100 p-1">
         <button
+          type="button"
           onClick={() => setActiveTab('to_me')}
-          className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
+          aria-pressed={activeTab === 'to_me'}
+          className={`min-h-10 flex-1 rounded-xl text-xs font-bold transition-all sm:text-sm ${
             activeTab === 'to_me'
               ? 'bg-white text-emerald-700 shadow-sm'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          فلوس ليّا ({debts.filter((d) => d.type === 'to_me').length})
+          فلوس ليّا ({debts.filter((debt) => debt.type === 'to_me').length})
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('on_me')}
-          className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
+          aria-pressed={activeTab === 'on_me'}
+          className={`min-h-10 flex-1 rounded-xl text-xs font-bold transition-all sm:text-sm ${
             activeTab === 'on_me'
               ? 'bg-white text-rose-700 shadow-sm'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          ديون عليّا ({debts.filter((d) => d.type === 'on_me').length})
+          ديون عليّا ({debts.filter((debt) => debt.type === 'on_me').length})
         </button>
       </div>
 
-      {/* List */}
+      {statusMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800"
+        >
+          <span>{statusMessage}</span>
+          <button
+            type="button"
+            onClick={() => setStatusMessage('')}
+            className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
+            aria-label="إخفاء رسالة تأكيد السداد"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3">
         {filteredDebts.length === 0 ? (
-          <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
-            <HandCoins className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <div className="text-sm font-bold text-slate-700">لا توجد سجلات مسجلة في هذا القسم</div>
-            <p className="text-xs text-slate-400 mt-1">
-              اضغط على "إضافة التزام / دين جديد" لتسجيل سلفة أو دين.
+          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center">
+            <HandCoins className="mx-auto mb-2 h-10 w-10 text-slate-300" aria-hidden="true" />
+            <div className="text-sm font-bold text-slate-700">مفيش سجلات في القسم ده</div>
+            <p className="mt-1 text-xs text-slate-400">
+              اضغط على «إضافة التزام / دين جديد» لتسجيل سلفة أو دين.
             </p>
           </div>
         ) : (
           filteredDebts.map((item) => {
-            const remaining = Math.max(item.totalAmount - item.paidAmount, 0);
-            const progress = Math.min(Math.round((item.paidAmount / item.totalAmount) * 100), 100);
+            const paidAmount = getDebtPaidAmount(item);
+            const remainingAmount = getDebtRemainingAmount(item);
+            const isSettled = item.isCompleted || remainingAmount === 0;
+            const progress =
+              item.totalAmount > 0
+                ? Math.min(Math.round((paidAmount / item.totalAmount) * 100), 100)
+                : 0;
+            const amountFormatter = new Intl.NumberFormat('ar-EG', {
+              maximumFractionDigits: 2,
+            });
+            const reminderText = [
+              `أهلاً ${item.personName}، يا رب تكون بخير 🌷`,
+              `بفكرك بلطف إن باقي من المبلغ اللي عندك ${amountFormatter.format(remainingAmount)} ج.م.`,
+              item.dueDate ? `وموعده ${formatDueDate(item.dueDate)}.` : '',
+              'لما يناسبك ابقى طمني عليه، وشكرًا ليك 🙏',
+            ]
+              .filter(Boolean)
+              .join(' ');
+            const phone = normalizeWhatsAppPhone(item.phone);
+            const reminderHref = `https://wa.me/${phone}?text=${encodeURIComponent(reminderText)}`;
 
             return (
-              <div
+              <article
                 key={item.id}
-                className={`bg-white rounded-3xl p-5 border transition-all ${
-                  item.isCompleted
-                    ? 'border-emerald-200 bg-emerald-50/20'
-                    : 'border-slate-200 shadow-sm'
+                className={`rounded-3xl border bg-white p-4 transition-colors sm:p-5 ${
+                  isSettled ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate text-sm font-bold text-slate-800 sm:text-base">
                         {item.personName}
                       </h3>
-                      {item.isCompleted ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>مسدد بالكامل</span>
+                      {isSettled ? (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                          <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                          مسدد بالكامل
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>جاري السداد</span>
+                        <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          <Clock className="h-3 w-3" aria-hidden="true" />
+                          جاري السداد
                         </span>
                       )}
                     </div>
-                    {item.note && <div className="text-xs text-slate-500 mt-0.5">{item.note}</div>}
+                    {item.note && <div className="mt-1 text-xs text-slate-500">{item.note}</div>}
                     {item.dueDate && (
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        تاريخ الاستحقاق المتوقع: {item.dueDate}
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        موعد السداد المتوقع: {formatDueDate(item.dueDate)}
                       </div>
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    {!item.isCompleted && (
-                      <button
-                        onClick={() => {
-                          setPaymentModalDebt(item);
-                          setPaymentAmountInput(remaining.toString());
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs border border-brand-200 transition-colors"
-                      >
-                        تسجيل دفعة سداد
-                      </button>
-                    )}
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setDebtToEdit(item)}
-                      className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors"
-                      title="تعديل البيانات"
+                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-700"
                       aria-label={`تعديل بيانات ${item.personName}`}
+                      title="تعديل البيانات"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </button>
                     <button
-                      onClick={() => handleDelete(item.id)}
-                      className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
+                      type="button"
+                      onClick={() => void handleDelete(item.id)}
+                      className="rounded-lg p-2 text-slate-300 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                      aria-label={`حذف سجل ${item.personName}`}
                       title="حذف"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
 
-                {/* Progress & Amounts */}
-                <div className="mt-3 pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-baseline text-xs font-medium mb-1.5">
-                    <span className="text-slate-500">
-                      تم سداد: {item.paidAmount.toLocaleString('ar-EG')} من أصل{' '}
-                      {item.totalAmount.toLocaleString('ar-EG')} ج.م
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
+                    <span className="font-medium text-slate-600">
+                      تم سداد{' '}
+                      <b className="tabular-nums text-slate-800">
+                        {amountFormatter.format(paidAmount)} ج.م
+                      </b>
                     </span>
-                    <span
-                      className={`font-mono font-bold ${
-                        item.isCompleted ? 'text-emerald-600' : 'text-slate-800'
-                      }`}
-                    >
-                      {item.isCompleted
-                        ? 'خالص ✓'
-                        : `المتبقي: ${remaining.toLocaleString('ar-EG')} ج.م`}
+                    <span className="font-bold tabular-nums text-slate-800">
+                      المتبقي {amountFormatter.format(remainingAmount)} ج.م
                     </span>
                   </div>
-
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                    role="progressbar"
+                    aria-label={`نسبة سداد دين ${item.personName}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progress}
+                  >
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        item.isCompleted ? 'bg-emerald-500' : 'bg-brand-500'
+                      className={`h-full rounded-full transition-[width] duration-300 ${
+                        isSettled ? 'bg-emerald-500' : 'bg-brand-500'
                       }`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
-              </div>
+
+                {!isSettled && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openPaymentModal(item)}
+                      className="min-h-10 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-bold text-brand-700 transition-colors hover:bg-brand-100"
+                    >
+                      سداد جزئي
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPaymentModal(item, true)}
+                      className="min-h-10 rounded-xl bg-brand-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-700"
+                    >
+                      تسوية كاملة
+                    </button>
+                    {item.type === 'to_me' && remainingAmount > 0 && (
+                      <a
+                        href={reminderHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+                      >
+                        <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                        تذكير واتساب
+                      </a>
+                    )}
+                  </div>
+                )}
+              </article>
             );
           })
         )}
       </div>
 
-      {/* Add Debt Modal */}
       <AddDebtModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -316,77 +461,131 @@ export const DebtsView: React.FC = () => {
         initialDebt={debtToEdit}
       />
 
-      {/* Partial Payment Modal */}
       {paymentModalDebt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200">
-            <h3 className="font-bold text-base text-slate-800 mb-1">تسجيل دفعة سداد</h3>
-            <p className="text-xs text-slate-500 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="partial-payment-title"
+            className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="mb-1 flex items-start justify-between gap-3">
+              <h3 id="partial-payment-title" className="text-base font-bold text-slate-800">
+                تسجيل دفعة
+              </h3>
+              <button
+                type="button"
+                onClick={closePaymentModal}
+                disabled={isSavingPayment}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                aria-label="إغلاق نافذة السداد"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+            <p className="mb-4 text-xs text-slate-500">
               {paymentModalDebt.type === 'to_me'
-                ? `استلام دفعة من: ${paymentModalDebt.personName}`
-                : `سداد دفعة إلى: ${paymentModalDebt.personName}`}
+                ? `الدفعة المستلمة من ${paymentModalDebt.personName}`
+                : `الدفعة المسددة إلى ${paymentModalDebt.personName}`}
+              <span className="mt-1 block font-bold tabular-nums text-slate-700">
+                المتبقي: {getDebtRemainingAmount(paymentModalDebt).toLocaleString('ar-EG')} ج.م
+              </span>
             </p>
 
             <form onSubmit={handleRegisterPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">
-                  المبلغ المسدد الآن (جنيه)
+                <label
+                  htmlFor="debt-payment-amount"
+                  className="mb-1 block text-xs font-bold text-slate-600"
+                >
+                  مبلغ الدفعة (جنيه)
                 </label>
                 <input
+                  id="debt-payment-amount"
                   type="number"
                   step="any"
-                  min="1"
+                  min="0.01"
+                  max={getDebtRemainingAmount(paymentModalDebt)}
                   required
                   autoFocus
-                  placeholder="المبلغ"
+                  placeholder="اكتب المبلغ"
                   value={paymentAmountInput}
-                  onChange={(e) => setPaymentAmountInput(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-lg font-bold text-slate-800 text-center dir-ltr focus:outline-none focus:border-brand-500"
+                  onChange={(event) => setPaymentAmountInput(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-center text-lg font-bold tabular-nums text-slate-800 focus:border-brand-500 focus:outline-none dir-ltr"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">
-                  {paymentModalDebt.type === 'to_me' ? 'إضافة المبلغ إلى' : 'الخصم من'}
-                </label>
-                <select
-                  required
-                  value={paymentWalletId}
-                  onChange={(event) => setPaymentWalletId(event.target.value)}
-                  disabled={!wallets.length}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold disabled:bg-slate-100"
+              <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <input
+                  type="checkbox"
+                  checked={recordPaymentTransaction}
+                  onChange={(event) => setRecordPaymentTransaction(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span>
+                  <span className="block text-xs font-bold text-slate-700">
+                    سجّل الدفعة في مكان مالي
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-slate-500">
+                    هيضاف دخل أو مصروف ويتحدث رصيد المكان تلقائيًا
+                  </span>
+                </span>
+              </label>
+
+              {recordPaymentTransaction && (
+                <div>
+                  <label
+                    htmlFor="debt-payment-wallet"
+                    className="mb-1 block text-xs font-bold text-slate-600"
+                  >
+                    {paymentModalDebt.type === 'to_me' ? 'إضافة المبلغ إلى' : 'الخصم من'}
+                  </label>
+                  <select
+                    id="debt-payment-wallet"
+                    value={paymentWalletId}
+                    onChange={(event) => setPaymentWalletId(event.target.value)}
+                    disabled={!wallets.length}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold disabled:bg-slate-100"
+                  >
+                    <option value="">اختار مكان الفلوس</option>
+                    {wallets.map((wallet) => (
+                      <option key={wallet.id} value={wallet.id}>
+                        {wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {paymentError && (
+                <p
+                  role="alert"
+                  className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
                 >
-                  {wallets.map((wallet) => (
-                    <option key={wallet.id} value={wallet.id}>
-                      {wallet.name} · {wallet.balance.toLocaleString('ar-EG')} ج.م
-                    </option>
-                  ))}
-                </select>
-                {!wallets.length && (
-                  <p className="mt-1 text-[11px] text-rose-600">
-                    أضف مكانًا للأموال من الصفحة الرئيسية أولًا.
-                  </p>
-                )}
-              </div>
+                  {paymentError}
+                </p>
+              )}
 
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  disabled={!wallets.length}
-                  className="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm"
+                  disabled={isSavingPayment}
+                  className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-700 disabled:cursor-wait disabled:opacity-60"
                 >
-                  تأكيد وحفظ المعاملة
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  {isSavingPayment ? 'جاري الحفظ...' : 'حفظ الدفعة'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentModalDebt(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+                  onClick={closePaymentModal}
+                  disabled={isSavingPayment}
+                  className="min-h-11 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-60"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         </div>
       )}
     </div>
