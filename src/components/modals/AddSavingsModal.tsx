@@ -64,7 +64,7 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
         <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-700" />
+            <Sparkles className="w-5 h-5 text-amber-500" />
             <h3 className="font-bold text-base text-slate-800">إضافة أصل أو مدخرات (ذهب / عملة)</h3>
           </div>
           <button
@@ -85,7 +85,7 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
                 onClick={() => setType('gold_21')}
                 className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
                   type === 'gold_21'
-                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -96,7 +96,7 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
                 onClick={() => setType('gold_24')}
                 className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
                   type === 'gold_24'
-                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -118,7 +118,7 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
                 onClick={() => setType('cash_cert')}
                 className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
                   type === 'cash_cert'
-                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -187,16 +187,16 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
 
           {/* Value and profit summary */}
           {totalValue > 0 && (
-            <div className="p-3 rounded-xl bg-slate-50 text-xs flex justify-between items-center">
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs flex justify-between items-center">
               <div>
                 <span className="text-slate-500">القيمة الإجمالية المقدرة: </span>
-                <span className="font-bold tabular-nums text-slate-900">
+                <span className="font-bold text-slate-900 font-mono">
                   {totalValue.toLocaleString('ar-EG')} ج.م
                 </span>
               </div>
               {bPrice > 0 && (
                 <div
-                  className={`font-bold tabular-nums ${
+                  className={`font-bold font-mono ${
                     profitLoss >= 0 ? 'text-emerald-700' : 'text-rose-600'
                   }`}
                 >
@@ -231,7 +231,7 @@ export const AddSavingsModal: React.FC<AddSavingsModalProps> = ({ isOpen, onClos
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" />
             <span>حفظ في محفظة المدخرات</span>

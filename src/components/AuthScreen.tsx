@@ -90,7 +90,7 @@ export const AuthScreen: React.FC = () => {
         {signupOffer?.available && (
           <div className="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-4 text-center shadow-sm">
             <div className="flex items-center justify-center gap-2 text-sm font-black text-emerald-900">
-              <Sparkles className="h-4 w-4 text-emerald-700" /> فترة إطلاق مجانية للجميع
+              <Sparkles className="h-4 w-4 text-amber-500" /> فترة إطلاق مجانية للجميع
             </div>
             {signupOffer.endsAt && (
               <p className="mt-1 text-[11px] text-emerald-800">
@@ -152,7 +152,7 @@ export const AuthScreen: React.FC = () => {
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
-              {error}
+              ⚠️ {error}
             </div>
           )}
 
@@ -205,7 +205,7 @@ export const AuthScreen: React.FC = () => {
                   placeholder="010XXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-3 pr-10 text-right text-sm tabular-nums focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 text-sm bg-slate-50/50 font-mono text-right"
                   dir="ltr"
                 />
               </div>

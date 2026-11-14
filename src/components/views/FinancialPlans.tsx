@@ -14,6 +14,7 @@ import {
   AlertCircle,
   ArrowDownLeft,
   ArrowUpRight,
+  CalendarClock,
   Check,
   CircleCheck,
   Clock3,
@@ -340,54 +341,64 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <section id="savings-goals" className="scroll-mt-24 overflow-hidden rounded-2xl bg-white">
-          <div className="border-b border-slate-100 p-4">
-            <div className="flex items-center justify-between gap-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section id="savings-goals" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 p-5 text-white">
+            <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full border-[18px] border-white/[0.07]" />
+            <div className="relative flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                  <Target className="h-4 w-4" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10">
+                  <Target className="h-5 w-5" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900">أهداف الادخار</h2>
+                <div>
+                  <h2 className="text-sm font-black">أهداف الادخار</h2>
+                  <p className="mt-1 text-[10px] text-emerald-100">
+                    خطوة صغيرة تقرّبك من اللي نفسك فيه
+                  </p>
+                </div>
               </div>
-              {goals.length > 0 && (
-                <button
-                  type="button"
-                  onClick={openNewGoal}
-                  aria-label="إضافة هدف ادخار"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={openNewGoal}
+                aria-label="إضافة هدف ادخار"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
-            <div className="mt-3 flex items-end justify-between gap-3">
+            <div className="relative mt-4 flex items-end justify-between gap-3 border-t border-white/15 pt-3">
               <div>
-                <p className="text-[10px] text-slate-500">إجمالي الادخار</p>
-                <p className="mt-1 text-lg font-bold tabular-nums text-slate-900" dir="ltr">
+                <p className="text-[10px] text-emerald-100">إجمالي ما خصصته لأهدافك</p>
+                <p className="mt-1 text-xl font-black" dir="ltr">
                   {totalSavedTowardGoals.toLocaleString('ar-EG')}{' '}
-                  <span className="text-xs font-semibold text-slate-500">ج.م</span>
+                  <span className="text-xs font-bold text-emerald-100">ج.م</span>
                 </p>
               </div>
-              <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold text-slate-600">
+              <span className="rounded-xl border border-white/15 bg-white/10 px-2.5 py-1.5 text-[10px] font-bold">
                 {goals.length.toLocaleString('ar-EG')} {goals.length === 1 ? 'هدف' : 'أهداف'}
               </span>
             </div>
           </div>
 
           {goals.length === 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
-              <p className="text-xs text-slate-600">مفيش أهداف ادخار مسجلة.</p>
+            <div className="p-5 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
+                <Target className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-xs font-black text-slate-800">ابدأ بهدف يهمك</p>
+              <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                حدد مبلغًا وموعدًا، وسجّل تقدمك كل ما تدخر.
+              </p>
               <button
                 type="button"
                 onClick={openNewGoal}
-                className="min-h-10 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-emerald-700"
               >
                 إنشاء أول هدف
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-emerald-50">
               {goals.map((goal) => {
                 const progress = Math.min(
                   100,
@@ -452,14 +463,14 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                       aria-valuemax={100}
                     >
                       <div
-                        className="h-full rounded-full bg-emerald-600 transition-[width] duration-300"
+                        className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-teal-700 transition-[width] duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] text-slate-500">
                         {completed
-                          ? 'وصلت لهدفك'
+                          ? 'وصلت لهدفك 🎉'
                           : `باقي ${remaining.toLocaleString('ar-EG')} ج.م`}
                       </p>
                       {!completed && (
@@ -480,33 +491,36 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
               })}
             </div>
           )}
-          <p className="border-t border-slate-100 px-4 py-2.5 text-[9px] leading-4 text-slate-500">
-            تسجيل الادخار هنا لا يغيّر رصيد المكان المالي.
+          <p className="border-t border-emerald-50 bg-emerald-50/50 px-4 py-2.5 text-[9px] leading-4 text-slate-500">
+            تقدم الأهداف للمتابعة فقط؛ تسجيل ادخار هنا لا يغيّر رصيد المحافظ.
           </p>
         </section>
 
-        <section id="recurring-transactions" className="scroll-mt-24 overflow-hidden rounded-2xl bg-white">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
+        <section id="recurring-transactions" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+          <div className="flex items-start justify-between gap-3 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-white p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <Repeat2 className="h-4 w-4" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-900">
+                <Repeat2 className="h-5 w-5" />
               </div>
-              <h2 className="text-sm font-bold text-slate-900">الدخل والمصروفات المتكررة</h2>
+              <div>
+                <h2 className="text-sm font-black text-slate-900">الدخل والمصروفات المتكررة</h2>
+                <p className="mt-1 text-[10px] text-slate-500">
+                  زي المرتب والإيجار والإنترنت كل شهر
+                </p>
+              </div>
             </div>
-            {rules.length > 0 && (
-              <button
-                type="button"
-                onClick={openNewRule}
-                aria-label="إضافة معاملة متكررة"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={openNewRule}
+              aria-label="إضافة معاملة متكررة"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
 
           {rules.filter((rule) => rule.isActive && rule.nextDueDate <= today).length > 0 && (
-            <div className="divide-y divide-slate-100 border-b border-slate-100 bg-slate-50/60 px-4">
+            <div className="space-y-2 border-b border-sky-100 bg-sky-50/70 p-4">
               {rules
                 .filter((rule) => rule.isActive && rule.nextDueDate <= today)
                 .map((rule) => {
@@ -514,12 +528,12 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                   return (
                     <div
                       key={`due-${rule.id}`}
-                      className="py-3"
+                      className="rounded-2xl border border-sky-200 bg-white p-3.5 shadow-[0_5px_16px_-14px_rgba(3,105,161,0.7)]"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-2.5">
                           <div
-                            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${rule.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-50 text-rose-700'}`}
+                            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${rule.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
                           >
                             {rule.type === 'income' ? (
                               <ArrowDownLeft className="h-4 w-4" />
@@ -588,18 +602,24 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
           )}
 
           {rules.length === 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
-              <p className="text-xs text-slate-600">مفيش معاملات متكررة.</p>
+            <div className="p-5 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-800">
+                <CalendarClock className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-xs font-black text-slate-800">خلي المتكرر أسهل</p>
+              <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                سجّل الراتب أو الفواتير مرة واحدة، وراجعها لما ييجي موعدها.
+              </p>
               <button
                 type="button"
                 onClick={openNewRule}
-                className="min-h-10 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
+                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-700"
               >
                 أضف معاملة شهرية
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-sky-50">
               {rules.map((rule) => {
                 const daysUntil = daysBetween(today, rule.nextDueDate);
                 const completedThisMonth = rule.lastCompletedMonth === today.slice(0, 7);
@@ -642,7 +662,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                         type="button"
                         onClick={() => openEditRule(rule)}
                         aria-label={`تعديل ${rule.name}`}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-800"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-sky-50 hover:text-sky-800"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -672,8 +692,9 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
               })}
             </div>
           )}
-          <p className="border-t border-slate-100 px-4 py-2.5 text-[9px] leading-4 text-slate-500">
-            الرصيد يتغير لما تأكد الدفع أو الاستلام.
+          <p className="border-t border-sky-100 bg-sky-50/50 px-4 py-2.5 text-[9px] leading-4 text-slate-500">
+            إضافة الموعد لا تخصم ولا تضيف شيئًا. علّم «تم الدفع» أو «تم الاستلام» بعد التنفيذ ليُحدّث
+            التطبيق المعاملة والمكان المالي، أو اضغط «تخطي».
           </p>
         </section>
       </div>
@@ -850,22 +871,25 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
             aria-labelledby="recurring-dialog-title"
             className="flex max-h-[94dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] bg-[#f9fcfd] shadow-2xl sm:rounded-[28px]"
           >
-            <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 text-slate-900">
+            <header className="flex items-center justify-between border-b border-sky-100 bg-sky-950 px-5 py-4 text-white">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
                   <Repeat2 className="h-4 w-4" />
                 </div>
                 <div>
                   <h3 id="recurring-dialog-title" className="text-sm font-black">
                     {ruleEditingId === null ? 'معاملة شهرية متكررة' : 'تعديل المعاملة المتكررة'}
                   </h3>
+                  <p className="mt-0.5 text-[10px] text-sky-100">
+                    موعد للتذكير؛ الرصيد لا يتغير إلا عند التأكيد
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setRuleModalOpen(false)}
                 aria-label="إغلاق"
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                className="rounded-xl p-2 text-sky-100 hover:bg-white/10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -909,7 +933,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                   value={ruleForm.name}
                   onChange={(event) => setRuleForm({ ...ruleForm, name: event.target.value })}
                   placeholder={ruleForm.type === 'expense' ? 'مثال: إيجار البيت' : 'مثال: المرتب'}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"
                 />
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -923,7 +947,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                     value={ruleForm.amount}
                     onChange={(event) => setRuleForm({ ...ruleForm, amount: event.target.value })}
                     placeholder="0.00"
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"
                     dir="ltr"
                   />
                 </label>
@@ -937,7 +961,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                     onChange={(event) =>
                       setRuleForm({ ...ruleForm, nextDueDate: event.target.value })
                     }
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] outline-none focus:border-emerald-600"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] outline-none focus:border-sky-700"
                   />
                 </label>
               </div>
@@ -947,7 +971,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                   required
                   value={ruleForm.category}
                   onChange={(event) => setRuleForm({ ...ruleForm, category: event.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"
                 >
                   <option value="">اختر التصنيف</option>
                   {currentCategories.map((category) => (
@@ -963,7 +987,7 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                   required
                   value={ruleForm.walletId}
                   onChange={(event) => setRuleForm({ ...ruleForm, walletId: event.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"
                 >
                   <option value="">اختر مكان الفلوس</option>
                   {wallets.map((wallet) => (
@@ -980,10 +1004,10 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
                   value={ruleForm.note}
                   onChange={(event) => setRuleForm({ ...ruleForm, note: event.target.value })}
                   placeholder="أي تفاصيل تساعدك تفتكر"
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-sky-700"
                 />
               </label>
-              <p className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[10px] leading-5 text-slate-700">
+              <p className="flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-[10px] leading-5 text-sky-950">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 ده موعدها الأول فقط. بعد ما تعلّمها «تم الدفع» أو «تم الاستلام»، تتجدد مع بداية الشهر
                 القادم؛ ولن يتغير أي رصيد قبل تأكيدك.

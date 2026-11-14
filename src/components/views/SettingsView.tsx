@@ -124,13 +124,16 @@ export const SettingsView: React.FC<{
   return (
     <div className="space-y-4 pb-16">
       {/* Top Header Card */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <h2 className="text-lg font-bold text-slate-900">الإعدادات</h2>
+      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-black text-slate-800">الإعدادات والنسخ الاحتياطي</h2>
+        <p className="text-xs text-slate-500">
+          حماية بياناتك، معلومات الاشتراك، وتثبيت التطبيق على الموبايل
+        </p>
         {onShowOnboarding && (
           <button
             type="button"
             onClick={onShowOnboarding}
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:bg-emerald-100"
+            className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:bg-emerald-100"
           >
             عرض دليل استخدام التطبيق
           </button>
@@ -145,7 +148,7 @@ export const SettingsView: React.FC<{
       )}
 
       {/* Account & License Card */}
-      <div className="space-y-4 rounded-2xl bg-white p-4">
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
@@ -153,6 +156,7 @@ export const SettingsView: React.FC<{
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-800">بيانات الحساب والاشتراك</h3>
+              <p className="text-[11px] text-slate-400">حالة ترخيصك في على قدي</p>
             </div>
           </div>
 
@@ -166,8 +170,8 @@ export const SettingsView: React.FC<{
           </button>
         </div>
 
-        <div className="divide-y divide-slate-100">
-          <div className="flex items-center gap-3 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
             <User className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">الاسم المسجل</div>
@@ -175,17 +179,17 @@ export const SettingsView: React.FC<{
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-3">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
             <Phone className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">رقم الهاتف</div>
-              <div className="text-xs font-bold tabular-nums text-slate-800">
+              <div className="text-xs font-bold text-slate-800 font-mono">
                 {user?.phone || 'غير مطلوب'}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-3">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
             <Calendar className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
@@ -203,7 +207,7 @@ export const SettingsView: React.FC<{
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-3">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
             <ShieldCheck className="w-4 h-4 text-slate-400" />
             <div>
               <div className="text-[10px] text-slate-400">الصلاحية</div>
@@ -220,9 +224,9 @@ export const SettingsView: React.FC<{
       </div>
 
       {user && isRegisteredTrial && user.endDate && (
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-          <h3 className="text-sm font-bold text-emerald-950">عرض الاشتراك السنوي بنصف السعر</h3>
-          <p className="mt-1 text-xs leading-5 text-emerald-900">
+        <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-amber-950">عرض الاشتراك السنوي بنصف السعر</h3>
+          <p className="mt-1 text-xs leading-5 text-amber-900">
             {annualOfferIsOpen
               ? `خصم ٥٠٪ متاح إذا تم الدفع قبل ${annualOfferDeadline?.toLocaleDateString('ar-EG')}.`
               : `انتهت مهلة الخصم. إذا كان الدفع تم خلال أول ١٠ أيام، أرسل الإيصال للمسؤول للمراجعة.`}{' '}
@@ -240,7 +244,7 @@ export const SettingsView: React.FC<{
                   href={paymentConfig.instapayLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  className="rounded-xl bg-pink-600 px-3 py-2 text-xs font-bold text-white"
                 >
                   التحويل عبر InstaPay
                 </a>
@@ -260,32 +264,38 @@ export const SettingsView: React.FC<{
       )}
 
       {/* Backup and Restore Card */}
-      <div className="space-y-4 rounded-2xl bg-white p-4">
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
             <Download className="w-4 h-4" />
           </div>
           <div>
             <h3 className="font-bold text-sm text-slate-800">النسخ الاحتياطي ونقل البيانات</h3>
+            <p className="text-[11px] text-slate-400">
+              احفظ بياناتك على حسابك أو نزّل ملفًا محليًا كنسخة احتياطية
+            </p>
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {/* Export */}
           <button
             onClick={handleExport}
-            className="flex w-full items-center gap-3 py-3 text-right transition-colors hover:bg-slate-50"
+            className="p-4 rounded-2xl border border-slate-200 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/50 text-right transition-all flex flex-col justify-between"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+            <div className="w-8 h-8 rounded-xl bg-white text-brand-600 flex items-center justify-center shadow-sm mb-2">
               <Download className="w-4 h-4" />
             </div>
             <div>
               <div className="font-bold text-xs sm:text-sm text-slate-800">تنزيل نسخة احتياطية</div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                يحفظ كل معاملاتك وديونك في ملف JSON على هاتفك أو جهازك
+              </p>
             </div>
           </button>
 
           {/* Import */}
-          <label className="flex w-full cursor-pointer items-center gap-3 py-3 text-right transition-colors hover:bg-slate-50">
+          <label className="p-4 rounded-2xl border border-slate-200 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/50 text-right transition-all flex flex-col justify-between cursor-pointer">
             <input
               type="file"
               accept=".json"
@@ -293,13 +303,16 @@ export const SettingsView: React.FC<{
               disabled={importing}
               className="hidden"
             />
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+            <div className="w-8 h-8 rounded-xl bg-white text-blue-600 flex items-center justify-center shadow-sm mb-2">
               <Upload className="w-4 h-4" />
             </div>
             <div>
               <div className="font-bold text-xs sm:text-sm text-slate-800">
                 {importing ? 'جاري الاسترجاع...' : 'استرجاع من ملف احتياطي'}
               </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                اختر ملف النسخة الاحتياطية لاستعادة بياناتك المالية على هذا الجهاز
+              </p>
             </div>
           </label>
         </div>
@@ -316,9 +329,9 @@ export const SettingsView: React.FC<{
       )}
 
       {/* PWA Mobile Installation Guide */}
-      <div className="space-y-3 rounded-2xl bg-white p-4">
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
             <Smartphone className="w-4 h-4" />
           </div>
           <div>
@@ -330,7 +343,7 @@ export const SettingsView: React.FC<{
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600 pt-1">
-          <div className="space-y-1.5 py-3 sm:pl-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
             <div className="font-bold text-slate-800 text-xs">لهواتف أندرويد (Chrome):</div>
             <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500">
               <li>اضغط على زر الخيارات (⋮) أعلى يمين المتصفح.</li>
@@ -342,7 +355,7 @@ export const SettingsView: React.FC<{
             </ol>
           </div>
 
-          <div className="space-y-1.5 py-3 sm:pr-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
             <div className="font-bold text-slate-800 text-xs">لهواتف آيفون (iPhone Safari):</div>
             <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500">
               <li>اضغط على زر المشاركة (Share) أسفل الشاشة.</li>
@@ -360,9 +373,12 @@ export const SettingsView: React.FC<{
       </div>
 
       {/* Logout Card */}
-      <div className="flex flex-col justify-between gap-3 rounded-2xl bg-white p-4 sm:flex-row sm:items-center">
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h4 className="font-bold text-sm text-slate-800">تسجيل الخروج من الحساب</h4>
+          <p className="text-xs text-slate-400 mt-0.5">
+            الخروج من حسابك ({user?.name}) والعودة لشاشة الدخول
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {user?.isTrial && (

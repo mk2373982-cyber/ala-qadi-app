@@ -21,7 +21,7 @@ import {
   getCloudAutoBackupEnabled,
   runWeeklyCloudBackup,
 } from '@/lib/supabase-backup';
-import { ArrowUpRight, CheckCircle2, Plus } from 'lucide-react';
+import { CheckCircle2, Plus } from 'lucide-react';
 
 const SWIPE_NAV_TABS: TabType[] = [
   'dashboard',
@@ -205,7 +205,7 @@ export default function Home() {
 
       {isRegisteredTrial && daysRemaining !== null && (
         <aside
-          className={`mx-auto mt-2 flex w-[calc(100%-2rem)] max-w-5xl items-center justify-between gap-2 rounded-xl border px-3 py-2 ${daysRemaining <= 5 ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-emerald-200 bg-emerald-50 text-emerald-950'}`}
+          className={`mx-auto mt-2 flex w-[calc(100%-2rem)] max-w-5xl items-center justify-between gap-2 rounded-xl border px-3 py-2 ${daysRemaining <= 5 ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-emerald-200 bg-emerald-50 text-emerald-950'}`}
         >
           <div className="min-w-0">
             <p className="truncate text-xs font-black">
@@ -377,10 +377,10 @@ export default function Home() {
                   setShowQuickAdd(false);
                   setIsDebtQuickAddOpen(true);
                 }}
-                className="flex min-h-12 items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-bold text-rose-900 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                className="flex min-h-12 items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-black text-amber-950 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
               >
                 <span>دين أو مبلغ مستحق</span>
-                <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                <span aria-hidden="true">↗</span>
               </button>
             </div>
             <button
