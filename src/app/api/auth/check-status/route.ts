@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { findUserById, getUserIdFromSession } from '@/lib/server-storage';
+import {
+  clearLegacyUserSessionCookie,
+  createUserSession,
+  findUserById,
+  getUserIdFromSession,
+  userSessionCookie,
+} from '@/lib/server-storage';
 
 export async function POST(req: Request) {
   try {
@@ -13,10 +19,12 @@ export async function POST(req: Request) {
 
     const user = await findUserById(userId);
     if (!user) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { status: 'revoked', message: 'تم إيقاف أو حذف الحساب' },
         { headers: { 'Cache-Control': 'no-store' } },
       );
+      response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
+      return response;
     }
 
     let status = user.status;
@@ -28,7 +36,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         status,
         plan: user.plan,
@@ -39,6 +47,9 @@ export async function POST(req: Request) {
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );
+    response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
+    response.headers.append('Set-Cookie', userSessionCookie(createUserSession(userId)));
+    return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

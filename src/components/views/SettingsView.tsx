@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { exportAllDataAsJSON, importDataFromJSON } from '@/lib/export-import';
 import { db, seedDefaultCategoriesIfEmpty } from '@/lib/db';
 import { askForConfirmation } from '@/lib/confirm-action';
-import { GoogleDriveBackupPanel } from '@/components/GoogleDriveBackupPanel';
+import { SupabaseBackupPanel } from '@/components/SupabaseBackupPanel';
 import {
   Download,
   Upload,
@@ -73,6 +73,7 @@ export const SettingsView: React.FC<{
     const result = await importDataFromJSON(file);
     setImporting(false);
     setStatusMessage(result.message);
+    if (result.success) onDataRestored?.();
     e.target.value = '';
     setTimeout(() => setStatusMessage(null), 4000);
   };
@@ -271,7 +272,7 @@ export const SettingsView: React.FC<{
           <div>
             <h3 className="font-bold text-sm text-slate-800">النسخ الاحتياطي ونقل البيانات</h3>
             <p className="text-[11px] text-slate-400">
-              احتفظ بنسخة من بياناتك في ملف مشفر لنقلها لأي جهاز آخر
+              احفظ بياناتك على حسابك أو نزّل ملفًا محليًا كنسخة احتياطية
             </p>
           </div>
         </div>
@@ -317,7 +318,14 @@ export const SettingsView: React.FC<{
         </div>
       </div>
 
-      <GoogleDriveBackupPanel onDataRestored={onDataRestored} />
+      {user?.id && (
+        <SupabaseBackupPanel
+          key={user.id}
+          userId={user.id}
+          isOnline={isOnline}
+          onDataRestored={onDataRestored}
+        />
+      )}
 
       {/* PWA Mobile Installation Guide */}
       <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">

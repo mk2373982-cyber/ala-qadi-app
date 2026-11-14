@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { installDriveBackupHooks, setDriveBackupUserId } from '@/lib/drive-backup';
 import { Header } from '@/components/Header';
 import { Navigation, TabType } from '@/components/Navigation';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -16,6 +15,7 @@ import { SettingsView } from '@/components/views/SettingsView';
 import { AddTransactionModal } from '@/components/modals/AddTransactionModal';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { AddDebtModal } from '@/components/modals/AddDebtModal';
+import { CloudRestorePrompt } from '@/components/SupabaseBackupPanel';
 import { Plus } from 'lucide-react';
 
 const SWIPE_NAV_TABS: TabType[] = [
@@ -27,7 +27,7 @@ const SWIPE_NAV_TABS: TabType[] = [
 ];
 
 export default function Home() {
-  const { user, isLoading, isLicenseActive, daysRemaining } = useAuth();
+  const { user, isLoading, isLicenseActive, daysRemaining, isOnline } = useAuth();
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -41,14 +41,6 @@ export default function Home() {
   const offerDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
   if (offerDeadline) offerDeadline.setDate(offerDeadline.getDate() + 10);
   const isAnnualOfferOpen = Boolean(offerDeadline && Date.now() <= offerDeadline.getTime());
-
-  useEffect(() => {
-    installDriveBackupHooks();
-  }, [user?.id]);
-
-  useEffect(() => {
-    void setDriveBackupUserId(user?.id || null);
-  }, [user?.id]);
 
   useEffect(() => {
     if (!user || (user.isTrial && user.trialExpiresAt)) return;
@@ -183,6 +175,17 @@ export default function Home() {
           </button>
         </aside>
       )}
+
+      <CloudRestorePrompt
+        key={user.id}
+        userId={user.id}
+        isOnline={isOnline}
+        onDataRestored={() => {
+          setRefreshKey((previous) => previous + 1);
+          setSaveMessage('تم استرداد بياناتك بنجاح');
+          window.setTimeout(() => setSaveMessage(''), 3200);
+        }}
+      />
 
       <main
         id="main-content"

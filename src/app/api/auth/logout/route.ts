@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import { clearUserSessionCookie } from '@/lib/server-storage';
+import { clearLegacyUserSessionCookie, clearUserSessionCookie } from '@/lib/server-storage';
 
 export async function POST() {
-  return NextResponse.json(
+  const response = NextResponse.json(
     { success: true },
-    {
-      headers: {
-        'Cache-Control': 'no-store',
-        'Set-Cookie': clearUserSessionCookie(),
-      },
-    },
+    { headers: { 'Cache-Control': 'no-store' } },
   );
+  response.headers.append('Set-Cookie', clearUserSessionCookie());
+  response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
+  return response;
 }

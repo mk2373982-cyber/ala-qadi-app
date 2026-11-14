@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { userSessionCookie, createUserSession, verifyUserPassword } from '@/lib/server-storage';
+import {
+  clearLegacyUserSessionCookie,
+  userSessionCookie,
+  createUserSession,
+  verifyUserPassword,
+} from '@/lib/server-storage';
 import { AuthRateLimitUnavailableError, isAuthRateLimited } from '@/lib/auth-rate-limit';
 
 export async function POST(req: Request) {
@@ -65,6 +70,7 @@ export async function POST(req: Request) {
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );
+    response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));
     return response;
   } catch (error: any) {

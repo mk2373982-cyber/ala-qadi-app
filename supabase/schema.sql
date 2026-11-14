@@ -21,6 +21,12 @@ create table if not exists public.app_users (
 create index if not exists app_users_status_idx on public.app_users(status);
 create index if not exists app_users_payment_status_idx on public.app_users(payment_status);
 
+create table if not exists public.user_backups (
+  user_id uuid primary key references public.app_users(id) on delete cascade,
+  backup_data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.app_settings (
   key text primary key,
   value jsonb not null,
@@ -29,9 +35,12 @@ create table if not exists public.app_settings (
 
 alter table public.app_users enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.user_backups enable row level security;
 -- No client policies or table grants: access only through server routes using SUPABASE_SERVICE_ROLE_KEY.
 revoke all privileges on table public.app_users, public.app_settings
   from public, anon, authenticated;
+revoke all privileges on table public.user_backups from public, anon, authenticated;
+grant select, insert, update on table public.user_backups to service_role;
 
 -- Shared atomic auth rate limits. Keys are HMAC digests; raw phone/IP values are never stored.
 create table if not exists public.auth_rate_limits (

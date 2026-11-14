@@ -293,6 +293,28 @@ export async function deleteUser(userId: string) {
   await db<unknown>('app_users', `?id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
 
+export async function getUserBackup(userId: string) {
+  const rows = await db<{ backup_data: unknown; updated_at: string }[]>(
+    'user_backups',
+    `?user_id=eq.${encodeURIComponent(userId)}&select=backup_data,updated_at&limit=1`,
+  );
+  return rows[0] ? { backupData: rows[0].backup_data, updatedAt: rows[0].updated_at } : null;
+}
+
+export async function saveUserBackup(userId: string, backupData: unknown) {
+  const rows = await db<{ updated_at: string }[]>('user_backups', '?on_conflict=user_id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify({
+      user_id: userId,
+      backup_data: backupData,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+  if (!rows[0]?.updated_at) throw new Error('تعذر حفظ النسخة الاحتياطية.');
+  return rows[0].updated_at;
+}
+
 const defaultSettings: AdminSettings = {
   paymentPhone: '',
   paymentInstapay: '',
@@ -416,10 +438,14 @@ export function verifyUserSession(session: string | undefined) {
 }
 
 export function userSessionCookie(session: string) {
-  return `${USER_SESSION_COOKIE}=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/auth; Max-Age=${USER_SESSION_DURATION_SECONDS}`;
+  return `${USER_SESSION_COOKIE}=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/; Max-Age=${USER_SESSION_DURATION_SECONDS}`;
 }
 
 export function clearUserSessionCookie() {
+  return `${USER_SESSION_COOKIE}=; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+export function clearLegacyUserSessionCookie() {
   return `${USER_SESSION_COOKIE}=; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/auth; Max-Age=0`;
 }
 
