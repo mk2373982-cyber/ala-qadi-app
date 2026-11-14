@@ -98,7 +98,7 @@ export const PendingScreen: React.FC = () => {
 
             {config.pricingNote && (
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/60 text-xs text-amber-900 font-medium leading-relaxed">
-                💡 {config.pricingNote}
+                {config.pricingNote}
               </div>
             )}
 
@@ -113,7 +113,7 @@ export const PendingScreen: React.FC = () => {
                 </button>
                 <div className="min-w-0 max-w-[70%] overflow-hidden text-left">
                   <div className="text-xs text-slate-400">فودافون كاش / محفظة</div>
-                  <div className="font-mono font-bold text-slate-800 text-sm dir-ltr">
+                  <div className="tabular-nums font-bold text-slate-800 text-sm dir-ltr">
                     {config.paymentPhone}
                   </div>
                 </div>
@@ -131,7 +131,7 @@ export const PendingScreen: React.FC = () => {
                 </button>
                 <div className="min-w-0 max-w-[70%] overflow-hidden text-left">
                   <div className="text-xs text-slate-400">عنوان انستاباي (InstaPay)</div>
-                  <div className="font-mono font-bold text-slate-800 text-sm dir-ltr break-all">
+                  <div className="tabular-nums font-bold text-slate-800 text-sm dir-ltr break-all">
                     {config.paymentInstapay}
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export const PendingScreen: React.FC = () => {
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block min-w-0 max-w-full rounded-xl bg-pink-50 border border-pink-200 p-3 text-center text-sm font-bold text-pink-700 hover:bg-pink-100 active:scale-[0.99] transition break-all"
+                className="block min-w-0 max-w-full rounded-xl bg-emerald-600 p-3 text-center text-sm font-bold text-white transition hover:bg-emerald-700 active:scale-[0.99] break-all"
                 dir="ltr"
                 aria-label="فتح رابط InstaPay للتحويل"
               >

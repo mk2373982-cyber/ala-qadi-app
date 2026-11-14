@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, isSettingsActive
             className={`flex h-9 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold ${
               isOnline
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                : 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-slate-200 bg-slate-100 text-slate-700'
             }`}
           >
             {isOnline ? (

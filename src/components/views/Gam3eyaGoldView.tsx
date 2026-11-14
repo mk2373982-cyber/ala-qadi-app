@@ -147,12 +147,9 @@ export const Gam3eyaGoldView: React.FC = () => {
   return (
     <div className="space-y-4 pb-16">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-black text-slate-800">الجمعيات والذهب والمدخرات</h2>
-          <p className="text-xs text-slate-500">
-            حسابات الجمعيات الشهرية وحفظ قيمة أموالك في الأصول
-          </p>
+          <h2 className="text-lg font-bold text-slate-900">جمعيات وذهب</h2>
         </div>
 
         <div className="flex gap-2">
@@ -167,7 +164,7 @@ export const Gam3eyaGoldView: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsSavingsModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-all"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة أصل / ذهب</span>
@@ -182,7 +179,7 @@ export const Gam3eyaGoldView: React.FC = () => {
           onClick={() => setActiveSection('gam3eya')}
           className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeSection === 'gam3eya'
-              ? 'bg-white text-purple-700 shadow-sm'
+              ? 'bg-white text-emerald-800 shadow-sm'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -193,7 +190,7 @@ export const Gam3eyaGoldView: React.FC = () => {
           onClick={() => setActiveSection('gold')}
           className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeSection === 'gold'
-              ? 'bg-white text-amber-700 shadow-sm'
+              ? 'bg-white text-emerald-800 shadow-sm'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -206,22 +203,26 @@ export const Gam3eyaGoldView: React.FC = () => {
       {activeSection === 'gam3eya' && (
         <div className="space-y-3">
           {gam3eyat.length === 0 ? (
-            <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
-              <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <div className="text-sm font-bold text-slate-700">لا توجد جمعيات مسجلة</div>
-              <p className="text-xs text-slate-400 mt-1">
-                سجل جمعياتك لمتابعة الأقساط الشهرية وموعد قبض دورك بدقة!
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 text-xs text-slate-600">
+              <span>مفيش جمعيات مسجلة.</span>
+              <button
+                type="button"
+                onClick={() => setIsGam3eyaModalOpen(true)}
+                className="min-h-10 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
+              >
+                + إضافة جمعية
+              </button>
             </div>
           ) : (
-            gam3eyat.map((g) => {
+            <div className="overflow-hidden rounded-2xl bg-white px-4 divide-y divide-slate-100">
+            {gam3eyat.map((g) => {
               const totalPayout = g.monthlyAmount * g.totalMonths;
               const progress = Math.min(Math.round((g.paidMonths / g.totalMonths) * 100), 100);
 
               return (
                 <div
                   key={g.id}
-                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3"
+                  className="space-y-3 py-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -232,7 +233,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                             تم قبض دورك ✓
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
                             دورك الشهر رقم {g.myTurnMonth}
                           </span>
                         )}
@@ -243,7 +244,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                           {g.monthlyAmount.toLocaleString('ar-EG')} ج.م
                         </span>{' '}
                         • الإجمالي المقبوض:{' '}
-                        <span className="font-bold text-purple-800">
+                        <span className="font-bold text-slate-800">
                           {totalPayout.toLocaleString('ar-EG')} ج.م
                         </span>
                       </div>
@@ -266,7 +267,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                       <span className="text-slate-500">
                         دفعت {g.paidMonths} من أصل {g.totalMonths} شهور
                       </span>
-                      <span className="font-bold font-mono text-purple-800">{progress}%</span>
+                      <span className="font-bold tabular-nums text-slate-700">{progress}%</span>
                     </div>
                     <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
                       <div
@@ -297,7 +298,8 @@ export const Gam3eyaGoldView: React.FC = () => {
                   </div>
                 </div>
               );
-            })
+            })}
+            </div>
           )}
         </div>
       )}
@@ -306,42 +308,45 @@ export const Gam3eyaGoldView: React.FC = () => {
       {activeSection === 'gold' && (
         <div className="space-y-4">
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="bg-amber-50/80 border border-amber-200 p-3 rounded-2xl">
-              <div className="text-[11px] text-amber-700 font-bold">ذهب عيار 21</div>
-              <div className="text-base font-black text-amber-900 font-mono mt-0.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl bg-white p-4 sm:grid-cols-4">
+            <div>
+              <div className="text-[11px] font-bold text-slate-500">ذهب عيار 21</div>
+              <div className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                 {gold21Grams} جرام
               </div>
             </div>
-            <div className="bg-amber-100/70 border border-amber-300 p-3 rounded-2xl">
-              <div className="text-[11px] text-amber-800 font-bold">سبائك عيار 24</div>
-              <div className="text-base font-black text-amber-950 font-mono mt-0.5">
+            <div>
+              <div className="text-[11px] font-bold text-slate-500">سبائك عيار 24</div>
+              <div className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                 {gold24Grams} جرام
               </div>
             </div>
-            <div className="bg-emerald-50/80 border border-emerald-200 p-3 rounded-2xl">
-              <div className="text-[11px] text-emerald-700 font-bold">دولار (USD)</div>
-              <div className="text-base font-black text-emerald-900 font-mono mt-0.5">
+            <div>
+              <div className="text-[11px] font-bold text-slate-500">دولار (USD)</div>
+              <div className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                 ${totalUSD.toLocaleString('ar-EG')}
               </div>
             </div>
-            <div className="bg-brand-50/80 border border-brand-200 p-3 rounded-2xl">
-              <div className="text-[11px] text-brand-700 font-bold">القيمة التقديرية</div>
-              <div className="text-base font-black text-brand-900 font-mono mt-0.5">
+            <div>
+              <div className="text-[11px] font-bold text-slate-500">القيمة التقديرية</div>
+              <div className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                 {totalSavingsEstimatedValue.toLocaleString('ar-EG')} ج.م
               </div>
             </div>
           </div>
 
           {/* List of items */}
-          <div className="space-y-3">
+          <div>
             {savings.length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
-                <Sparkles className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <div className="text-sm font-bold text-slate-700">لا توجد أصول مسجلة بعد</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  أضف سبائك الذهب أو الجنيهات أو العملات لتتبع قيمتها وحفظ مدخراتك.
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 text-xs text-slate-600">
+                <span>مفيش أصول مسجلة.</span>
+                <button
+                  type="button"
+                  onClick={() => setIsSavingsModalOpen(true)}
+                  className="min-h-10 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
+                >
+                  + إضافة أصل
+                </button>
               </div>
             ) : (
               savings.map((s) => {
@@ -352,10 +357,10 @@ export const Gam3eyaGoldView: React.FC = () => {
                 return (
                   <div
                     key={s.id}
-                    className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-sm flex items-center justify-between gap-3"
+                    className="flex items-center justify-between gap-3 py-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-700">
                         {s.type === 'gold_21'
                           ? '21'
                           : s.type === 'gold_24'
@@ -368,7 +373,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                         <div className="font-bold text-slate-800 text-sm">{s.name}</div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           الكمية:{' '}
-                          <span className="font-bold font-mono text-slate-700">
+                          <span className="font-bold tabular-nums text-slate-700">
                             {s.quantity} {unit}
                           </span>
                           {s.buyPricePerUnit > 0 && (
@@ -383,7 +388,7 @@ export const Gam3eyaGoldView: React.FC = () => {
 
                     <div className="flex items-center gap-3">
                       <div className="text-left">
-                        <div className="font-mono font-bold text-sm sm:text-base text-slate-900">
+                        <div className="text-sm font-bold tabular-nums text-slate-900 sm:text-base">
                           {value.toLocaleString('ar-EG')} ج.م
                         </div>
                         <div className="text-[10px] text-slate-400">القيمة المقدرة</div>
@@ -440,7 +445,7 @@ export const Gam3eyaGoldView: React.FC = () => {
                 ))}
               </select>
             ) : (
-              <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+              <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
                 أضف مكانًا للأموال من الصفحة الرئيسية أولًا.
               </p>
             )}

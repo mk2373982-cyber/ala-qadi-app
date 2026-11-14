@@ -11,7 +11,6 @@ import {
   DollarSign,
   BarChart3,
   Lightbulb,
-  ReceiptText,
 } from 'lucide-react';
 
 const monthKey = (date: Date) =>
@@ -96,12 +95,9 @@ export const BudgetReportsView: React.FC = () => {
   return (
     <div className="space-y-4 pb-16">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm no-print">
+      <div className="flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-center no-print">
         <div>
-          <h2 className="text-lg font-black text-slate-800">التقارير والتحليل الشهري</h2>
-          <p className="text-xs text-slate-500">
-            ملخص شهري يساعدك تعرف دخلت كام، صرفت فين، وإيه اتجاه مصروفاتك
-          </p>
+          <h2 className="text-lg font-bold text-slate-900">التقارير</h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -141,40 +137,40 @@ export const BudgetReportsView: React.FC = () => {
       </div>
 
       {/* Monthly Scorecards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6" />
+      <div className="grid grid-cols-1 divide-y divide-slate-100 rounded-2xl bg-white px-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="flex items-center gap-3 py-3 sm:px-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+            <TrendingUp className="h-4 w-4" />
           </div>
           <div>
             <div className="text-xs text-slate-400 font-medium">إجمالي الدخل في الشهر</div>
-            <div className="text-xl font-black font-mono text-emerald-700 mt-0.5">
+            <div className="mt-0.5 text-lg font-bold tabular-nums text-emerald-800">
               {totalIncome.toLocaleString('ar-EG')} ج.م
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-            <TrendingDown className="w-6 h-6" />
+        <div className="flex items-center gap-3 py-3 sm:px-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+            <TrendingDown className="h-4 w-4" />
           </div>
           <div>
             <div className="text-xs text-slate-400 font-medium">إجمالي المصروفات في الشهر</div>
-            <div className="text-xl font-black font-mono text-rose-700 mt-0.5">
+            <div className="mt-0.5 text-lg font-bold tabular-nums text-rose-800">
               {totalExpense.toLocaleString('ar-EG')} ج.م
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
-            <DollarSign className="w-6 h-6" />
+        <div className="flex items-center gap-3 py-3 sm:px-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+            <DollarSign className="h-4 w-4" />
           </div>
           <div>
             <div className="text-xs text-slate-400 font-medium">صافي التوفير (الادخار)</div>
             <div
-              className={`text-xl font-black font-mono mt-0.5 ${
-                netSavings >= 0 ? 'text-brand-800' : 'text-rose-600'
+              className={`mt-0.5 text-xl font-bold tabular-nums ${
+                netSavings >= 0 ? 'text-emerald-800' : 'text-rose-700'
               }`}
             >
               {netSavings.toLocaleString('ar-EG')} ج.م
@@ -198,7 +194,7 @@ export const BudgetReportsView: React.FC = () => {
             <Lightbulb className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="text-xs font-black">ملخص يساعدك تاخد قرار</h3>
+            <h3 className="text-xs font-bold">ملخص الشهر</h3>
             <p className="mt-1 text-[11px] leading-5">
               {netSavings < 0
                 ? `مصروفاتك زادت عن دخلك بـ ${Math.abs(netSavings).toLocaleString('ar-EG')} ج.م في ${selectedMonthLabel}. أعلى بند صرف هو ${categoryBreakdown[0].category} (${categoryBreakdown[0].percentage}٪).`
@@ -209,18 +205,15 @@ export const BudgetReportsView: React.FC = () => {
       )}
 
       {/* Six-month income and expense comparison */}
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <section className="overflow-hidden rounded-2xl bg-white p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-slate-900">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-800">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                 <BarChart3 className="h-4 w-4" />
               </span>
               <h3 className="text-sm font-black">اتجاه الدخل والمصروف</h3>
             </div>
-            <p className="mt-2 text-[10px] text-slate-500">
-              مقارنة آخر ٦ شهور حتى {selectedMonthLabel}
-            </p>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5 pt-1 text-[9px] font-bold text-slate-600 sm:flex-row sm:gap-3">
             <span className="flex items-center gap-1.5">
@@ -234,8 +227,8 @@ export const BudgetReportsView: React.FC = () => {
           </div>
         </div>
         {allTransactions.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-500">
-            سجّل أول حركة عشان يظهر اتجاه الدخل والمصروف هنا.
+          <div className="py-5 text-xs text-slate-600">
+            مفيش حركات مسجلة للشهر المحدد.
           </div>
         ) : (
           <div
@@ -269,22 +262,15 @@ export const BudgetReportsView: React.FC = () => {
             ))}
           </div>
         )}
-        <div className="mt-3 flex items-center gap-1.5 text-[9px] text-slate-400">
-          <ReceiptText className="h-3.5 w-3.5" />
-          حرّك المؤشر فوق أي عمود لمعرفة المبلغ المسجل.
-        </div>
       </section>
 
       {/* Category Breakdown (Where does money go?) */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+      <div className="rounded-2xl bg-white p-4 sm:p-5">
         <h3 className="font-bold text-sm text-slate-800 mb-1">توزيع المصروفات حسب البنود</h3>
-        <p className="text-xs text-slate-400 mb-5">
-          نسبة كل تصنيف من إجمالي مصروفات هذا الشهر ({totalExpense.toLocaleString('ar-EG')} ج.م)
-        </p>
 
         {categoryBreakdown.length === 0 ? (
-          <div className="text-center py-8 text-slate-400 text-xs">
-            لا توجد مصروفات مسجلة لهذا الشهر.
+          <div className="py-4 text-xs text-slate-600">
+            مفيش مصروفات مسجلة للشهر المحدد.
           </div>
         ) : (
           <div className="space-y-4">
@@ -297,7 +283,7 @@ export const BudgetReportsView: React.FC = () => {
                     </span>
                     <span className="font-bold text-slate-700">{cat.category}</span>
                   </div>
-                  <div className="flex items-center gap-2 font-mono">
+                  <div className="flex items-center gap-2 tabular-nums">
                     <span className="font-bold text-slate-900">
                       {cat.amount.toLocaleString('ar-EG')} ج.م
                     </span>

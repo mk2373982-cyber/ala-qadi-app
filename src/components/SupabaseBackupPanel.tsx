@@ -266,16 +266,13 @@ export function SupabaseBackupPanel({
 
   return (
     <>
-      <section className="space-y-4 rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+      <section className="space-y-4 rounded-2xl bg-white p-4">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
             <DatabaseBackup aria-hidden="true" className="h-4 w-4" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-800">نسخة احتياطية على حسابك</h3>
-            <p className="text-[11px] text-slate-500">
-              احتفظ ببياناتك واسترجعها على أي جهاز بعد تسجيل الدخول
-            </p>
           </div>
         </div>
 
@@ -309,7 +306,7 @@ export function SupabaseBackupPanel({
             ? 'آخر نسخة: ' + formatBackupDate(lastSaved)
             : 'النسخة السحابية متاحة بعد تسجيل الدخول مع الاتصال بالإنترنت.'}
         </p>
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+        <div className="border-t border-slate-100 pt-3">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -432,10 +429,10 @@ export function CloudRestorePrompt({ userId, isOnline, onDataRestored }: BackupP
   if (!backup || hidden) return null;
   return (
     <>
-      <aside className="mx-auto mt-3 flex w-[calc(100%-2rem)] max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-950">
+      <aside className="mx-auto mt-3 flex w-[calc(100%-2rem)] max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
         <div className="min-w-0">
           <p className="text-sm font-black">لقينا نسخة بيانات محفوظة على حسابك</p>
-          <p className="mt-0.5 text-xs text-sky-800">
+          <p className="mt-0.5 text-xs text-emerald-800">
             آخر نسخة: {formatBackupDate(backup.updatedAt)}
           </p>
           {message && (
@@ -456,7 +453,7 @@ export function CloudRestorePrompt({ userId, isOnline, onDataRestored }: BackupP
             type="button"
             onClick={dismiss}
             aria-label="إخفاء اقتراح استرداد النسخة"
-            className="min-h-10 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-900 hover:bg-sky-100"
+            className="min-h-10 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
           >
             لاحقًا
           </button>

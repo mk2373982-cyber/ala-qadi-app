@@ -96,10 +96,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
   return (
     <div className="space-y-4 pb-4">
       {/* Header & Export Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-800">سجل المعاملات</h2>
-          <p className="text-xs text-slate-500">تتبع تفاصيل كل قرش صرفته أو دخل لك</p>
+          <h2 className="text-lg font-bold text-slate-900">المعاملات</h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -126,7 +125,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+      <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white p-3 sm:p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {/* Search box */}
           <div className="relative">
@@ -234,17 +233,24 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onOpenAddMod
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm">
+      <div className="overflow-hidden rounded-2xl bg-white">
         {filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-xs">
-            لا توجد معاملات تطابق عوامل التصفية الحالية.
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-5 text-xs text-slate-600">
+            <span>مفيش معاملات مطابقة للبحث الحالي.</span>
+            <button
+              type="button"
+              onClick={onOpenAddModal}
+              className="min-h-10 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+            >
+              + إضافة حركة
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {filtered.map((tx) => (
               <div
                 key={tx.id}
-                className="flex min-w-0 items-center justify-between gap-2 rounded-xl p-2 py-3 transition-colors hover:bg-slate-50/50"
+                className="flex min-w-0 items-center justify-between gap-2 px-3 py-3 transition-colors hover:bg-slate-50/70 sm:px-4"
               >
                 <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                   <div

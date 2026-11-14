@@ -274,10 +274,10 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
     <>
       <section
         aria-labelledby="upcoming-due-alerts-title"
-        className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/80 shadow-sm"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
       >
         <div className="flex items-start gap-3 p-4">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
             {items.some((item) => daysUntilDueDate(item.dueDate, today)! < 0) ? (
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             ) : (
@@ -285,17 +285,14 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
             )}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 id="upcoming-due-alerts-title" className="text-xs font-black text-amber-950">
-              استحقاقات الأسبوع
+            <h2 id="upcoming-due-alerts-title" className="text-xs font-bold text-slate-900">
+              استحقاقات الأسبوع · {items.length.toLocaleString('ar-EG')}
             </h2>
-            <p className="mt-1 text-[10px] leading-4 text-amber-900">
-              عندك {items.length.toLocaleString('ar-EG')} استحقاق قريب أو متأخر خلال الشهر الحالي.
-            </p>
           </div>
-          <Clock3 className="mt-1 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+          <Clock3 className="mt-1 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
         </div>
 
-        <div className="divide-y divide-amber-100 border-t border-amber-200/80 bg-white/80">
+        <div className="divide-y divide-slate-100 border-t border-slate-100">
           {items.map((item) => {
             const needsPicker =
               item.kind !== 'recurring' || !wallets.some((wallet) => wallet.id === item.walletId);
@@ -322,7 +319,7 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
                     type="button"
                     disabled={busy}
                     onClick={() => beginRecording(item)}
-                    className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-[10px] font-black text-white transition-colors hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-50"
+                    className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-50"
                   >
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />
                     {item.direction === 'income' ? 'تم الاستلام' : 'تم الدفع'}
@@ -337,7 +334,7 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
                     تخطي
                   </button>
                   {needsPicker && wallets.length === 0 && (
-                    <span className="self-center text-[10px] text-amber-900">
+                    <span className="self-center text-[10px] text-slate-600">
                       أضف مكانًا ماليًا لتسجيل الحركة.
                     </span>
                   )}
@@ -393,7 +390,7 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
                 </select>
               </label>
             ) : (
-              <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
                 أضف مكانًا ماليًا من ملخص أموالك الأول.
               </p>
             )}
