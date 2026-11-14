@@ -22,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, isSettingsActive
             alt=""
             width={40}
             height={40}
+            unoptimized
             priority
             className="h-10 w-10 shrink-0 rounded-xl object-cover"
           />

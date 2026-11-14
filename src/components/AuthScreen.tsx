@@ -77,6 +77,7 @@ export const AuthScreen: React.FC = () => {
             alt="أيقونة تطبيق على قدي"
             width={64}
             height={64}
+            unoptimized
             priority
             className="mx-auto mb-3 h-16 w-16 rounded-2xl object-cover shadow-xl shadow-brand-500/20"
           />
