@@ -197,7 +197,7 @@ export const DebtsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 pb-16">
+    <div className="stitch-view stitch-debts space-y-5 pb-16">
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-black text-slate-800">قسم «ليّا وعليّا»</h2>

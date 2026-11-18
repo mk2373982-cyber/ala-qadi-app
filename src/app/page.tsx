@@ -25,9 +25,9 @@ import { CheckCircle2, Plus } from 'lucide-react';
 
 const SWIPE_NAV_TABS: TabType[] = [
   'dashboard',
+  'gam3eya_gold',
   'transactions',
   'debts',
-  'gam3eya_gold',
   'budget_reports',
 ];
 
@@ -66,13 +66,13 @@ export default function Home() {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.08, rootMargin: '0px 0px -6% 0px' },
+      { threshold: 0.1, rootMargin: '0px 0px -8% 0px' },
     );
 
     sections.forEach((section, index) => {
       section.classList.add('scroll-motion-ready');
       if (index % 2 === 1) section.classList.add('scroll-motion-from-left');
-      section.style.transitionDelay = `${Math.min(index % 4, 3) * 35}ms`;
+      section.style.transitionDelay = `${Math.min(index % 4, 3) * 55}ms`;
       observer.observe(section);
     });
 
@@ -279,7 +279,7 @@ export default function Home() {
         onTouchCancel={() => {
           swipeStart.current = null;
         }}
-        className="tab-screen-motion mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-5 md:py-6 md:pb-8"
+        className="stitch-page tab-screen-motion mx-auto w-full max-w-6xl flex-1 px-4 py-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-6 md:py-7 md:pb-8"
       >
         {currentTab === 'dashboard' && (
           <DashboardView

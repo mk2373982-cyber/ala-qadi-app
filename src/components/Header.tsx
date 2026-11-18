@@ -14,8 +14,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, isSettingsActive
   const { isOnline } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 min-w-0 max-w-5xl items-center justify-between gap-3 px-4 sm:h-[72px]">
+    <header className="stitch-header sticky top-2 z-30 mx-auto mt-2 w-[calc(100%-1rem)] max-w-6xl rounded-full border border-white/80 bg-white/85 shadow-[0_10px_30px_-14px_rgba(15,23,42,0.24)] backdrop-blur-xl">
+      <div className="mx-auto flex h-14 min-w-0 items-center justify-between gap-3 px-3 sm:h-16 sm:px-5">
         <div className="flex min-w-0 items-center gap-2.5">
           <Image
             src="/icon-192.png"
@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, isSettingsActive
             aria-label="الإعدادات"
             aria-current={isSettingsActive ? 'page' : undefined}
             title="الإعدادات"
-            className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
               isSettingsActive
                 ? 'bg-emerald-100 text-emerald-900'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'

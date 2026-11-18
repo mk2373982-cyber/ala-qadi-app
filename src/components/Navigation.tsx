@@ -18,9 +18,9 @@ interface NavigationProps {
 
 const mainTabs = [
   { id: 'dashboard', label: 'الرئيسية', icon: Home },
+  { id: 'gam3eya_gold', label: 'جمعيات وذهب', icon: Landmark },
   { id: 'transactions', label: 'المعاملات', icon: ArrowLeftRight },
   { id: 'debts', label: 'ليّا وعليّا', icon: HandCoins },
-  { id: 'gam3eya_gold', label: 'جمعيات وذهب', icon: Landmark },
   { id: 'budget_reports', label: 'التقارير', icon: PieChart },
 ] as const satisfies ReadonlyArray<{ id: TabType; label: string; icon: typeof Home }>;
 

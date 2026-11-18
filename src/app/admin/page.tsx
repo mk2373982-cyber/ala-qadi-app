@@ -314,7 +314,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-6 pb-20 selection:bg-brand-500 selection:text-white">
+    <div className="stitch-admin min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-6 pb-20 selection:bg-brand-500 selection:text-white">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl border border-slate-700/80 shadow-xl">

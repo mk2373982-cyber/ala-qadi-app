@@ -324,7 +324,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const walletBeingEdited = wallets.find((wallet) => wallet.id === editingWalletId);
 
   return (
-    <div className="space-y-4 pb-4 sm:space-y-5">
+    <div className="stitch-view stitch-dashboard space-y-5 pb-5 sm:space-y-6">
       <header className="flex items-end justify-between gap-3 px-1 pt-1">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-black text-slate-900 sm:text-xl">
@@ -362,7 +362,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl bg-emerald-900 px-4 py-4 text-white sm:px-5">
+          <div className="money-hero relative overflow-hidden rounded-3xl bg-emerald-900 px-4 py-4 text-white sm:px-6 sm:py-5">
             <div className="relative flex items-end justify-between gap-3">
               <div>
                 <div className="text-[11px] font-semibold text-emerald-100">
@@ -386,7 +386,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <section
             aria-labelledby="daily-safe-to-spend-title"
-            className={`rounded-2xl border p-4 shadow-sm ${
+            data-tone={hasNoFinancialPlaces ? 'empty' : dailySafeToSpend > 0 ? 'positive' : 'warning'}
+            className={`daily-allowance-card rounded-3xl border p-4 shadow-sm sm:p-5 ${
               hasNoFinancialPlaces
                 ? 'border-emerald-200 bg-emerald-50/70'
                 : dailySafeToSpend > 0

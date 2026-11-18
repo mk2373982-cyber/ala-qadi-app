@@ -145,7 +145,7 @@ export const Gam3eyaGoldView: React.FC = () => {
   }, 0);
 
   return (
-    <div className="space-y-4 pb-16">
+    <div className="stitch-view stitch-assets space-y-5 pb-16">
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
         <div>

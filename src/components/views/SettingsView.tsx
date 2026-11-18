@@ -122,7 +122,7 @@ export const SettingsView: React.FC<{
   };
 
   return (
-    <div className="space-y-4 pb-16">
+    <div className="stitch-view stitch-settings space-y-5 pb-16">
       {/* Top Header Card */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-black text-slate-800">الإعدادات والنسخ الاحتياطي</h2>
