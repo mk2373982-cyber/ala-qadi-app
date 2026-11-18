@@ -25,10 +25,10 @@ import { CheckCircle2, Plus } from 'lucide-react';
 
 const SWIPE_NAV_TABS: TabType[] = [
   'dashboard',
-  'gam3eya_gold',
-  'transactions',
   'debts',
+  'gam3eya_gold',
   'budget_reports',
+  'transactions',
 ];
 
 export default function Home() {
@@ -62,7 +62,7 @@ export default function Home() {
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          entry.target.classList.add('scroll-motion-visible');
+          entry.target.classList.add('revealed');
           observer.unobserve(entry.target);
         }
       },
@@ -70,8 +70,8 @@ export default function Home() {
     );
 
     sections.forEach((section, index) => {
-      section.classList.add('scroll-motion-ready');
-      if (index % 2 === 1) section.classList.add('scroll-motion-from-left');
+      section.classList.add('reveal-item');
+      section.classList.add(index % 2 === 1 ? 'reveal-from-left' : 'reveal-from-right');
       section.style.transitionDelay = `${Math.min(index % 4, 3) * 55}ms`;
       observer.observe(section);
     });
@@ -142,6 +142,19 @@ export default function Home() {
 
   const handleTransactionSaved = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleOpenNotifications = () => {
+    setCurrentTab('dashboard');
+    window.setTimeout(() => {
+      const target =
+        document.getElementById('upcoming-due-alerts') ??
+        document.getElementById('dashboard-greeting');
+      target?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center',
+      });
+    }, 80);
   };
 
   const handleMainTouchStart = (event: React.TouchEvent<HTMLElement>) => {
@@ -220,7 +233,7 @@ export default function Home() {
 
   // Active Licensed Application
   return (
-    <div className="app-theme flex min-h-screen flex-col bg-[#f8fafc] selection:bg-emerald-100 selection:text-emerald-950">
+    <div className="app-theme flex min-h-screen flex-col bg-[#f8fafc] pt-[calc(4.75rem_+_env(safe-area-inset-top))] selection:bg-emerald-100 selection:text-emerald-950 md:pt-20">
       <a
         href="#main-content"
         className="sr-only z-[100] rounded-lg bg-white px-4 py-3 font-bold text-emerald-950 focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
@@ -228,6 +241,7 @@ export default function Home() {
         تخطي إلى المحتوى الرئيسي
       </a>
       <Header
+        onOpenNotifications={handleOpenNotifications}
         onOpenSettings={() => setCurrentTab('settings')}
         isSettingsActive={currentTab === 'settings'}
       />
@@ -279,14 +293,13 @@ export default function Home() {
         onTouchCancel={() => {
           swipeStart.current = null;
         }}
-        className="stitch-page tab-screen-motion mx-auto w-full max-w-6xl flex-1 px-4 py-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-6 md:py-7 md:pb-8"
+        className="stitch-page tab-screen-motion mx-auto w-full max-w-6xl flex-1 px-4 py-4 pb-[calc(9rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-6 md:py-7 md:pb-8"
       >
         {currentTab === 'dashboard' && (
           <DashboardView
             key={`dash_${refreshKey}`}
             userId={user.id}
             userName={user.name}
-            onOpenAddModal={() => setShowQuickAdd(true)}
             onNavigate={setCurrentTab}
           />
         )}
@@ -308,15 +321,18 @@ export default function Home() {
         )}
       </main>
 
-      <button
-        type="button"
-        onClick={() => setShowQuickAdd(true)}
-        aria-label="إضافة حركة مالية"
-        title="إضافة حركة"
-        className="floating-add-button fixed bottom-[calc(5.25rem_+_env(safe-area-inset-bottom))] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-95 md:bottom-7 md:left-7"
-      >
-        <Plus aria-hidden="true" className="h-6 w-6" />
-      </button>
+      <div className="fixed bottom-[calc(5.4rem_+_env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 md:bottom-7 md:left-auto md:right-7 md:translate-x-0">
+        <button
+          type="button"
+          onClick={() => setShowQuickAdd(true)}
+          aria-label="إضافة حركة مالية"
+          title="إضافة حركة"
+          className="floating-add-button flex min-h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-900/20 transition-colors hover:from-emerald-700 hover:to-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-95"
+        >
+          <Plus aria-hidden="true" className="h-5 w-5" />
+          <span>إضافة حركة</span>
+        </button>
+      </div>
 
       {/* Global Add Transaction Modal */}
       <AddTransactionModal

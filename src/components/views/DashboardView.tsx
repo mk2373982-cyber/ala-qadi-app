@@ -15,7 +15,6 @@ import {
   Wallet,
   AlertTriangle,
   TrendingDown,
-  TrendingUp,
   Landmark,
   Plus,
   ArrowUpRight,
@@ -54,16 +53,10 @@ const EMPTY_PLANS_SUMMARY: PlansSummary = {
 interface DashboardViewProps {
   userId: string;
   userName?: string;
-  onOpenAddModal: () => void;
   onNavigate: (tab: TabType) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({
-  userId,
-  userName,
-  onOpenAddModal,
-  onNavigate,
-}) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ userId, userName, onNavigate }) => {
   const getLocalMonthKey = () => {
     const date = new Date();
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -178,6 +171,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currentMonthIncome = currentMonthTransactions
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
+  const budgetUsedPercentage =
+    monthlyBudgetLimit > 0 ? Math.round((currentMonthExpense / monthlyBudgetLimit) * 100) : 0;
+  const budgetProgressWidth = Math.min(100, Math.max(0, budgetUsedPercentage));
 
   // Budget calculations
   const remainingBudget = monthlyBudgetLimit > 0 ? monthlyBudgetLimit - currentMonthExpense : 0;
@@ -324,25 +320,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const walletBeingEdited = wallets.find((wallet) => wallet.id === editingWalletId);
 
   return (
-    <div className="stitch-view stitch-dashboard space-y-5 pb-5 sm:space-y-6">
-      <header className="flex items-end justify-between gap-3 px-1 pt-1">
+    <div className="stitch-view stitch-dashboard dashboard-layout flex flex-col gap-4 pb-5 sm:gap-5">
+      <header
+        id="dashboard-greeting"
+        className="dashboard-greeting flex items-end justify-between gap-3 px-1 pt-1"
+      >
         <div className="min-w-0">
           <h2 className="truncate text-lg font-black text-slate-900 sm:text-xl">
             أهلاً {userName?.trim().split(/\s+/)[0] || 'بيك'}
           </h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-600">
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-slate-600">
+            <Clock3 aria-hidden="true" className="h-3.5 w-3.5 text-emerald-700" />
             {formatDate(`${currentMonthStr}-01`, { month: 'long', year: 'numeric' })}
+            <span aria-hidden="true">·</span>
+            باقي {formatAmount(daysLeftInMonth)} {daysLeftInMonth === 1 ? 'يوم' : 'أيام'}
           </p>
         </div>
-        <p className="pb-0.5 text-[10px] text-slate-500">خلّي قراراتك على قدّك</p>
+        <div
+          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold ${
+            monthlyBudgetLimit === 0
+              ? 'border-slate-200 bg-white/80 text-slate-600'
+              : projectedBudgetOverrun
+                ? 'border-rose-200 bg-rose-50 text-rose-800'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`h-2 w-2 rounded-full ${
+              monthlyBudgetLimit === 0
+                ? 'bg-slate-400'
+                : projectedBudgetOverrun
+                  ? 'bg-rose-500'
+                  : 'bg-emerald-500'
+            }`}
+          />
+          {monthlyBudgetLimit === 0
+            ? 'ميزانيتك'
+            : projectedBudgetOverrun
+              ? 'راجع الصرف'
+              : 'ميزانيتك بخير'}
+        </div>
       </header>
 
       <UpcomingDueAlerts wallets={wallets} onRefresh={refreshDashboardFromDueAlert} />
 
       {/* Unified money overview */}
-      <section className="space-y-3">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
+      <section className="dashboard-wallet-overview space-y-3 rounded-[28px] border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur-xl sm:p-5">
+        <div className="dashboard-wallet-content flex flex-col gap-3">
+          <div className="dashboard-wallet-heading flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-white">
                 <Wallet className="h-5 w-5" />
@@ -352,42 +378,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <p className="mt-0.5 text-[10px] text-slate-600">رصيدك الحالي على كل الأماكن</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={openWalletAdd}
-              aria-label="إضافة مكان مالي"
-              className="flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-950 transition-colors hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:gap-1.5 sm:px-4 sm:text-xs"
-            >
-              <Plus className="h-4 w-4" /> إضافة مكان
-            </button>
           </div>
 
-          <div className="money-hero relative overflow-hidden rounded-3xl bg-emerald-900 px-4 py-4 text-white sm:px-6 sm:py-5">
-            <div className="relative flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-semibold text-emerald-100">
-                  إجمالي رصيدك الحالي
-                </div>
-                <div
-                  className="mt-1 text-2xl font-black tracking-tight tabular-nums sm:text-3xl"
-                  dir="ltr"
-                >
-                  {formatCurrency(totalWalletBalance)}
-                </div>
+          <div className="dashboard-wallet-balance flex items-end justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3.5">
+            <div>
+              <div className="text-[11px] font-semibold text-slate-600">إجمالي رصيدك الحالي</div>
+              <div
+                className="mt-1 text-2xl font-black tracking-tight tabular-nums text-slate-950 sm:text-3xl"
+                dir="ltr"
+              >
+                {formatCurrency(totalWalletBalance)}
               </div>
-              <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-center">
-                <div className="text-lg font-black leading-none">
-                  {formatAmount(wallets.length)}
-                </div>
-                <div className="mt-1 text-[9px] font-semibold text-emerald-100">أماكن مالية</div>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center">
+              <div className="text-lg font-black leading-none text-emerald-900">
+                {formatAmount(wallets.length)}
               </div>
+              <div className="mt-1 text-[9px] font-semibold text-emerald-800">أماكن مالية</div>
             </div>
           </div>
 
           <section
             aria-labelledby="daily-safe-to-spend-title"
-            data-tone={hasNoFinancialPlaces ? 'empty' : dailySafeToSpend > 0 ? 'positive' : 'warning'}
-            className={`daily-allowance-card rounded-3xl border p-4 shadow-sm sm:p-5 ${
+            data-tone={
+              hasNoFinancialPlaces ? 'empty' : dailySafeToSpend > 0 ? 'positive' : 'warning'
+            }
+            className={`dashboard-daily-allowance daily-allowance-card rounded-3xl border p-4 shadow-sm sm:p-5 ${
               hasNoFinancialPlaces
                 ? 'border-emerald-200 bg-emerald-50/70'
                 : dailySafeToSpend > 0
@@ -431,7 +447,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {!hasNoFinancialPlaces && (
                 <p className="shrink-0 text-left">
                   <span className="block text-[9px] font-bold text-slate-500">متاح لصرف اليوم</span>
-                  <span className="mt-1 block text-base font-black tabular-nums text-emerald-900" dir="ltr">
+                  <span
+                    className="mt-1 block text-2xl font-black tabular-nums text-emerald-900 sm:text-3xl"
+                    dir="ltr"
+                  >
                     {formatCurrency(dailySafeToSpend)}
                   </span>
                 </p>
@@ -455,31 +474,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </section>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="dashboard-monthly-flow grid grid-cols-2 gap-2 sm:gap-3">
             <article className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
-              <p className="text-[10px] font-bold text-rose-900">مصروف الشهر</p>
-              <p className="mt-1 text-sm font-black tabular-nums text-rose-950" dir="ltr">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-rose-900">مصروف الشهر</p>
+                <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-rose-700" />
+              </div>
+              <p className="mt-2 text-base font-black tabular-nums text-rose-950" dir="ltr">
                 {formatCurrency(currentMonthExpense)}
               </p>
             </article>
             <article className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
-              <p className="text-[10px] font-bold text-emerald-900">دخل الشهر</p>
-              <p className="mt-1 text-sm font-black tabular-nums text-emerald-950" dir="ltr">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-emerald-900">دخل الشهر</p>
+                <ArrowDownLeft aria-hidden="true" className="h-4 w-4 text-emerald-700" />
+              </div>
+              <p className="mt-2 text-base font-black tabular-nums text-emerald-950" dir="ltr">
                 {formatCurrency(currentMonthIncome)}
               </p>
             </article>
           </div>
 
-          <button
-            type="button"
-            onClick={onOpenAddModal}
-            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-          >
-            <Plus aria-hidden="true" className="h-5 w-5" /> إضافة حركة
-          </button>
-
           {wallets.length ? (
-            <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+            <div
+              className="dashboard-wallets-list flex gap-2.5 overflow-x-auto pb-1"
+              data-horizontal-scroll
+            >
               {wallets.map((wallet) => {
                 const info = walletKindInfo[wallet.kind];
                 const Icon = info.Icon;
@@ -488,7 +508,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     type="button"
                     aria-label={`تعديل ${wallet.name}`}
                     onClick={() => openWalletEdit(wallet)}
-                    className="min-w-0 rounded-2xl border border-white/90 bg-white/90 p-2 text-right shadow-sm ring-1 ring-emerald-950/[0.035] transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:p-3"
+                    className="min-w-[142px] max-w-[190px] flex-1 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-3 text-right transition hover:border-emerald-300 hover:bg-emerald-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                   >
                     <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                       <div
@@ -514,12 +534,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={openWalletAdd}
+                aria-label="إضافة مكان مالي"
+                className="flex min-h-[76px] min-w-[122px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/70 px-3 text-[10px] font-black text-emerald-900 transition hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
+              >
+                <Plus aria-hidden="true" className="h-4 w-4" />
+                إضافة مكان
+              </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={openWalletAdd}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-300 bg-white/75 px-4 py-5 text-center text-xs font-bold text-emerald-900 transition hover:bg-white"
+              aria-label="إضافة أول مكان مالي"
+              className="dashboard-wallets-empty flex min-h-16 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 px-4 py-4 text-center text-xs font-bold text-emerald-900 transition hover:bg-emerald-50"
             >
               <Plus className="h-4 w-4" /> أضف أول مكان لأموالك، مثل الكاش أو الفيزا أو محفظة
               الموبايل
@@ -528,7 +558,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </section>
 
-      <section aria-labelledby="quick-summary-title" className="space-y-3">
+      <section aria-labelledby="quick-summary-title" className="dashboard-quick-summary space-y-3">
         <div className="flex items-end justify-between gap-3 px-1">
           <div>
             <h2 id="quick-summary-title" className="text-sm font-black text-slate-900">
@@ -560,14 +590,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     aria-expanded={isSelected}
                     aria-controls={isSelected ? 'due-debt-details' : undefined}
                     className={`min-w-0 rounded-xl px-2 py-2 text-right transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-700 ${
-                      isSelected ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-950 hover:bg-orange-100'
+                      isSelected
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-orange-50 text-orange-950 hover:bg-orange-100'
                     }`}
                   >
-                    <span className={`block truncate text-[9px] font-semibold ${isSelected ? 'text-orange-50' : 'text-orange-900'}`}>
+                    <span
+                      className={`block truncate text-[9px] font-semibold ${isSelected ? 'text-orange-50' : 'text-orange-900'}`}
+                    >
                       {offset === 0 ? 'الحالي' : 'القادم'} ·{' '}
                       {monthDate.toLocaleDateString('ar-EG', { month: 'short' })}
                     </span>
-                    <span className="mt-1 block truncate text-[10px] font-black tabular-nums" dir="ltr">
+                    <span
+                      className="mt-1 block truncate text-[10px] font-black tabular-nums"
+                      dir="ltr"
+                    >
                       {formatCurrency(monthTotal)}
                     </span>
                   </button>
@@ -585,31 +622,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             type="button"
-            onClick={() => document.getElementById('savings-goals')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            onClick={() =>
+              document
+                .getElementById('savings-goals')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
             className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
               <Target aria-hidden="true" className="h-4 w-4" />
             </span>
             <span className="mt-2 block text-[11px] font-black text-slate-800">أهداف الادخار</span>
-            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+            <span
+              className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900"
+              dir="ltr"
+            >
               {formatCurrency(plansSummary.goalsSaved)}
             </span>
             <span className="mt-1 block text-[9px] text-slate-500">
-              {formatAmount(plansSummary.goalCount)} {plansSummary.goalCount === 1 ? 'هدف' : 'أهداف'}
+              {formatAmount(plansSummary.goalCount)}{' '}
+              {plansSummary.goalCount === 1 ? 'هدف' : 'أهداف'}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => document.getElementById('recurring-transactions')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            onClick={() =>
+              document
+                .getElementById('recurring-transactions')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
             className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
               <Repeat2 aria-hidden="true" className="h-4 w-4" />
             </span>
             <span className="mt-2 block text-[11px] font-black text-slate-800">المتكرر</span>
-            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+            <span
+              className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900"
+              dir="ltr"
+            >
               {formatCurrency(plansSummary.recurringTotal)}
             </span>
             <span className="mt-1 block text-[9px] text-slate-500">
@@ -635,13 +687,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('gam3eya_gold')}
-          className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
+            className="min-h-32 rounded-2xl border border-slate-200/70 bg-white p-3 text-right shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 sm:p-4"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
               <Landmark aria-hidden="true" className="h-4 w-4" />
             </span>
             <span className="mt-2 block text-[11px] font-black text-slate-800">الذهب والأصول</span>
-            <span className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900" dir="ltr">
+            <span
+              className="mt-1 block truncate text-xs font-black tabular-nums text-slate-900"
+              dir="ltr"
+            >
               {formatCurrency(totalGoldValue)}
             </span>
             <span className="mt-1 block truncate text-[9px] text-slate-500">
@@ -655,7 +710,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <section
           id="due-debt-details"
           aria-labelledby="due-debt-details-title"
-          className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+          className="dashboard-debt-details rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
         >
           <div className="flex items-center justify-between gap-3">
             <h3 id="due-debt-details-title" className="text-xs font-black text-slate-800">
@@ -678,8 +733,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {debt.personName}
                     </div>
                     <div className="mt-1 text-[10px] text-slate-500">
-                      موعد السداد{' '}
-                      {formatDate(debt.dueDate!, { day: 'numeric', month: 'short' })}
+                      موعد السداد {formatDate(debt.dueDate!, { day: 'numeric', month: 'short' })}
                     </div>
                   </div>
                   <div className="shrink-0 text-left">
@@ -841,7 +895,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
 
       <section
-        className={`rounded-3xl border p-4 shadow-sm sm:p-5 ${projectedBudgetOverrun ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-sky-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50'}`}
+        aria-labelledby="monthly-budget-title"
+        className={`dashboard-budget-summary rounded-3xl border p-4 shadow-sm sm:p-5 ${projectedBudgetOverrun ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-slate-200/70 bg-white'}`}
       >
         <div className="flex items-start gap-3">
           <div
@@ -854,7 +909,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-black text-slate-900">أصرف كام النهارده؟</h2>
+            <h2 id="monthly-budget-title" className="text-sm font-black text-slate-900">
+              سقف الميزانية الشهرية
+            </h2>
             {monthlyBudgetLimit > 0 ? (
               <>
                 <p
@@ -905,6 +962,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </div>
         </div>
+        {monthlyBudgetLimit > 0 && (
+          <div className="mt-4 rounded-2xl bg-white/85 p-3.5">
+            <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-slate-600">
+              <span>المصروف الفعلي</span>
+              <span className="tabular-nums text-slate-800">
+                {formatCurrency(currentMonthExpense)} من {formatCurrency(monthlyBudgetLimit)} ·{' '}
+                {formatAmount(budgetUsedPercentage)}٪
+              </span>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="نسبة استخدام الميزانية الشهرية"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={budgetProgressWidth}
+              className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-slate-100"
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-700 ${projectedBudgetOverrun ? 'bg-rose-600' : 'bg-gradient-to-l from-emerald-500 to-teal-500'}`}
+                style={{ width: `${budgetProgressWidth}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[10px] font-semibold text-slate-600">
+              المتبقي من السقف{' '}
+              <span
+                className={`tabular-nums font-black ${remainingBudget < 0 ? 'text-rose-700' : 'text-emerald-800'}`}
+              >
+                {formatCurrency(Math.max(0, remainingBudget))}
+              </span>
+            </p>
+          </div>
+        )}
         {isEditingBudget ? (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-sky-200 bg-white/80 p-3">
             <label
@@ -951,14 +1040,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         ) : null}
       </section>
 
-      <FinancialPlans
-        onRefresh={loadData}
-        onSummaryChange={setPlansSummary}
-        refreshToken={plansRefreshToken}
-      />
+      <div className="dashboard-plans">
+        <FinancialPlans
+          onRefresh={loadData}
+          onSummaryChange={setPlansSummary}
+          refreshToken={plansRefreshToken}
+        />
+      </div>
 
       {/* Recent Transactions List */}
-      <section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+      <section className="dashboard-recent-transactions rounded-3xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-sm text-slate-800">آخر المعاملات المسجلة</h2>
           <button

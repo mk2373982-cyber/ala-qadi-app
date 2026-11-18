@@ -4,12 +4,7 @@ import React from 'react';
 import { ArrowLeftRight, HandCoins, Home, Landmark, PieChart } from 'lucide-react';
 
 export type TabType =
-  | 'dashboard'
-  | 'transactions'
-  | 'debts'
-  | 'gam3eya_gold'
-  | 'budget_reports'
-  | 'settings';
+  'dashboard' | 'transactions' | 'debts' | 'gam3eya_gold' | 'budget_reports' | 'settings';
 
 interface NavigationProps {
   currentTab: TabType;
@@ -18,10 +13,10 @@ interface NavigationProps {
 
 const mainTabs = [
   { id: 'dashboard', label: 'الرئيسية', icon: Home },
-  { id: 'gam3eya_gold', label: 'جمعيات وذهب', icon: Landmark },
-  { id: 'transactions', label: 'المعاملات', icon: ArrowLeftRight },
   { id: 'debts', label: 'ليّا وعليّا', icon: HandCoins },
+  { id: 'gam3eya_gold', label: 'جمعيات وذهب', icon: Landmark },
   { id: 'budget_reports', label: 'التقارير', icon: PieChart },
+  { id: 'transactions', label: 'المعاملات', icon: ArrowLeftRight },
 ] as const satisfies ReadonlyArray<{ id: TabType; label: string; icon: typeof Home }>;
 
 export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab }) => (
@@ -58,7 +53,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
 
     <nav
       aria-label="التنقل الرئيسي"
-      className="floating-navigation fixed inset-x-3 bottom-[calc(0.65rem_+_env(safe-area-inset-bottom))] z-50 mx-auto max-w-xl rounded-full border border-white/90 bg-white/90 shadow-[0_20px_30px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl md:hidden"
+      className="floating-navigation fixed inset-x-3 bottom-[calc(0.65rem_+_env(safe-area-inset-bottom))] z-50 mx-auto max-w-md rounded-full border border-white/90 bg-white/90 shadow-[0_20px_30px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl md:hidden"
     >
       <div className="flex min-h-[4.1rem] items-stretch px-1.5 py-1">
         {mainTabs.map((tab) => {

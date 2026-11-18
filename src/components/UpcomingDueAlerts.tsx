@@ -273,8 +273,9 @@ export const UpcomingDueAlerts: React.FC<UpcomingDueAlertsProps> = ({ onRefresh,
   return (
     <>
       <section
+        id="upcoming-due-alerts"
         aria-labelledby="upcoming-due-alerts-title"
-        className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/80 shadow-sm"
+        className="dashboard-upcoming-alerts overflow-hidden rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-500/10 via-amber-50/70 to-white shadow-sm"
       >
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
