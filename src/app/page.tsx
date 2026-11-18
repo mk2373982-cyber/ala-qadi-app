@@ -50,6 +50,36 @@ export default function Home() {
   const isAnnualOfferOpen = Boolean(offerDeadline && Date.now() <= offerDeadline.getTime());
 
   useEffect(() => {
+    const main = document.getElementById('main-content');
+    if (!main || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const sections = Array.from(main.querySelectorAll<HTMLElement>('section')).filter(
+      (section) => section.querySelector('h2, h3') || section.hasAttribute('aria-labelledby'),
+    );
+    if (!sections.length || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('scroll-motion-visible');
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -6% 0px' },
+    );
+
+    sections.forEach((section, index) => {
+      section.classList.add('scroll-motion-ready');
+      if (index % 2 === 1) section.classList.add('scroll-motion-from-left');
+      section.style.transitionDelay = `${Math.min(index % 4, 3) * 35}ms`;
+      observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [currentTab, refreshKey]);
+
+  useEffect(() => {
     if (!user || user.isTrial) {
       setAutoBackupEnabled(false);
       return;
@@ -242,13 +272,14 @@ export default function Home() {
       />
 
       <main
+        key={currentTab}
         id="main-content"
         onTouchStart={handleMainTouchStart}
         onTouchEnd={handleMainTouchEnd}
         onTouchCancel={() => {
           swipeStart.current = null;
         }}
-        className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-5 md:py-6 md:pb-8"
+        className="tab-screen-motion mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:py-5 md:px-5 md:py-6 md:pb-8"
       >
         {currentTab === 'dashboard' && (
           <DashboardView
@@ -282,7 +313,7 @@ export default function Home() {
         onClick={() => setShowQuickAdd(true)}
         aria-label="إضافة حركة مالية"
         title="إضافة حركة"
-        className="fixed bottom-[calc(5.25rem_+_env(safe-area-inset-bottom))] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-95 md:bottom-7 md:left-7"
+        className="floating-add-button fixed bottom-[calc(5.25rem_+_env(safe-area-inset-bottom))] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-95 md:bottom-7 md:left-7"
       >
         <Plus aria-hidden="true" className="h-6 w-6" />
       </button>

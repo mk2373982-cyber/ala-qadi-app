@@ -58,10 +58,9 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
 
     <nav
       aria-label="التنقل الرئيسي"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/80 bg-white/95 shadow-[0_-8px_24px_-20px_rgba(15,23,42,0.3)] backdrop-blur-xl md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="floating-navigation fixed inset-x-3 bottom-[calc(0.65rem_+_env(safe-area-inset-bottom))] z-50 mx-auto max-w-xl rounded-full border border-white/90 bg-white/90 shadow-[0_20px_30px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl md:hidden"
     >
-      <div className="mx-auto flex max-w-xl items-stretch px-1 pt-1">
+      <div className="flex min-h-[4.1rem] items-stretch px-1.5 py-1">
         {mainTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -73,13 +72,13 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               onClick={() => onSelectTab(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               aria-pressed={isActive}
-              className={`relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 transition-colors duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700 ${
+              className={`relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700 ${
                 isActive ? 'text-emerald-900' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <span
-                className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors duration-100 ${
-                  isActive ? 'bg-emerald-50 text-emerald-800' : 'text-current'
+                className={`flex h-8 w-10 items-center justify-center rounded-full transition-all duration-200 ${
+                  isActive ? 'scale-105 bg-emerald-100 text-emerald-900' : 'text-current'
                 }`}
               >
                 <Icon aria-hidden="true" className="h-5 w-5" />
@@ -90,7 +89,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               {isActive && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-600 transition-all duration-100"
+                  className="absolute inset-x-1/3 top-0 h-0.5 rounded-full bg-emerald-600 transition-all duration-200"
                 />
               )}
             </button>

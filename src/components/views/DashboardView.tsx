@@ -71,8 +71,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [currentMonthStr, setCurrentMonthStr] = useState(getLocalMonthKey);
   const [currentMonthTransactions, setCurrentMonthTransactions] = useState<Transaction[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-  const [totalDebtsToMe, setTotalDebtsToMe] = useState(0);
-  const [totalDebtsOnMe, setTotalDebtsOnMe] = useState(0);
   const [debtsDueThisMonth, setDebtsDueThisMonth] = useState<Debt[]>([]);
   const [expandedDebtMonth, setExpandedDebtMonth] = useState<0 | 1 | null>(null);
   const [activeGam3eyat, setActiveGam3eyat] = useState<Gam3eya[]>([]);
@@ -123,15 +121,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )
         .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
     );
-    const toMe = debts
-      .filter((d) => d.type === 'to_me')
-      .reduce((sum, d) => sum + getDebtRemainingAmount(d), 0);
-    const onMe = debts
-      .filter((d) => d.type === 'on_me')
-      .reduce((sum, d) => sum + getDebtRemainingAmount(d), 0);
-    setTotalDebtsToMe(toMe);
-    setTotalDebtsOnMe(onMe);
-
     // Gam3eyat
     const gList = await db.gam3eyat.filter((g) => g.status === 'active').toArray();
     setActiveGam3eyat(gList);
@@ -548,13 +537,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <article className="rounded-2xl border border-orange-200/80 bg-white p-3 shadow-sm sm:p-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article className="col-span-2 rounded-2xl border border-orange-200/80 bg-white p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-800">
                 <Clock3 aria-hidden="true" className="h-4 w-4" />
               </span>
-              <h3 className="text-[11px] font-black text-orange-950">الديون المستحقة</h3>
+              <h3 className="text-[11px] font-black text-orange-950">اللي عليّا</h3>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {([0, 1] as const).map((offset) => {
@@ -584,9 +573,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 );
               })}
             </div>
-            <p className="mt-2 text-[9px] font-semibold text-orange-900">
-              عليّا {formatAmount(totalDebtsOnMe)} ج.م · <span className="text-emerald-800">ليّا {formatAmount(totalDebtsToMe)} ج.م</span>
-            </p>
             <button
               type="button"
               onClick={() => onNavigate('debts')}
