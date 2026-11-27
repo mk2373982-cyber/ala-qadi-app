@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createAdminSession, verifyAdminPassword } from '@/lib/server-storage';
+import {
+  ADMIN_SESSION_DURATION_SECONDS,
+  createAdminSession,
+  verifyAdminPassword,
+} from '@/lib/server-storage';
 import { AuthRateLimitUnavailableError, isAuthRateLimited } from '@/lib/auth-rate-limit';
 
 export async function POST(req: Request) {
@@ -30,14 +34,14 @@ export async function POST(req: Request) {
         { success: true },
         {
           headers: {
-            'Set-Cookie': `ala_qaddi_admin=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/admin; Max-Age=2592000`,
+            'Set-Cookie': `ala_qaddi_admin=${session}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}SameSite=Strict; Path=/api/admin; Max-Age=${ADMIN_SESSION_DURATION_SECONDS}`,
           },
         },
       );
     }
 
     return NextResponse.json({ error: 'كلمة مرور الأدمن غير صحيحة' }, { status: 401 });
-  } catch (error: any) {
+  } catch (error) {
     const status = error instanceof AuthRateLimitUnavailableError ? 503 : 500;
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'حدث خطأ' },

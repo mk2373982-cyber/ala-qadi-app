@@ -44,7 +44,7 @@ export default function Home() {
   const [autoBackupToast, setAutoBackupToast] = useState(false);
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
+  const isRegisteredTrial = Boolean(user?.isTrial && user.startDate);
   const offerDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
   if (offerDeadline) offerDeadline.setDate(offerDeadline.getDate() + 10);
   const isAnnualOfferOpen = Boolean(offerDeadline && Date.now() <= offerDeadline.getTime());
@@ -80,7 +80,7 @@ export default function Home() {
   }, [currentTab, refreshKey]);
 
   useEffect(() => {
-    if (!user || user.isTrial) {
+    if (!user) {
       setAutoBackupEnabled(false);
       return;
     }
@@ -96,17 +96,10 @@ export default function Home() {
     return () => {
       window.removeEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
     };
-  }, [user?.id, user?.isTrial]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (
-      !user ||
-      user.isTrial ||
-      !isLicenseActive ||
-      !autoBackupEnabled ||
-      !isOnline ||
-      !navigator.onLine
-    ) {
+    if (!user || !isLicenseActive || !autoBackupEnabled || !isOnline || !navigator.onLine) {
       return;
     }
 
@@ -124,13 +117,13 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [autoBackupEnabled, isLicenseActive, isOnline, user?.id, user?.isTrial]);
+  }, [autoBackupEnabled, isLicenseActive, isOnline, user?.id]);
 
   useEffect(() => {
-    if (!user || (user.isTrial && user.trialExpiresAt)) return;
+    if (!user) return;
     const pendingKey = `ala_qaddi_onboarding_pending_${user.id}`;
     if (localStorage.getItem(pendingKey) === '1') setShowOnboarding(true);
-  }, [user?.id, user?.isTrial, user?.trialExpiresAt]);
+  }, [user?.id]);
 
   const closeOnboarding = () => {
     if (user) {
@@ -215,7 +208,9 @@ export default function Home() {
       <div className="app-theme flex min-h-screen items-center justify-center bg-[#f8fafc] p-4">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-brand-600 animate-spin mx-auto mb-3" />
-          <div className="font-bold text-slate-700 text-sm">جاري فتح تطبيق "على قدي"...</div>
+          <div className="font-bold text-slate-700 text-sm">
+            جاري فتح تطبيق &quot;على قدي&quot;...
+          </div>
         </div>
       </div>
     );

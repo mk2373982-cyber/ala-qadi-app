@@ -27,7 +27,7 @@ export const SettingsView: React.FC<{
   onShowOnboarding?: () => void;
   onDataRestored?: () => void;
 }> = ({ onShowOnboarding, onDataRestored }) => {
-  const { user, daysRemaining, refreshStatus, isOnline, logout, trialMinutesRemaining } = useAuth();
+  const { user, daysRemaining, refreshStatus, isOnline, logout } = useAuth();
   const [importing, setImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<PublicPaymentConfig | null>(null);
@@ -39,7 +39,7 @@ export const SettingsView: React.FC<{
       .catch(() => {});
   }, []);
 
-  const isRegisteredTrial = Boolean(user?.isTrial && !user.trialExpiresAt && user.startDate);
+  const isRegisteredTrial = Boolean(user?.isTrial && user.startDate);
   const annualOfferDeadline = isRegisteredTrial ? new Date(user!.startDate!) : null;
   if (annualOfferDeadline) annualOfferDeadline.setDate(annualOfferDeadline.getDate() + 10);
   const annualOfferIsOpen = Boolean(
@@ -195,9 +195,7 @@ export const SettingsView: React.FC<{
               <div className="text-[10px] text-slate-400">نوع الباقة</div>
               <div className="text-xs font-bold text-brand-700">
                 {user?.isTrial
-                  ? trialMinutesRemaining !== null
-                    ? 'تجربة ضيف قصيرة'
-                    : 'شهر مجاني'
+                  ? 'شهر مجاني'
                   : user?.plan === 'lifetime'
                     ? 'اشتراك دائم (مدى الحياة)'
                     : user?.plan === '1_year'
@@ -212,11 +210,7 @@ export const SettingsView: React.FC<{
             <div>
               <div className="text-[10px] text-slate-400">الصلاحية</div>
               <div className="text-xs font-bold text-slate-800">
-                {user?.isTrial && trialMinutesRemaining !== null
-                  ? `تجربة الضيف: متبقي ${Math.floor(trialMinutesRemaining / 60)} ساعة و${trialMinutesRemaining % 60} دقيقة`
-                  : daysRemaining === null
-                    ? 'نشط دائماً'
-                    : `متبقي ${daysRemaining} يوم`}
+                {daysRemaining === null ? 'نشط دائماً' : `متبقي ${daysRemaining} يوم`}
               </div>
             </div>
           </div>
@@ -323,7 +317,6 @@ export const SettingsView: React.FC<{
           key={user.id}
           userId={user.id}
           isOnline={isOnline}
-          isTrial={Boolean(user.isTrial)}
           onDataRestored={onDataRestored}
         />
       )}
@@ -348,10 +341,13 @@ export const SettingsView: React.FC<{
             <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500">
               <li>اضغط على زر الخيارات (⋮) أعلى يمين المتصفح.</li>
               <li>
-                اختر <span className="font-bold text-slate-700">"تثبيت التطبيق"</span> أو{' '}
-                <span className="font-bold text-slate-700">"إضافة إلى الشاشة الرئيسية"</span>.
+                اختر <span className="font-bold text-slate-700">&quot;تثبيت التطبيق&quot;</span> أو{' '}
+                <span className="font-bold text-slate-700">
+                  &quot;إضافة إلى الشاشة الرئيسية&quot;
+                </span>
+                .
               </li>
-              <li>سيظهر لك أيقونة "على قدي" على هاتفك كأي تطبيق رسمي!</li>
+              <li>سيظهر لك أيقونة &quot;على قدي&quot; على هاتفك كأي تطبيق رسمي!</li>
             </ol>
           </div>
 
@@ -362,11 +358,11 @@ export const SettingsView: React.FC<{
               <li>
                 اختر{' '}
                 <span className="font-bold text-slate-700">
-                  "إضافة إلى الصفحة الرئيسية (Add to Home Screen)"
+                  &quot;إضافة إلى الصفحة الرئيسية (Add to Home Screen)&quot;
                 </span>
                 .
               </li>
-              <li>اضغط "إضافة (Add)" وسيفتح معك كأنه تطبيق من متجر آبل.</li>
+              <li>اضغط &quot;إضافة (Add)&quot; وسيفتح معك كأنه تطبيق من متجر آبل.</li>
             </ol>
           </div>
         </div>
@@ -381,28 +377,13 @@ export const SettingsView: React.FC<{
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {user?.isTrial && (
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  sessionStorage.setItem('ala_qaddi_open_registration', '1');
-                } catch {}
-                logout();
-              }}
-              className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-            >
-              <User className="h-4 w-4" />
-              <span>إنشاء حساب والاحتفاظ بالبيانات</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => {
               try {
                 localStorage.removeItem('ala_qaddi_user');
                 sessionStorage.clear();
-              } catch (e) {}
+              } catch {}
               logout();
               if (typeof window !== 'undefined') {
                 window.location.replace('/');

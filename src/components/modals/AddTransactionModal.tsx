@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, Category, WalletAccount } from '@/lib/db';
-import { X, Check, Plus, Tag } from 'lucide-react';
+import { X, Check, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 
 interface AddTransactionModalProps {
@@ -70,7 +70,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   const handleAddNewCategory = async () => {
     if (!newCatName.trim()) return;
-    const addedId = await db.categories.add({
+    await db.categories.add({
       name: newCatName.trim(),
       type: type,
       icon: 'Tag',
@@ -102,20 +102,35 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       return;
     }
 
-    await db.transaction('rw', [db.transactions, db.wallets], async () => {
-      await db.transactions.add({
-        type,
-        amount: numAmount,
-        category,
-        note: note.trim() || undefined,
-        date,
-        createdAt: Date.now(),
-        walletId: selectedWallet.id,
+    try {
+      await db.transaction('rw', [db.transactions, db.wallets], async () => {
+        // Re-read the wallet inside the transaction: a concurrent write (e.g. a
+        // recurring occurrence recorded moments ago) must not be overwritten
+        // with the stale balance captured from React state when the modal opened.
+        const currentWallet = await db.wallets.get(selectedWallet.id);
+        if (!currentWallet?.id) {
+          throw new Error('المكان المالي المختار لم يعد موجودًا. حدّث البيانات وحاول مرة أخرى.');
+        }
+        await db.transactions.add({
+          type,
+          amount: numAmount,
+          category,
+          note: note.trim() || undefined,
+          date,
+          createdAt: Date.now(),
+          walletId: currentWallet.id,
+        });
+        await db.wallets.update(currentWallet.id, {
+          balance: currentWallet.balance + (type === 'income' ? numAmount : -numAmount),
+        });
       });
-      await db.wallets.update(selectedWallet.id!, {
-        balance: selectedWallet.balance + (type === 'income' ? numAmount : -numAmount),
-      });
-    });
+    } catch (error) {
+      alert(
+        'تعذر حفظ الحركة: ' +
+          (error instanceof Error ? error.message : 'حدث خطأ غير متوقع على الجهاز'),
+      );
+      return;
+    }
 
     // Reset and close
     setAmount('');

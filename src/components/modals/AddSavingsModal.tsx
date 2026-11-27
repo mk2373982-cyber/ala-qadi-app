@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { db } from '@/lib/db';
-import { X, Check, Landmark, Sparkles } from 'lucide-react';
+import { X, Check, Sparkles } from 'lucide-react';
 
 interface AddSavingsModalProps {
   isOpen: boolean;

@@ -22,7 +22,6 @@ import { CloudDownload, CloudUpload, DatabaseBackup, RefreshCw } from 'lucide-re
 type BackupProps = {
   userId: string;
   isOnline: boolean;
-  isTrial?: boolean;
   onDataRestored?: () => void;
 };
 
@@ -116,12 +115,7 @@ function RestoreConfirmation({
   );
 }
 
-export function SupabaseBackupPanel({
-  userId,
-  isOnline,
-  isTrial = false,
-  onDataRestored,
-}: BackupProps) {
+export function SupabaseBackupPanel({ userId, isOnline, onDataRestored }: BackupProps) {
   const [busy, setBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -130,10 +124,10 @@ export function SupabaseBackupPanel({
   const [preparedRestore, setPreparedRestore] = useState<CloudBackup | null>(null);
 
   useEffect(() => {
-    setAutoBackupEnabled(!isTrial && getCloudAutoBackupEnabled(userId));
+    setAutoBackupEnabled(getCloudAutoBackupEnabled(userId));
     const handlePreferenceChange = (event: Event) => {
       const detail = (event as CustomEvent<{ userId?: string; enabled?: boolean }>).detail;
-      if (!isTrial && detail?.userId === userId && typeof detail.enabled === 'boolean') {
+      if (detail?.userId === userId && typeof detail.enabled === 'boolean') {
         setAutoBackupEnabled(detail.enabled);
       }
     };
@@ -141,7 +135,7 @@ export function SupabaseBackupPanel({
     return () => {
       window.removeEventListener(CLOUD_AUTO_BACKUP_PREFERENCE_EVENT, handlePreferenceChange);
     };
-  }, [isTrial, userId]);
+  }, [userId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,11 +144,13 @@ export function SupabaseBackupPanel({
     if (!isOnline) return;
 
     const updateFromBackupEvent = (event: Event) => {
-      const detail = (event as CustomEvent<{
-        userId?: string;
-        updatedAt?: string | null;
-        remainingAutoBackups?: number;
-      }>).detail;
+      const detail = (
+        event as CustomEvent<{
+          userId?: string;
+          updatedAt?: string | null;
+          remainingAutoBackups?: number;
+        }>
+      ).detail;
       if (detail?.userId !== userId) return;
       serverReadSuperseded = true;
       if (typeof detail.remainingAutoBackups === 'number') {
@@ -171,7 +167,7 @@ export function SupabaseBackupPanel({
         setLastSaved(status.updatedAt);
       })
       .catch(() => {
-        // A not-yet-signed-in trial account has no server session for cloud backup.
+        // Offline state or a missing server session surfaces via the status message.
       });
 
     return () => {
@@ -207,7 +203,6 @@ export function SupabaseBackupPanel({
   };
 
   const handleAutoBackupPreferenceChange = (enabled: boolean) => {
-    if (isTrial) return;
     if (!setCloudAutoBackupEnabled(userId, enabled)) {
       setStatusMessage('تعذر حفظ اختيار النسخ التلقائي على هذا الجهاز.');
       return;
@@ -313,26 +308,21 @@ export function SupabaseBackupPanel({
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              disabled={isTrial}
               checked={autoBackupEnabled}
               onChange={(event) => handleAutoBackupPreferenceChange(event.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
             />
             <span className="min-w-0">
               <span className="block text-xs font-bold text-slate-800">
-                {isTrial ? 'النسخ التلقائي للحسابات المسجلة فقط' : 'تفعيل النسخ التلقائي الأسبوعي'}
+                تفعيل النسخ التلقائي الأسبوعي
               </span>
               <span className="mt-1 block text-[11px] leading-5 text-slate-500">
-                {isTrial
-                  ? 'سجّل حسابك لحفظ النسخة الاحتياطية على حسابك.'
-                  : 'بيحفظ نسخة عند فتح التطبيق مع الإنترنت، مرة كل 7 أيام وبحد أقصى 4 مرات في الشهر.'}
+                بيحفظ نسخة عند فتح التطبيق مع الإنترنت، مرة كل 7 أيام وبحد أقصى 4 مرات في الشهر.
               </span>
             </span>
           </label>
           <p className="mt-3 text-[11px] font-semibold text-emerald-800" aria-live="polite">
-            {isTrial
-              ? 'النسخ التلقائي غير متاح في تجربة الضيف.'
-              : autoBackupEnabled
+            {autoBackupEnabled
               ? 'النسخ التلقائي: أسبوعي (متبقي ' +
                 (remainingAutoBackups === null
                   ? 'غير معروف'
@@ -340,7 +330,7 @@ export function SupabaseBackupPanel({
                 ' من 4 مرات هذا الشهر)'
               : 'النسخ التلقائي: متوقف (حسب اختيارك)'}
           </p>
-          {!isTrial && !autoBackupEnabled && remainingAutoBackups !== null && (
+          {!autoBackupEnabled && remainingAutoBackups !== null && (
             <p className="mt-1 text-[10px] text-slate-500">
               المتاح لو فعلته: {remainingAutoBackups.toLocaleString('ar-EG')} من 4 مرات هذا الشهر.
             </p>
@@ -394,7 +384,7 @@ export function CloudRestorePrompt({ userId, isOnline, onDataRestored }: BackupP
           });
         }
       } catch {
-        // A local-only trial account may not have a signed server session.
+        // Offline state or a missing server session: the prompt simply stays hidden.
       }
     };
 

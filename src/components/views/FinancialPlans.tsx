@@ -342,7 +342,10 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section id="savings-goals" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+        <section
+          id="savings-goals"
+          className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+        >
           <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 p-5 text-white">
             <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full border-[18px] border-white/[0.07]" />
             <div className="relative flex items-start justify-between gap-3">
@@ -496,7 +499,10 @@ export const FinancialPlans: React.FC<FinancialPlansProps> = ({
           </p>
         </section>
 
-        <section id="recurring-transactions" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+        <section
+          id="recurring-transactions"
+          className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+        >
           <div className="flex items-start justify-between gap-3 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-white p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-900">

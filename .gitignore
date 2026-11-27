@@ -31,6 +31,9 @@ yarn-error.log*
 codex-review/
 scratch/
 
+# legacy local data dumps — never commit customer data or credentials
+/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

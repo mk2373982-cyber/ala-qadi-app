@@ -83,9 +83,7 @@ function readLocalBackupDate(userId: string) {
   try {
     const value = window.localStorage.getItem(userStorageKey(LAST_CLOUD_BACKUP_KEY, userId));
     const timestamp = value ? Date.parse(value) : Number.NaN;
-    return Number.isFinite(timestamp) && timestamp <= Date.now() + 5 * 60 * 1000
-      ? timestamp
-      : null;
+    return Number.isFinite(timestamp) && timestamp <= Date.now() + 5 * 60 * 1000 ? timestamp : null;
   } catch {
     return null;
   }
@@ -128,9 +126,7 @@ function announceCloudBackupStatus(
 
 export function getCachedRemainingAutoBackups(userId: string) {
   try {
-    const cached = window.localStorage.getItem(
-      userStorageKey(REMAINING_AUTO_BACKUPS_KEY, userId),
-    );
+    const cached = window.localStorage.getItem(userStorageKey(REMAINING_AUTO_BACKUPS_KEY, userId));
     if (cached === null || !/^\d+$/.test(cached)) return null;
     const remaining = Number(cached);
     return Number.isInteger(remaining) && remaining <= 4 ? remaining : null;
@@ -338,11 +334,7 @@ export async function saveCloudBackup(
 }
 
 async function performWeeklyCloudBackup(userId: string): Promise<boolean> {
-  if (
-    typeof window === 'undefined' ||
-    !navigator.onLine ||
-    !getCloudAutoBackupEnabled(userId)
-  ) {
+  if (typeof window === 'undefined' || !navigator.onLine || !getCloudAutoBackupEnabled(userId)) {
     return false;
   }
 

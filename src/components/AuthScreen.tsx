@@ -19,14 +19,6 @@ export const AuthScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const openRegistration = sessionStorage.getItem('ala_qaddi_open_registration') === '1';
-    if (openRegistration) {
-      sessionStorage.removeItem('ala_qaddi_open_registration');
-      setIsRegister(true);
-    }
-  }, []);
-
-  useEffect(() => {
     let active = true;
     fetch('/api/auth/signup-offer', { cache: 'no-store' })
       .then(async (response) => (response.ok ? response.json() : null))

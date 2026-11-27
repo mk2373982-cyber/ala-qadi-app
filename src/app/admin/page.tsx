@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import type { UserAccount, AdminSettings } from '@/lib/server-storage';
 import {
   ShieldCheck,
-  Users,
   CheckCircle,
   Clock,
   Ban,
@@ -16,10 +16,9 @@ import {
   MessageCircle,
   Lock,
   LogOut,
-  Calendar,
   AlertCircle,
-  DollarSign,
   ArrowRight,
+  KeyRound,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -36,12 +35,18 @@ export default function AdminPage() {
     expiredUsers: 0,
     suspendedUsers: 0,
   });
-  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [, setSettings] = useState<AdminSettings | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserAccount | null>(null);
+
+  // Password Reset State
+  const [userToResetPassword, setUserToResetPassword] = useState<UserAccount | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Settings Edit State
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -50,7 +55,7 @@ export default function AdminPage() {
   const [instapayLink, setInstapayLink] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [pricingNote, setPricingNote] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [, setNewAdminPassword] = useState('');
 
   // Check stored admin session
   useEffect(() => {
@@ -94,7 +99,7 @@ export default function AdminPage() {
   const handleAdminLogout = () => {
     try {
       localStorage.removeItem('ala_qaddi_admin_auth');
-    } catch (e) {}
+    } catch {}
     void fetch('/api/admin/logout', { method: 'POST' });
     setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
@@ -208,6 +213,44 @@ export default function AdminPage() {
     }
   };
 
+  const openResetPasswordModal = (user: UserAccount) => {
+    setUserToResetPassword(user);
+    setResetPasswordValue('');
+    setResetPasswordError(null);
+  };
+
+  const handleResetPassword = async () => {
+    if (!userToResetPassword) return;
+    const newPassword = resetPasswordValue.trim();
+    if (newPassword.length < 8) {
+      setResetPasswordError('كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل.');
+      return;
+    }
+    setIsResettingPassword(true);
+    setResetPasswordError(null);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_password',
+          userId: userToResetPassword.id,
+          newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذر تحديث كلمة المرور');
+      setActionMessage(`تم تحديث كلمة مرور ${userToResetPassword.name} بنجاح`);
+      setTimeout(() => setActionMessage(null), 3000);
+      setUserToResetPassword(null);
+      setResetPasswordValue('');
+    } catch (error) {
+      setResetPasswordError(error instanceof Error ? error.message : 'تعذر تحديث كلمة المرور');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -259,7 +302,7 @@ export default function AdminPage() {
             </div>
             <h1 className="text-xl font-black">لوحة تحكم المسؤول</h1>
             <p className="text-xs text-slate-400 mt-1">
-              تطبيق "على قدي" - إدارة المشتركين والتراخيص
+              تطبيق &quot;على قدي&quot; - إدارة المشتركين والتراخيص
             </p>
           </div>
 
@@ -300,13 +343,13 @@ export default function AdminPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <a
+            <Link
               href="/"
               className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1"
             >
               <span>العودة لصفحة التطبيق الرئيسية</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -324,7 +367,9 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black text-white">لوحة تحكم وتراخيص "على قدي"</h1>
+                <h1 className="text-xl font-black text-white">
+                  لوحة تحكم وتراخيص &quot;على قدي&quot;
+                </h1>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">
                   لوحة المبيعات المباشرة
                 </span>
@@ -353,13 +398,13 @@ export default function AdminPage() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
 
-            <a
+            <Link
               href="/"
               className="p-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
               title="فتح التطبيق كعميل"
             >
               <ArrowRight className="w-4 h-4" />
-            </a>
+            </Link>
 
             <button
               onClick={handleAdminLogout}
@@ -767,6 +812,15 @@ export default function AdminPage() {
                               </button>
                             )}
 
+                            {/* Reset password (for users who forgot theirs) */}
+                            <button
+                              onClick={() => openResetPasswordModal(u)}
+                              title="تعيين كلمة مرور جديدة مؤقتة لهذا المشترك"
+                              className="p-1 rounded-lg text-slate-400 hover:text-sky-400 hover:bg-slate-700 transition-colors"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+
                             {/* Delete User */}
                             <button
                               onClick={() => setUserToDelete(u)}
@@ -814,6 +868,68 @@ export default function AdminPage() {
                 </button>
                 <button
                   onClick={() => setUserToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs transition-colors"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reset Password Modal */}
+        {userToResetPassword && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-slate-800 rounded-3xl max-w-sm w-full p-6 border border-slate-700 shadow-2xl space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center mx-auto">
+                <KeyRound className="w-6 h-6" />
+              </div>
+
+              <div className="text-center">
+                <h3 className="font-bold text-base text-white">تعيين كلمة مرور جديدة</h3>
+                <p className="text-xs text-slate-300 mt-1">
+                  لمشترك نسى كلمة المرور. أرسل كلمة المرور المؤقتة له عبر واتساب واطلب منه تغييرها
+                  بعد الدخول.
+                </p>
+                <div className="mt-2 p-2 rounded-xl bg-slate-900 border border-slate-700">
+                  <div className="font-bold text-brand-400 text-sm">{userToResetPassword.name}</div>
+                  <div className="text-xs text-slate-400 font-mono" dir="ltr">
+                    {userToResetPassword.phone}
+                  </div>
+                </div>
+              </div>
+
+              {resetPasswordError && (
+                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs text-center">
+                  {resetPasswordError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  كلمة المرور الجديدة
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  autoFocus
+                  value={resetPasswordValue}
+                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                  placeholder="8 أحرف على الأقل"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-white text-sm font-mono focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isResettingPassword || resetPasswordValue.trim().length < 8}
+                  className="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md transition-colors"
+                >
+                  {isResettingPassword ? 'جاري الحفظ...' : 'حفظ كلمة المرور الجديدة'}
+                </button>
+                <button
+                  onClick={() => setUserToResetPassword(null)}
                   className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs transition-colors"
                 >
                   إلغاء

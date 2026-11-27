@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, Gam3eya, SavingsAsset, WalletAccount } from '@/lib/db';
-import { Users, Landmark, Plus, Trash2, CheckCircle2, Clock, Sparkles } from 'lucide-react';
+import { Users, Plus, Trash2, Sparkles } from 'lucide-react';
 import { AddGam3eyaModal } from '../modals/AddGam3eyaModal';
 import { AddSavingsModal } from '../modals/AddSavingsModal';
 import { askForConfirmation } from '@/lib/confirm-action';
@@ -75,24 +75,41 @@ export const Gam3eyaGoldView: React.FC = () => {
     const nextPaid = g.paidMonths + 1;
     const isCompleted = nextPaid >= g.totalMonths;
 
-    await db.transaction('rw', [db.gam3eyat, db.transactions, db.wallets], async () => {
-      await db.gam3eyat.update(g.id!, {
-        paidMonths: nextPaid,
-        lastInstallmentPaidMonth: getLocalDateString().slice(0, 7),
-        lastInstallmentSkippedMonth: undefined,
-        status: isCompleted ? 'completed' : 'active',
+    try {
+      await db.transaction('rw', [db.gam3eyat, db.transactions, db.wallets], async () => {
+        // Re-read the wallet inside the transaction: a concurrent write (e.g. a
+        // transaction recorded moments ago) must not be overwritten with the
+        // stale balance captured from React state when the panel opened.
+        const currentWallet = await db.wallets.get(wallet.id);
+        if (!currentWallet?.id) {
+          throw new Error('المكان المالي المختار مش موجود. حدّث البيانات وحاول تاني.');
+        }
+        await db.gam3eyat.update(g.id!, {
+          paidMonths: nextPaid,
+          lastInstallmentPaidMonth: getLocalDateString().slice(0, 7),
+          lastInstallmentSkippedMonth: undefined,
+          status: isCompleted ? 'completed' : 'active',
+        });
+        await db.transactions.add({
+          type: 'expense',
+          amount: g.monthlyAmount,
+          category: 'جمعيات شهرية',
+          note: `قسط شهر (${nextPaid} من ${g.totalMonths}) - ${g.name}`,
+          date: getLocalDateString(),
+          createdAt: Date.now(),
+          walletId: currentWallet.id,
+        });
+        await db.wallets.update(currentWallet.id, {
+          balance: currentWallet.balance - g.monthlyAmount,
+        });
       });
-      await db.transactions.add({
-        type: 'expense',
-        amount: g.monthlyAmount,
-        category: 'جمعيات شهرية',
-        note: `قسط شهر (${nextPaid} من ${g.totalMonths}) - ${g.name}`,
-        date: getLocalDateString(),
-        createdAt: Date.now(),
-        walletId: wallet.id,
-      });
-      await db.wallets.update(wallet.id!, { balance: wallet.balance - g.monthlyAmount });
-    });
+    } catch (error) {
+      alert(
+        'تعذر تسجيل القسط: ' +
+          (error instanceof Error ? error.message : 'حدث خطأ غير متوقع على الجهاز'),
+      );
+      return;
+    }
 
     loadData();
   };
@@ -102,19 +119,33 @@ export const Gam3eyaGoldView: React.FC = () => {
     if (!g.id) return;
     const totalPayout = g.monthlyAmount * g.totalMonths;
 
-    await db.transaction('rw', [db.gam3eyat, db.transactions, db.wallets], async () => {
-      await db.gam3eyat.update(g.id!, { isCollected: true });
-      await db.transactions.add({
-        type: 'income',
-        amount: totalPayout,
-        category: 'قبض جمعية',
-        note: `قبض دور جمعية: ${g.name}`,
-        date: getLocalDateString(),
-        createdAt: Date.now(),
-        walletId: wallet.id,
+    try {
+      await db.transaction('rw', [db.gam3eyat, db.transactions, db.wallets], async () => {
+        // Re-read the wallet inside the transaction for the same reason as the
+        // installment path above; abort safely if it no longer exists.
+        const currentWallet = await db.wallets.get(wallet.id);
+        if (!currentWallet?.id) {
+          throw new Error('المكان المالي المختار مش موجود. حدّث البيانات وحاول تاني.');
+        }
+        await db.gam3eyat.update(g.id!, { isCollected: true });
+        await db.transactions.add({
+          type: 'income',
+          amount: totalPayout,
+          category: 'قبض جمعية',
+          note: `قبض دور جمعية: ${g.name}`,
+          date: getLocalDateString(),
+          createdAt: Date.now(),
+          walletId: currentWallet.id,
+        });
+        await db.wallets.update(currentWallet.id, { balance: currentWallet.balance + totalPayout });
       });
-      await db.wallets.update(wallet.id!, { balance: wallet.balance + totalPayout });
-    });
+    } catch (error) {
+      alert(
+        'تعذر تسجيل قبض الجمعية: ' +
+          (error instanceof Error ? error.message : 'حدث خطأ غير متوقع على الجهاز'),
+      );
+      return;
+    }
 
     loadData();
   };

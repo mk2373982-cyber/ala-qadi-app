@@ -50,7 +50,11 @@ export async function POST(req: Request) {
     response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(userId)));
     return response;
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('check-status request failed:', error);
+    return NextResponse.json(
+      { error: 'تعذر التحقق من حالة الاشتراك. حاول مرة أخرى.' },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    );
   }
 }
