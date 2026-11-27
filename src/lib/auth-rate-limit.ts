@@ -20,7 +20,11 @@ export class AuthRateLimitUnavailableError extends Error {
 }
 
 function digest(value: string) {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || 'ala-qaddi-local-only';
+  // Keyed with SESSION_SECRET so rate-limit keys are pseudonymized consistently across
+  // server instances. Falls back to the same constant as the per-instance local bucket
+  // mode only when SESSION_SECRET is not configured (local development); production
+  // deployments must set it (it is also required for user session signing).
+  const key = process.env.SESSION_SECRET || 'ala-qaddi-local-only';
   return createHmac('sha256', key).update(value).digest('hex');
 }
 

@@ -18,12 +18,30 @@ export function getLocalDateString(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-export function getNextMonthlyCycleDate(currentDate: string) {
-  const [year, month] = currentDate.split('-').map(Number);
+export function getNextMonthlyCycleDate(currentDate: string, dayOfMonth?: number) {
+  const [year, month, day] = currentDate.split('-').map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    throw new Error('تاريخ الدورة الشهرية غير صالح.');
+  }
   const nextMonthFirst = new Date(Date.UTC(year, month, 1));
   const nextYear = nextMonthFirst.getUTCFullYear();
-  const nextMonth = String(nextMonthFirst.getUTCMonth() + 1).padStart(2, '0');
-  return `${nextYear}-${nextMonth}-01`;
+  const nextMonth = nextMonthFirst.getUTCMonth() + 1; // 1-based
+  // Day 0 of the following 0-based month index = last day of `nextMonth`.
+  const lastDayOfNextMonth = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate();
+
+  // Honor the rule's stored day-of-month so schedules keep their chosen day
+  // (e.g. the 15th) instead of drifting to the 1st. End-of-month clamping:
+  // a rule on the 31st lands on the 30th in 30-day months and on Feb 28/29
+  // (leap year) in February. Fall back to the cycle date's own day when the
+  // stored value is missing or invalid, then to the 1st.
+  const requestedDay =
+    Number.isFinite(dayOfMonth) && dayOfMonth! >= 1
+      ? Math.round(dayOfMonth!)
+      : Number.isFinite(day) && day >= 1
+        ? day
+        : 1;
+  const clampedDay = Math.min(requestedDay, lastDayOfNextMonth);
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}`;
 }
 
 export async function applyRecurringOccurrence(
@@ -62,7 +80,10 @@ export async function applyRecurringOccurrence(
     }
 
     const cycleDate = rule.nextDueDate > today ? rule.nextDueDate : today;
-    const followingDate = getNextMonthlyCycleDate(cycleDate);
+    // Recompute from the rule's stored day-of-month, not from the (possibly
+    // clamped) cycle date, so a February 28 occurrence still returns to the
+    // 31st in March and drifted schedules self-heal on the next occurrence.
+    const followingDate = getNextMonthlyCycleDate(cycleDate, rule.dayOfMonth);
     const completedMonth = action === 'record' ? today.slice(0, 7) : undefined;
     await db.recurringTransactions.update(ruleId, {
       nextDueDate: followingDate,

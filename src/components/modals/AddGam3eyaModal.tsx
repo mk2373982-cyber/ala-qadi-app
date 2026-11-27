@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { db } from '@/lib/db';
-import { X, Check, Users, Calculator } from 'lucide-react';
+import { X, Check, Users } from 'lucide-react';
 
 interface AddGam3eyaModalProps {
   isOpen: boolean;

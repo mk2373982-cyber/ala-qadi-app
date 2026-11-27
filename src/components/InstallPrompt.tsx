@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Smartphone, Download, X } from 'lucide-react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export const InstallPrompt: React.FC = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -14,16 +19,16 @@ export const InstallPrompt: React.FC = () => {
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone;
+      Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
 
     if (isIosDevice && !isStandalone) {
       setIsIOS(true);
     }
 
     // Android / Chrome beforeinstallprompt event
-    const handleBeforeInstall = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setDeferredPrompt(event as BeforeInstallPromptEvent);
       setShowPrompt(true);
     };
 
@@ -54,10 +59,10 @@ export const InstallPrompt: React.FC = () => {
           <span>
             لتثبيت التطبيق على آيفون: اضغط زر{' '}
             <span className="font-bold underline">المشاركة (Share)</span> ثم اختر{' '}
-            <span className="font-bold underline">"إضافة للشاشة الرئيسية"</span>.
+            <span className="font-bold underline">&quot;إضافة للشاشة الرئيسية&quot;</span>.
           </span>
         ) : (
-          <span>هل تريد تثبيت تطبيق "على قدي" على هاتفك ليفتح كأي تطبيق أصلي؟</span>
+          <span>هل تريد تثبيت تطبيق &quot;على قدي&quot; على هاتفك ليفتح كأي تطبيق أصلي؟</span>
         )}
       </div>
 

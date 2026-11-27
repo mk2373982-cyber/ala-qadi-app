@@ -101,11 +101,11 @@ function mapUser(row: DbUser): UserAccount {
 function normalizePhone(phone: string) {
   return phone.trim().replace(/\s+/g, '');
 }
-function passwordHash(password: string) {
+export function passwordHash(password: string) {
   const salt = randomBytes(16).toString('hex');
   return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`;
 }
-function passwordMatches(password: string, stored: string) {
+export function passwordMatches(password: string, stored: string) {
   const [salt, hash] = stored.split(':');
   if (!salt || !hash) return false;
   const actual = scryptSync(password, salt, 64);
@@ -260,6 +260,14 @@ export async function updateUserStatus(
   return patchUser(userId, changes);
 }
 
+export async function resetUserPassword(userId: string, newPassword: string) {
+  const normalized = typeof newPassword === 'string' ? newPassword.trim() : '';
+  if (normalized.length < 8 || newPassword.length > 128) {
+    throw new Error('كلمة المرور الجديدة يجب أن تكون من 8 إلى 128 حرفًا.');
+  }
+  return patchUser(userId, { password_hash: passwordHash(normalized) });
+}
+
 export async function reviewPayment(
   userId: string,
   decision: 'confirm' | 'reject',
@@ -343,7 +351,7 @@ export async function saveUserBackup(
 const defaultSettings: AdminSettings = {
   paymentPhone: '',
   paymentInstapay: '',
-  instapayLink: 'https://ipn.eg/S/mohamedkhames2059920/instapay/4Lpi6k',
+  instapayLink: '',
   whatsappNumber: '',
   pricingNote: '',
 };
@@ -396,6 +404,8 @@ export function verifyAdminPassword(password: string) {
   return timingSafeEqual(actual, expected);
 }
 
+export const ADMIN_SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60;
+
 export function createAdminSession() {
   const secret = process.env.ADMIN_PASSWORD;
   if (!secret) throw new Error('اضبط ADMIN_PASSWORD في إعدادات البيئة قبل استخدام لوحة الإدارة.');
@@ -403,19 +413,25 @@ export function createAdminSession() {
     throw new Error(
       'كلمة مرور الإدارة قصيرة. حدّث ADMIN_PASSWORD في إعدادات Vercel إلى 14 حرفاً على الأقل.',
     );
-  const expiresAt = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
-  const signature = createHmac('sha256', secret).update(String(expiresAt)).digest('base64url');
-  return `${expiresAt}.${signature}`;
+  const expiresAt = Math.floor(Date.now() / 1000) + ADMIN_SESSION_DURATION_SECONDS;
+  // A random nonce makes each issued admin token unique even within the same second,
+  // so a leaked cookie cannot be re-derived from the expiry timestamp alone.
+  const nonce = randomBytes(16).toString('hex');
+  const payload = `${expiresAt}.${nonce}`;
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
 }
 
 export function verifyAdminSession(session: string | undefined) {
   const secret = process.env.ADMIN_PASSWORD;
   if (!secret || secret.length < 14 || !session) return false;
-  const [expiresText, signature] = session.split('.');
+  const parts = session.split('.');
+  if (parts.length !== 3) return false;
+  const [expiresText, nonce, signature] = parts;
   const expiresAt = Number(expiresText);
-  if (!Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000) || !signature)
-    return false;
-  const expected = createHmac('sha256', secret).update(expiresText).digest();
+  if (!Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return false;
+  if (!/^[0-9a-f]{32}$/i.test(nonce)) return false;
+  const expected = createHmac('sha256', secret).update(`${expiresText}.${nonce}`).digest();
   let actual: Buffer;
   try {
     actual = Buffer.from(signature, 'base64url');
@@ -429,8 +445,12 @@ const USER_SESSION_COOKIE = 'ala_qaddi_user_session';
 const USER_SESSION_DURATION_SECONDS = 30 * 24 * 60 * 60;
 
 function userSessionKey() {
-  if (!SUPABASE_KEY) throw new Error('قاعدة البيانات غير متصلة.');
-  return createHmac('sha256', SUPABASE_KEY).update('ala-qaddi-user-session-v1').digest();
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32)
+    throw new Error(
+      'اضبط SESSION_SECRET في إعدادات البيئة (32 حرفًا عشوائيًا على الأقل) قبل تشغيل تسجيل الدخول.',
+    );
+  return createHmac('sha256', secret).update('ala-qaddi-user-session-v1').digest();
 }
 
 export function createUserSession(userId: string) {

@@ -506,6 +506,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ userId, userName, 
                 return (
                   <button
                     type="button"
+                    key={wallet.id}
                     aria-label={`تعديل ${wallet.name}`}
                     onClick={() => openWalletEdit(wallet)}
                     className="min-w-[142px] max-w-[190px] flex-1 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-3 text-right transition hover:border-emerald-300 hover:bg-emerald-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
@@ -1063,7 +1064,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ userId, userName, 
 
         {recentTransactions.length === 0 ? (
           <div className="text-center py-8 text-slate-400 text-xs">
-            لم تسجل أي معاملات بعد. اضغط على "تسجيل معاملة" للبدء الآن!
+            لم تسجل أي معاملات بعد. اضغط على &quot;تسجيل معاملة&quot; للبدء الآن!
           </div>
         ) : (
           <div className="divide-y divide-slate-100">

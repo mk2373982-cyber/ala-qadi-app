@@ -12,7 +12,11 @@ export async function GET() {
       whatsappNumber: settings.whatsappNumber,
       pricingNote: settings.pricingNote,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('public config request failed:', error);
+    return NextResponse.json(
+      { error: 'تعذر تحميل إعدادات الدفع. حاول مرة أخرى.' },
+      { status: 500 },
+    );
   }
 }

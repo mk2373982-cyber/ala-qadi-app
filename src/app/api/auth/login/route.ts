@@ -20,12 +20,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'البيانات المدخلة غير صالحة' }, { status: 400 });
     }
 
+    // Rate-limit on the same normalized phone that password verification uses, so
+    // whitespace variants cannot get a fresh per-identity attempt bucket.
+    const normalizedPhone = phone.trim().replace(/\s+/g, '');
+
     if (
       await isAuthRateLimited(req, {
         bucket: 'login',
         windowSeconds: 15 * 60,
         perIp: 40,
-        identity: phone,
+        identity: normalizedPhone,
         perIdentity: 8,
       })
     ) {
@@ -73,10 +77,10 @@ export async function POST(req: Request) {
     response.headers.append('Set-Cookie', clearLegacyUserSessionCookie());
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(user.id)));
     return response;
-  } catch (error: any) {
+  } catch (error) {
     const status = error instanceof AuthRateLimitUnavailableError ? 503 : 500;
     return NextResponse.json(
-      { error: error.message || 'فشل تسجيل الدخول' },
+      { error: (error instanceof Error ? error.message : '') || 'فشل تسجيل الدخول' },
       { status, headers: { 'Cache-Control': 'no-store' } },
     );
   }

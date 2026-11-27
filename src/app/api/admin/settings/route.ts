@@ -12,8 +12,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       settings: await getSettings(),
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'حدث خطأ غير متوقع' },
+      { status: 500 },
+    );
   }
 }
 
@@ -23,7 +26,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const updated = await updateSettings(body);
     return NextResponse.json({ success: true, settings: updated });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'حدث خطأ غير متوقع' },
+      { status: 500 },
+    );
   }
 }

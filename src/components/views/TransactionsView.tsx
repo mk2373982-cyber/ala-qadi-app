@@ -5,16 +5,7 @@ import { db, Transaction, Category, WalletAccount } from '@/lib/db';
 import { exportTransactionsToCSV } from '@/lib/export-import';
 import { askForConfirmation } from '@/lib/confirm-action';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import {
-  Search,
-  Filter,
-  Download,
-  Trash2,
-  Plus,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Calendar,
-} from 'lucide-react';
+import { Search, Download, Trash2, Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 interface TransactionsViewProps {
   onOpenAddModal: () => void;

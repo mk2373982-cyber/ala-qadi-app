@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     );
     response.headers.append('Set-Cookie', userSessionCookie(createUserSession(newUser.id)));
     return response;
-  } catch (error: any) {
+  } catch (error) {
     const status = error instanceof AuthRateLimitUnavailableError ? 503 : 500;
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ أثناء التسجيل' },
+      { error: (error instanceof Error ? error.message : '') || 'حدث خطأ أثناء التسجيل' },
       { status, headers: { 'Cache-Control': 'no-store' } },
     );
   }
